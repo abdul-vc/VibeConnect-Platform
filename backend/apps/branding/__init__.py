@@ -1,0 +1,1 @@
+"""Branding domain application package."""
