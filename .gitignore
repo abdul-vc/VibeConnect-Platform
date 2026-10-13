@@ -1,0 +1,56 @@
+# Environment & Local Secrets
+.env
+.env.*
+*.env
+!*.env.example
+!**/.env.example
+.qa_secrets/
+*.pem
+*.key
+
+# Database Backups & Dumps
+backups/
+*.sql
+*.dump
+*.backup
+*.sql.gz
+*.sqlite3
+*.db
+
+# Logs & Temporary Files
+*.log
+*.tmp
+scratch/
+
+# Python & Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/venv/
+venv/
+.venv/
+ENV/
+env/
+.pytest_cache/
+local_settings.py
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+build/
+.pnp
+.pnp.js
+coverage/
+.vite/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
