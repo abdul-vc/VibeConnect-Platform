@@ -1,4 +1,4 @@
-"""SSO API Views (Phase 5C).
+"""SSO API Views (Phase 5C, Trinity Workshop & FieldSense Operations Hub SSO).
 
 Endpoints:
 - POST /api/v1/sso/launch/

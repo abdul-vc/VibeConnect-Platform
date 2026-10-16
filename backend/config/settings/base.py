@@ -284,9 +284,14 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-# M2M Service-to-Service Configuration for Integration (Phase 5C)
+# M2M Service-to-Service Configuration for Integration (Phase 5C, Trinity Workshop, FieldSense)
 VIBECONNECT_LMS_M2M_SECRET = os.environ.get("VIBECONNECT_LMS_M2M_SECRET", "").strip()
 VIBECONNECT_LMS_BACKEND_URL = os.environ.get("VIBECONNECT_LMS_BACKEND_URL", "").strip()
+VIBECONNECT_TRINITY_M2M_SECRET = os.environ.get("VIBECONNECT_TRINITY_M2M_SECRET", "").strip()
+VIBECONNECT_TRINITY_CALLBACK_URI = os.environ.get("VIBECONNECT_TRINITY_CALLBACK_URI", "").strip()
+VIBECONNECT_FIELDSENSE_M2M_SECRET = os.environ.get("VIBECONNECT_FIELDSENSE_M2M_SECRET", "").strip()
+VIBECONNECT_FIELDSENSE_CALLBACK_URI = os.environ.get("VIBECONNECT_FIELDSENSE_CALLBACK_URI", "").strip()
+VIBECONNECT_M2M_SECRET = os.environ.get("VIBECONNECT_M2M_SECRET", "").strip()
 
 # Quiz Integration Configuration
 QUIZ_API_BASE_URL = os.environ.get("QUIZ_API_BASE_URL", "https://quizz.digielvestech.in").strip().rstrip("/")

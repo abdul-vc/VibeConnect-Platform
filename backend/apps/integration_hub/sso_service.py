@@ -1,4 +1,4 @@
-"""SSO Service for LMS Integration (Phase 5C).
+"""SSO Service for LMS, Trinity Workshop, and FieldSense Operations Hub Integration.
 
 Provides:
 - Short-lived, single-use, PKCE-supported authorization code issuance.
@@ -264,18 +264,106 @@ def validate_sso_authorization_code(
     }
 
 
-def get_m2m_connector_secret(product_code: str = "lms") -> str:
+def is_fieldsense_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to FieldSense Operations Hub."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower == "fieldsense-ops-hub" or "fieldsense" in client_id_lower:
+        return True
+    if prod_code_lower in ("fieldsense", "fieldsense-ops-hub"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("fieldsense", "fieldsense-ops-hub"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def is_trinity_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to Trinity Workshop."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower == "trinity-workshop-app" or "trinity" in client_id_lower:
+        return True
+    if prod_code_lower in ("workshop-trinity", "workshop"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("workshop-trinity", "workshop"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def get_m2m_connector_secret(
+    product_code: Optional[str] = None,
+    client_identifier: Optional[str] = None,
+) -> str:
     """Retrieves the configured M2M secret for backend-to-backend authentication.
 
-    Loads from settings or environment. Never exposes the secret to clients.
+    Per-client and per-product secret isolation:
+    - FieldSense Operations Hub ('fieldsense-ops-hub' / 'fieldsense'):
+        Uses ONLY VIBECONNECT_FIELDSENSE_M2M_SECRET. Fails closed if missing.
+        Never falls back to Trinity, LMS, or any shared secret.
+    - Trinity Workshop ('trinity-workshop-app' / 'workshop-trinity'):
+        Loads VIBECONNECT_TRINITY_M2M_SECRET with fallback to VIBECONNECT_M2M_SECRET.
+    - LMS / Default ('pilot_lms_client' / 'lms' / other clients):
+        Loads VIBECONNECT_LMS_M2M_SECRET with fallback to VIBECONNECT_M2M_SECRET.
+
+    Never exposes or logs secret values.
     Raises exceptions.AuthenticationFailed if not configured.
     """
-    secret = (
-        getattr(settings, "VIBECONNECT_LMS_M2M_SECRET", None)
-        or os.environ.get("VIBECONNECT_LMS_M2M_SECRET", "")
-    ).strip()
+    if is_fieldsense_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_FIELDSENSE_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_FIELDSENSE_M2M_SECRET", "")
+        ).strip()
+        if not secret:
+            raise exceptions.AuthenticationFailed(
+                {
+                    "error": "SERVER_MISCONFIGURED",
+                    "detail": "FieldSense M2M connector secret is not configured on the server.",
+                }
+            )
+        return secret
+
+    if is_trinity_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_TRINITY_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_TRINITY_M2M_SECRET", "")
+        ).strip()
+    else:
+        secret = (
+            getattr(settings, "VIBECONNECT_LMS_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_LMS_M2M_SECRET", "")
+        ).strip()
+
     if not secret:
-        secret = os.environ.get("VIBECONNECT_M2M_SECRET", "").strip()
+        secret = (
+            getattr(settings, "VIBECONNECT_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_M2M_SECRET", "")
+        ).strip()
     if not secret:
         raise exceptions.AuthenticationFailed(
             {"error": "SERVER_MISCONFIGURED", "detail": "M2M connector secret is not configured on the server."}
