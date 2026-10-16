@@ -1,0 +1,1 @@
+"""Product Registry migrations package."""

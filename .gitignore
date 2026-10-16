@@ -1,0 +1,25 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+.npm/
+dist/
+build/
+.next/
+
+# Environments and Secrets
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+*.log

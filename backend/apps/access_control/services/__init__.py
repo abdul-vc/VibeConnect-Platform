@@ -1,0 +1,41 @@
+"""Access control domain services package."""
+
+from apps.access_control.services.guards import (
+    AccessControlError,
+    AccessControlValidationError,
+    InsufficientPrivilegesError,
+    LastAdminProtectionError,
+    MembershipNotActiveError,
+    ModuleCannotBeDisabledError,
+    ModuleDisabledError,
+    ModuleNotFoundError,
+    OrganizationNotActiveError,
+    PermissionNotFoundError,
+    PermissionOutsideCeilingError,
+    RoleAlreadyExistsError,
+    RoleInUseError,
+    RoleNotAssignableToMemberError,
+    RoleNotFoundError,
+    RoleRetiredError,
+    SystemRoleImmutableError,
+)
+
+__all__ = [
+    "AccessControlError",
+    "AccessControlValidationError",
+    "InsufficientPrivilegesError",
+    "LastAdminProtectionError",
+    "MembershipNotActiveError",
+    "ModuleCannotBeDisabledError",
+    "ModuleDisabledError",
+    "ModuleNotFoundError",
+    "OrganizationNotActiveError",
+    "PermissionNotFoundError",
+    "PermissionOutsideCeilingError",
+    "RoleAlreadyExistsError",
+    "RoleInUseError",
+    "RoleNotAssignableToMemberError",
+    "RoleNotFoundError",
+    "RoleRetiredError",
+    "SystemRoleImmutableError",
+]
