@@ -121,7 +121,7 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({ isMobile = fal
           organization_id: ctx.organization.id,
         })) as any;
         if (res?.active_context?.membership_type === "member" || ctx.membership_type === "member") {
-          navigate("/tenant/products");
+          navigate("/tenant/dashboard");
         } else {
           navigate("/tenant");
         }

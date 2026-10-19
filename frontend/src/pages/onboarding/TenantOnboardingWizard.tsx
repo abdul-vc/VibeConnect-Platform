@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tenant Onboarding Wizard Page (Phase 3B).
  *
  * Platform Owner wizard for provisioning new tenant organizations end-to-end:
@@ -25,6 +25,7 @@ import {
   BuildingIcon,
   CheckCircleIcon,
   LayersIcon,
+  ShieldCheckIcon,
   UserIcon,
 } from "../../components/Icons.tsx";
 
@@ -43,6 +44,8 @@ export const TenantOnboardingWizard: React.FC = () => {
   const [currentCase, setCurrentCase] = useState<TenantOnboardingCase | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [activationUrl, setActivationUrl] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -223,6 +226,9 @@ export const TenantOnboardingWizard: React.FC = () => {
         step_data: {},
       });
       setCurrentCase(updated);
+      if (updated.initial_admin_activation_url) {
+        setActivationUrl(updated.initial_admin_activation_url);
+      }
     } catch (err: unknown) {
       const errorObj = err as { data?: { detail?: string } };
       setGeneralError(errorObj?.data?.detail || "Provisioning failed. Please check inputs and retry.");
@@ -327,6 +333,53 @@ export const TenantOnboardingWizard: React.FC = () => {
             <p className="text-body" style={{ maxWidth: "540px", margin: "0 auto 1.5rem auto" }}>
               <strong>{currentCase?.organization_name}</strong> (<code>{currentCase?.organization_code}</code>) is fully configured with administrator privileges assigned to <strong>{currentCase?.admin_email}</strong>.
             </p>
+
+            {activationUrl && (
+              <div
+                className="glass-panel"
+                style={{
+                  maxWidth: "580px",
+                  margin: "0 auto 1.75rem auto",
+                  padding: "1.25rem",
+                  textAlign: "left",
+                  background: "rgba(99, 102, 241, 0.08)",
+                  border: "1px solid rgba(99, 102, 241, 0.25)",
+                  borderRadius: "8px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem", color: "var(--brand-primary, #6366f1)", fontWeight: 600, fontSize: "0.875rem" }}>
+                  <ShieldCheckIcon size={18} />
+                  <span>Initial Tenant Admin Activation Link</span>
+                </div>
+                <p className="text-secondary" style={{ fontSize: "0.8125rem", margin: "0 0 0.75rem 0", lineHeight: 1.5 }}>
+                  Bearer secret: Available at issuance if email delivery is delayed. Valid for single-use activation.
+                </p>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    readOnly
+                    value={activationUrl}
+                    className="input-field"
+                    style={{ flex: 1, fontSize: "0.8125rem", fontFamily: "monospace" }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                        void navigator.clipboard.writeText(activationUrl);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2500);
+                      }
+                    }}
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    {copiedLink ? "Copied! ✓" : "Copy Link"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
               <button
                 type="button"
@@ -339,6 +392,8 @@ export const TenantOnboardingWizard: React.FC = () => {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
+                  setActivationUrl(null);
+                  setCopiedLink(false);
                   setSearchParams({}, { replace: true });
                   void initializeCase();
                 }}

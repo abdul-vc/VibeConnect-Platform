@@ -28,7 +28,20 @@ from apps.integration_hub.sso_service import (
     issue_sso_authorization_code,
     validate_sso_authorization_code,
 )
-from apps.organizations.models import Organization
+from apps.integration_hub.lifecycle_service import is_lms_product
+from apps.integration_hub.lms_launch_grant_client import (
+    LmsLaunchGrantAuthError,
+    LmsLaunchGrantConflictError,
+    LmsLaunchGrantError,
+    LmsLaunchGrantNotFoundError,
+    is_lms_launch_grant_configured,
+    request_lms_launch_grant,
+)
+from apps.integration_hub.provisioning_service import (
+    provision_tenant_to_lms,
+    provision_user_to_lms,
+)
+from apps.organizations.models import MembershipType, Organization, OrganizationMembership
 from apps.product_registry.models import Product
 
 
@@ -80,6 +93,242 @@ class SsoLaunchView(APIView):
                 {"error": "ORGANIZATION_NOT_FOUND", "detail": "Organization does not exist."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        if product.code == "quiz":
+            from datetime import timedelta
+            from django.utils import timezone
+            from apps.assignments.constants import AccessState
+            from apps.assignments.models import AssignmentStatus, UserProductAssignment
+            from apps.assignments.services.effective_access import compute_user_tenant_effective_access
+            from apps.showcase.models import ProductDemoEnvironment
+
+            effective_data = compute_user_tenant_effective_access(request.user, organization)
+            entitled_prod_ids = {
+                p.get("id")
+                for p in effective_data.get("entitled_products", [])
+                if p.get("access_state") == AccessState.AVAILABLE or p.get("is_entitled")
+            }
+            if str(product.id) not in entitled_prod_ids:
+                matching_prod = next(
+                    (p for p in effective_data.get("products", []) if p.get("id") == str(product.id)),
+                    None,
+                )
+                denial = matching_prod.get("denial_code") if matching_prod else "ACCESS_DENIED"
+                raise exceptions.PermissionDenied(
+                    {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
+                )
+
+            assignment = UserProductAssignment.objects.filter(
+                user=request.user,
+                organization=organization,
+                product=product,
+                status=AssignmentStatus.ACTIVE,
+            ).first()
+            if not assignment:
+                raise exceptions.PermissionDenied(
+                    {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                )
+
+            from apps.integration_hub.quiz_sso_client import (
+                is_quiz_sso_configured,
+                request_quiz_launch_grant,
+                QuizSsoAuthError,
+                QuizSsoConflictError,
+                QuizSsoError,
+            )
+
+            if is_quiz_sso_configured():
+                try:
+                    first_name = getattr(request.user, "first_name", "") or ""
+                    last_name = getattr(request.user, "last_name", "") or ""
+                    if not first_name:
+                        full_name = getattr(request.user, "full_name", "") or ""
+                        if full_name:
+                            name_parts = full_name.strip().split(maxsplit=1)
+                            first_name = name_parts[0]
+                            last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+                    grant = request_quiz_launch_grant(
+                        user_id=str(request.user.id),
+                        tenant_id=str(organization.id),
+                        email=getattr(request.user, "email", "") or "",
+                        first_name=first_name,
+                        last_name=last_name,
+                        phone=getattr(request.user, "phone", "") or "",
+                        context="standard",
+                        target_path="/dashboard",
+                    )
+                    return Response(
+                        {
+                            "redirect_url": grant["callback_url"],
+                            "expires_at": (timezone.now() + timedelta(minutes=5)).isoformat(),
+                            "direct_launch": False,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except QuizSsoConflictError as exc:
+                    return Response(
+                        {"error": "QUIZ_ACCOUNT_CONFLICT", "detail": exc.message},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                except QuizSsoAuthError as exc:
+                    return Response(
+                        {"error": "QUIZ_SSO_UNAUTHORIZED", "detail": "Quiz SSO M2M authentication failed."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                except QuizSsoError as exc:
+                    return Response(
+                        {"error": "QUIZ_SSO_FAILED", "detail": exc.message},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+
+            demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+            direct_url = demo_env.base_url if demo_env else "https://quiz.digielvestech.in/"
+
+            return Response(
+                {
+                    "redirect_url": direct_url,
+                    "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+                    "direct_launch": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if is_lms_product(product):
+            if is_lms_launch_grant_configured():
+                from datetime import timedelta
+                from django.utils import timezone
+                from apps.assignments.constants import AccessState
+                from apps.assignments.models import AssignmentStatus, UserProductAssignment
+                from apps.assignments.services.effective_access import compute_user_tenant_effective_access
+
+                effective_data = compute_user_tenant_effective_access(request.user, organization)
+                entitled_prod_ids = {
+                    p.get("id")
+                    for p in effective_data.get("entitled_products", [])
+                    if p.get("access_state") == AccessState.AVAILABLE or p.get("is_entitled")
+                }
+                if str(product.id) not in entitled_prod_ids:
+                    matching_prod = next(
+                        (p for p in effective_data.get("products", []) if p.get("id") == str(product.id)),
+                        None,
+                    )
+                    denial = matching_prod.get("denial_code") if matching_prod else "ACCESS_DENIED"
+                    raise exceptions.PermissionDenied(
+                        {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
+                    )
+
+                assignment = UserProductAssignment.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                    product=product,
+                    status=AssignmentStatus.ACTIVE,
+                ).first()
+                if not assignment:
+                    raise exceptions.PermissionDenied(
+                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                    )
+
+                from apps.integration_hub.models import (
+                    ExternalTenantMapping,
+                    ExternalUserMapping,
+                    ExternalUserMappingStatus,
+                    ProvisioningJob,
+                    ProvisioningJobStatus,
+                )
+
+                pending_job = ProvisioningJob.objects.filter(
+                    organization=organization,
+                    user__in=[None, request.user],
+                    status__in=[ProvisioningJobStatus.QUEUED, ProvisioningJobStatus.PROCESSING],
+                ).first()
+                if pending_job:
+                    return Response(
+                        {
+                            "error": "PROVISIONING_PENDING",
+                            "detail": "LMS provisioning is still in progress. Please try again shortly.",
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                membership = OrganizationMembership.objects.filter(
+                    organization=organization,
+                    user=request.user,
+                    status="active",
+                ).first()
+                is_tenant_admin = bool(
+                    membership and membership.membership_type == MembershipType.TENANT_ADMIN
+                )
+                target_route = "/org-admin" if is_tenant_admin else "/dashboard"
+
+                has_tenant_mapping = ExternalTenantMapping.objects.filter(
+                    organization=organization
+                ).exists()
+                has_user_mapping = ExternalUserMapping.objects.filter(
+                    organization=organization,
+                    user=request.user,
+                    status=ExternalUserMappingStatus.ACTIVE,
+                ).exists()
+
+                if not (has_tenant_mapping and has_user_mapping):
+                    try:
+                        if not has_tenant_mapping:
+                            provision_tenant_to_lms(organization)
+                        if not has_user_mapping:
+                            provision_user_to_lms(request.user, organization)
+                    except Exception as exc:
+                        return Response(
+                            {
+                                "error": "PROVISIONING_FAILED",
+                                "detail": f"LMS provisioning failed: {exc}",
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                try:
+                    try:
+                        grant = request_lms_launch_grant(
+                            external_tenant_id=str(organization.id),
+                            external_user_id=str(request.user.id),
+                            context="standard",
+                            target_route=target_route,
+                        )
+                    except LmsLaunchGrantNotFoundError:
+                        # Upstream mapping missing; execute idempotent provisioning and retry
+                        provision_tenant_to_lms(organization)
+                        provision_user_to_lms(request.user, organization)
+                        grant = request_lms_launch_grant(
+                            external_tenant_id=str(organization.id),
+                            external_user_id=str(request.user.id),
+                            context="standard",
+                            target_route=target_route,
+                        )
+
+                    expires_in = grant.get("expires_in", 60)
+                    expires_at = (timezone.now() + timedelta(seconds=expires_in)).isoformat()
+                    return Response(
+                        {
+                            "redirect_url": grant["callback_url"],
+                            "expires_at": expires_at,
+                            "direct_launch": False,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except LmsLaunchGrantConflictError as exc:
+                    return Response(
+                        {"error": "LMS_ACCOUNT_CONFLICT", "detail": exc.message},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                except LmsLaunchGrantAuthError:
+                    return Response(
+                        {"error": "LMS_SSO_UNAUTHORIZED", "detail": "LMS SSO M2M authentication failed."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                except LmsLaunchGrantError as exc:
+                    return Response(
+                        {"error": "LMS_SSO_FAILED", "detail": exc.message},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
 
         result = issue_sso_authorization_code(
             user=request.user,
@@ -171,6 +420,33 @@ class SsoPilotStatusView(APIView):
         organization_id = request.query_params.get("organization_id")
         if not product_id:
             return Response({"sso_enabled": False}, status=status.HTTP_200_OK)
+
+        product = Product.objects.filter(id=product_id).first()
+        if product and product.code == "quiz":
+            from apps.integration_hub.quiz_sso_client import is_quiz_sso_configured
+
+            sso_configured = is_quiz_sso_configured()
+            return Response(
+                {
+                    "product_id": product_id,
+                    "organization_id": organization_id,
+                    "sso_enabled": True,
+                    "client_identifier": "quiz_sso" if sso_configured else "quiz_direct_launch",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if product and is_lms_product(product):
+            if is_lms_launch_grant_configured():
+                return Response(
+                    {
+                        "product_id": product_id,
+                        "organization_id": organization_id,
+                        "sso_enabled": True,
+                        "client_identifier": "lms_launch_grant",
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         sso_client = ProductSsoClient.objects.filter(
             product_id=product_id,

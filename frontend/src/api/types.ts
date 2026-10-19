@@ -1565,6 +1565,7 @@ export interface TenantOnboardingCase {
   readonly plan_price: string | null;
   readonly is_trial: boolean;
   readonly created_organization_id: string | null;
+  readonly initial_admin_activation_url?: string | null;
   readonly started_at: string;
   readonly completed_at: string | null;
   readonly updated_at: string;
@@ -1623,6 +1624,7 @@ export interface IssueInvitationResponse {
   readonly status: InvitationStatus;
   readonly expires_at: string;
   readonly raw_token?: string;
+  readonly activation_url?: string;
 }
 
 // ============================================================================

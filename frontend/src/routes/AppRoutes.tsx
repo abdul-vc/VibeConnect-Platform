@@ -213,6 +213,12 @@ const TenantDashboardPage = lazy(() =>
   }))
 );
 
+const TenantMemberDashboardPage = lazy(() =>
+  import("../pages/tenant/TenantMemberDashboardPage.tsx").then((m) => ({
+    default: m.TenantMemberDashboardPage,
+  }))
+);
+
 const TenantMyProductsPage = lazy(() =>
   import("../pages/tenant/TenantMyProductsPage.tsx").then((m) => ({
     default: m.TenantMyProductsPage,
@@ -408,6 +414,16 @@ export const AppRoutes: FC = () => {
                   <ProtectedRoute requiredContext="tenant" adminOnly={true}>
                     <Suspense fallback={<ContextLoadingFallback />}>
                       <TenantDashboardPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tenant/dashboard"
+                element={
+                  <ProtectedRoute requiredContext="tenant">
+                    <Suspense fallback={<ContextLoadingFallback />}>
+                      <TenantMemberDashboardPage />
                     </Suspense>
                   </ProtectedRoute>
                 }

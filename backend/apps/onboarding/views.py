@@ -1,4 +1,4 @@
-﻿"""Tenant Onboarding API Views & Serializers (Phase 3B).
+"""Tenant Onboarding API Views & Serializers (Phase 3B).
 
 Provides:
 - POST /api/v1/onboarding/cases/ (Initialize new case)
@@ -6,6 +6,7 @@ Provides:
 - PATCH /api/v1/onboarding/cases/<id>/step/ (Advance step with validation)
 """
 
+from django.conf import settings
 from rest_framework import exceptions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -26,6 +27,14 @@ class TenantOnboardingCaseSerializer(serializers.ModelSerializer):
     created_organization_id = serializers.UUIDField(source="created_organization.id", read_only=True)
     plan_name = serializers.CharField(source="plan_version.plan.name", read_only=True)
     plan_version_number = serializers.IntegerField(source="plan_version.version", read_only=True)
+    initial_admin_activation_url = serializers.SerializerMethodField()
+
+    def get_initial_admin_activation_url(self, obj):
+        raw_token = getattr(obj, "initial_admin_activation_token", None)
+        if not raw_token:
+            return None
+        frontend_base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        return f"{frontend_base}/invitations/accept/{raw_token}"
 
     class Meta:
         model = TenantOnboardingCase
@@ -44,6 +53,7 @@ class TenantOnboardingCaseSerializer(serializers.ModelSerializer):
             "plan_price",
             "is_trial",
             "created_organization_id",
+            "initial_admin_activation_url",
             "started_at",
             "completed_at",
             "updated_at",
@@ -55,9 +65,11 @@ class TenantOnboardingCaseSerializer(serializers.ModelSerializer):
             "completed_at",
             "updated_at",
             "created_organization_id",
+            "initial_admin_activation_url",
             "plan_name",
             "plan_version_number",
         ]
+
 
 
 class StepTransitionPayloadSerializer(serializers.Serializer):

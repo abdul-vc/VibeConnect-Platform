@@ -47,7 +47,7 @@ export const LoginPage: React.FC = () => {
         navigate("/", { replace: true });
       } else if (authenticatedUser.active_context?.type === "tenant") {
         if (authenticatedUser.active_context.membership_type === "member") {
-          navigate("/tenant/products", { replace: true });
+          navigate("/tenant/dashboard", { replace: true });
         } else {
           navigate("/tenant", { replace: true });
         }

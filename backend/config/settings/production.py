@@ -62,3 +62,22 @@ X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Phase 3A: Email & Frontend Configuration for Production
+if not FRONTEND_BASE_URL:
+    raise ImproperlyConfigured("FRONTEND_BASE_URL environment variable is mandatory in production.")
+
+if not FRONTEND_BASE_URL.startswith("https://"):
+    raise ImproperlyConfigured("FRONTEND_BASE_URL must use HTTPS in production.")
+
+if not os.environ.get("DJANGO_EMAIL_BACKEND"):
+    raise ImproperlyConfigured("DJANGO_EMAIL_BACKEND environment variable is mandatory in production.")
+
+if EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend":
+    raise ImproperlyConfigured("DJANGO_EMAIL_BACKEND cannot be console backend in production.")
+
+if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
+    if not EMAIL_HOST:
+        raise ImproperlyConfigured("DJANGO_EMAIL_HOST environment variable is mandatory when using SMTP in production.")
+    if not EMAIL_PORT:
+        raise ImproperlyConfigured("DJANGO_EMAIL_PORT environment variable is mandatory when using SMTP in production.")

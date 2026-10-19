@@ -468,7 +468,11 @@ def compute_user_tenant_effective_access(
             ),
         },
         "entitled_products": entitled_products_data,
-        "products": all_products_data,
+        "products": (
+            entitled_products_data
+            if membership.membership_type != MembershipType.TENANT_ADMIN
+            else all_products_data
+        ),
         "console_modules": console_modules_data,
         "seat_summary": {
             "total_assigned_seats": total_assigned_seats,

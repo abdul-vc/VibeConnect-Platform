@@ -1,5 +1,6 @@
 """REST API Views for User Invitations (Phase 3C)."""
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -63,13 +64,16 @@ class IssueInvitationView(APIView):
                 product=data.get("product_id"),
                 invited_by=actor,
             )
+            frontend_base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+            activation_url = f"{frontend_base}/invitations/accept/{raw_token}"
             return Response(
                 {
                     "id": str(invitation.id),
                     "email": invitation.email,
                     "status": invitation.status,
                     "expires_at": invitation.expires_at.isoformat(),
-                    "raw_token": raw_token,  # returned for testing/admin copy
+                    "raw_token": raw_token,  # returned for testing/admin copy at issuance
+                    "activation_url": activation_url,
                 },
                 status=status.HTTP_201_CREATED,
             )

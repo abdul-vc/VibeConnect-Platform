@@ -50,7 +50,7 @@ export const ContextSelectionPage: React.FC = () => {
           organization_id: ctx.organization.id,
         })) as any;
         if (res?.active_context?.membership_type === "member" || ctx.membership_type === "member") {
-          navigate("/tenant/products", { replace: true });
+          navigate("/tenant/dashboard", { replace: true });
         } else {
           navigate("/tenant", { replace: true });
         }

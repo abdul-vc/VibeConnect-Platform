@@ -9,6 +9,7 @@ import logging
 from typing import Any
 import uuid
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -146,24 +147,54 @@ def issue_invitation(
         invited_by=invited_by,
     )
 
-    # Dispatch notification asynchronously / safely
+    # Derive role display name
+    if membership_type == MembershipType.TENANT_ADMIN:
+        role_name = role.name if role and hasattr(role, "name") else "Tenant Administrator"
+    else:
+        role_name = role.name if role and hasattr(role, "name") else "Member"
+
+    # Construct activation link from configured frontend base URL and raw single-use token
+    frontend_base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+    activation_url = f"{frontend_base}/invitations/accept/{raw_token}"
+
+    body_template = (
+        "Hello,\n\n"
+        "You have been invited to join {{ org_name }} on VibeConnect as a {{ role_name }}.\n\n"
+        "Please click the secure link below to activate your account and establish your password:\n"
+        "{{ activation_url }}\n\n"
+        "This invitation link is single-use and will expire on {{ expires_at }}.\n"
+        "You must set your own password upon visiting this link to complete your account activation.\n\n"
+        "If you did not expect this invitation, please ignore this email."
+    )
+
+    # Dispatch notification and track delivery
     try:
-        notification_send(
+        delivery = notification_send(
             template_code="user_invitation",
             recipient_email=clean_email,
             context={
                 "org_name": organization.name,
                 "org_code": organization.code,
-                "invitation_token": raw_token,
+                "role_name": role_name,
+                "activation_url": activation_url,
                 "expires_at": str(invitation.expires_at),
+                "body_template": body_template,
             },
             execute_sync=True,
         )
+        if delivery and delivery.status == "failed":
+            logger.error(
+                "Invitation notification delivery permanently failed for invitation %s: %s",
+                invitation.id,
+                delivery.failure_reason,
+            )
     except Exception as exc:
-        logger.warning(
-            "Invitation notification delivery skipped/failed: %s",
-            type(exc).__name__,
+        logger.error(
+            "Invitation notification delivery dispatch failed for invitation %s: %s",
+            invitation.id,
+            exc,
         )
+        raise
 
     # Record audit event
     record_audit_event(

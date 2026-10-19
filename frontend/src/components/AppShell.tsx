@@ -35,6 +35,9 @@ import {
   CodeIcon,
 } from "./Icons.tsx";
 import { TENANT_MODULES_REGISTRY } from "../config/tenantModules.ts";
+import { tenantHomeApi } from "../api/tenantHome.ts";
+import { showcaseApi } from "../api/showcase.ts";
+import type { TenantProductAccessItem, ShowcaseProfile } from "../api/types.ts";
 
 function renderTenantIcon(icon: string) {
   switch (icon) {
@@ -61,6 +64,24 @@ function renderTenantIcon(icon: string) {
   }
 }
 
+interface NavSubItem {
+  readonly id: string;
+  readonly label: string;
+  readonly code?: string;
+  readonly path: string;
+  readonly active: boolean;
+  readonly product?: TenantProductAccessItem;
+}
+
+interface NavItem {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: React.ReactNode;
+  readonly path: string;
+  readonly active: boolean;
+  readonly subItems?: readonly NavSubItem[];
+}
+
 interface AppShellProps {
   readonly children: React.ReactNode;
   readonly fullWidth?: boolean;
@@ -78,6 +99,43 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
     user?.active_context?.type === "tenant" &&
     user?.active_context?.membership_type === "member";
   const hasMultipleContexts = (user?.available_contexts?.length || 0) > 1;
+
+  const [tenantProducts, setTenantProducts] = useState<readonly TenantProductAccessItem[]>([]);
+  const [showcaseProfiles, setShowcaseProfiles] = useState<readonly ShowcaseProfile[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    if (user?.active_context?.type === "tenant") {
+      tenantHomeApi
+        .getTenantHome()
+        .then((data) => {
+          if (!isCancelled) {
+            const prods =
+              data.entitled_products && data.entitled_products.length > 0
+                ? data.entitled_products
+                : (data.products ?? []).filter((p) => p.access_state === "available");
+            setTenantProducts(prods);
+          }
+        })
+        .catch(() => {
+          // Non-blocking graceful fallback
+        });
+    } else if (isOwnerContext) {
+      showcaseApi
+        .listProfiles({ visibility: "published" })
+        .then((data) => {
+          if (!isCancelled && data?.results) {
+            setShowcaseProfiles(data.results);
+          }
+        })
+        .catch(() => {
+          // Non-blocking graceful fallback
+        });
+    }
+    return () => {
+      isCancelled = true;
+    };
+  }, [user?.active_context?.type, user?.active_context?.organization?.id, isOwnerContext]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -116,7 +174,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  const navItems = isOwnerContext
+  const navItems: readonly NavItem[] = isOwnerContext
     ? [
         {
           id: "overview",
@@ -196,6 +254,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           icon: <StarIcon size={18} />,
           path: "/showcase",
           active: location.pathname.startsWith("/showcase"),
+          subItems: showcaseProfiles.map((p) => ({
+            id: `showcase-sub-${p.product_code}`,
+            label: p.product_name,
+            code: p.product_code,
+            path: `/showcase?product=${encodeURIComponent(p.product_code)}&demo=true`,
+            active:
+              location.pathname.startsWith("/showcase") &&
+              location.search.toLowerCase().includes(`product=${encodeURIComponent(p.product_code).toLowerCase()}`),
+          })),
         },
         {
           id: "notifications",
@@ -309,13 +376,28 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
     : isMember
     ? [
         {
+          id: "member-dashboard",
+          label: "Dashboard",
+          icon: <GridIcon size={18} />,
+          path: "/tenant/dashboard",
+          active: location.pathname === "/tenant/dashboard",
+        },
+        {
           id: "my-products",
-          label: "My Products & Launcher",
+          label: "My Products & App Launcher",
           icon: <BoxIcon size={18} />,
           path: "/tenant/products",
           active:
             location.pathname.startsWith("/tenant/products") ||
             location.pathname.startsWith("/tenant/workspace"),
+          subItems: tenantProducts.map((p) => ({
+            id: `member-sub-prod-${p.id}`,
+            label: p.name,
+            code: p.code,
+            path: `/tenant/workspace/${p.id}`,
+            active: location.pathname === `/tenant/workspace/${p.id}`,
+            product: p,
+          })),
         },
       ]
     : [
@@ -346,6 +428,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
               ? location.pathname.startsWith("/tenant/products") ||
                 location.pathname.startsWith("/tenant/workspace")
               : location.pathname.startsWith(mod.path),
+          subItems:
+            mod.path === "/tenant/products"
+              ? tenantProducts.map((p) => ({
+                  id: `tenant-admin-sub-prod-${p.id}`,
+                  label: p.name,
+                  code: p.code,
+                  path: `/tenant/workspace/${p.id}`,
+                  active: location.pathname === `/tenant/workspace/${p.id}`,
+                  product: p,
+                }))
+              : undefined,
         })),
         {
           id: "marketplace",
@@ -557,6 +650,28 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
                   <span className="sidebar-tooltip" role="tooltip">
                     {item.label}
                   </span>
+
+                  {/* Render dynamic submodules if present */}
+                  {item.subItems && item.subItems.length > 0 && (
+                    <div className={`sidebar-submodules-container ${item.subItems.some((s) => s.active) ? "has-active" : ""}`}>
+                      {item.subItems.map((sub) => (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(sub.path, { state: { product: sub.product } });
+                          }}
+                          className={`sidebar-sub-btn ${sub.active ? "active" : ""}`}
+                          title={sub.label}
+                          aria-label={sub.label}
+                        >
+                          <span className="sidebar-sub-btn-dot" aria-hidden="true" />
+                          <span className="sidebar-sub-btn-text">{sub.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </nav>
@@ -669,28 +784,81 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
                 Navigation
               </div>
               {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    navigate(item.path);
-                    closeDrawer();
-                  }}
-                  className="btn-ghost"
-                  style={{
-                    width: "100%",
-                    justifyContent: "flex-start",
-                    gap: "0.75rem",
-                    padding: "0.625rem 0.75rem",
-                    borderRadius: "8px",
-                    background: item.active ? "var(--brand-primary-light)" : "transparent",
-                    color: item.active ? "var(--brand-primary)" : "var(--text-secondary)",
-                    fontWeight: item.active ? 600 : 500,
-                  }}
-                >
-                  {item.icon}
-                  <span style={{ fontSize: "0.875rem" }}>{item.label}</span>
-                </button>
+                <div key={item.id} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate(item.path);
+                      closeDrawer();
+                    }}
+                    className="btn-ghost"
+                    style={{
+                      width: "100%",
+                      justifyContent: "flex-start",
+                      gap: "0.75rem",
+                      padding: "0.625rem 0.75rem",
+                      borderRadius: "8px",
+                      background: item.active ? "var(--brand-primary-light)" : "transparent",
+                      color: item.active ? "var(--brand-primary)" : "var(--text-secondary)",
+                      fontWeight: item.active ? 600 : 500,
+                    }}
+                  >
+                    {item.icon}
+                    <span style={{ fontSize: "0.875rem" }}>{item.label}</span>
+                  </button>
+
+                  {item.subItems && item.subItems.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                        marginLeft: "1.75rem",
+                        paddingLeft: "0.75rem",
+                        borderLeft: "1.5px solid var(--border-subtle)",
+                      }}
+                    >
+                      {item.subItems.map((sub) => (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={() => {
+                            navigate(sub.path, { state: { product: sub.product } });
+                            closeDrawer();
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                            width: "100%",
+                            padding: "0.375rem 0.6rem",
+                            borderRadius: "6px",
+                            background: sub.active ? "var(--brand-primary-light)" : "transparent",
+                            color: sub.active ? "var(--brand-primary)" : "var(--text-secondary)",
+                            fontWeight: sub.active ? 600 : 500,
+                            fontSize: "0.8125rem",
+                            border: "none",
+                            cursor: "pointer",
+                            textAlign: "left",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "5px",
+                              height: "5px",
+                              borderRadius: "50%",
+                              background: sub.active ? "var(--brand-primary)" : "var(--text-muted)",
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {sub.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -720,7 +888,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           display: grid;
           grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
           align-items: start;
-          transition: grid-template-columns 200ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: grid-template-columns 260ms cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: grid-template-columns;
           min-height: calc(100dvh - 56px);
           width: 100%;
           position: relative;
@@ -738,14 +907,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           border-right: 1px solid var(--border-subtle);
           pointer-events: none;
           z-index: 10;
-          transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: width 260ms cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: width;
         }
 
         /* Hover & Focus-Within Expansion (Desktop fine pointer only) */
         @media (hover: hover) and (pointer: fine) and (min-width: 768px) {
           .app-shell-body:has(.desktop-sidebar:hover),
           .app-shell-body:has(.desktop-sidebar:focus-within) {
-            --sidebar-width: 228px;
+            --sidebar-width: 264px;
           }
 
           .app-shell-body:has(.desktop-sidebar:hover) .sidebar-section-header,
@@ -753,6 +923,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             opacity: 1;
             transform: translateX(0);
             pointer-events: auto;
+            transition: opacity 200ms ease 45ms, transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 45ms;
           }
 
           .app-shell-body:has(.desktop-sidebar:hover) .sidebar-nav-label,
@@ -760,6 +931,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             opacity: 1;
             transform: translateX(0);
             pointer-events: auto;
+            transition: opacity 200ms ease 40ms, transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 40ms;
           }
 
           .app-shell-body:has(.desktop-sidebar:hover) .status-label-text,
@@ -767,6 +939,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             opacity: 1;
             transform: translateX(0);
             pointer-events: auto;
+            transition: opacity 200ms ease 45ms, transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 45ms;
+          }
+
+          /* Reveal submodules when sidebar is expanded */
+          .app-shell-body:has(.desktop-sidebar:hover) .sidebar-submodules-container,
+          .app-shell-body:has(.desktop-sidebar:focus-within) .sidebar-submodules-container {
+            opacity: 1;
+            pointer-events: auto;
+            max-height: 500px;
+            transition: opacity 220ms ease 60ms, max-height 280ms cubic-bezier(0.16, 1, 0.3, 1) 40ms;
           }
 
           /* Suppress floating tooltips when sidebar is expanded */
@@ -791,15 +973,19 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           align-self: start;
           user-select: none;
           z-index: 20;
+          contain: layout style;
+          will-change: width;
         }
 
         .sidebar-content-inner {
-          width: 228px;
+          width: 264px;
           height: 100%;
           display: flex;
           flex-direction: column;
           padding: 1.25rem 0;
           box-sizing: border-box;
+          transform: translateZ(0);
+          will-change: transform;
         }
 
         /* Section Header */
@@ -814,7 +1000,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           opacity: 0;
           transform: translateX(-8px);
           pointer-events: none;
-          transition: opacity 120ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: opacity 100ms ease, transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         /* Nav Item Wrapper & Button */
@@ -885,15 +1071,88 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         }
 
         .sidebar-nav-label {
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           font-weight: 600;
           white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
           opacity: 0;
           transform: translateX(-6px);
           pointer-events: none;
-          transition: opacity 120ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: opacity 100ms ease, transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
           padding-left: 0.25rem;
+          padding-right: 0.5rem;
           color: var(--text-primary);
+          max-width: 196px;
+        }
+
+        /* Submodule Styles */
+        .sidebar-submodules-container {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          margin-top: 2px;
+          margin-left: 20px;
+          padding-left: 10px;
+          border-left: 1.5px solid var(--border-subtle);
+          opacity: 0;
+          pointer-events: none;
+          max-height: 0;
+          overflow: hidden;
+          transition: opacity 100ms ease, max-height 180ms cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .sidebar-sub-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          width: 100%;
+          min-height: 30px;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          font-family: inherit;
+          font-size: 0.78125rem;
+          font-weight: 500;
+          text-align: left;
+          cursor: pointer;
+          transition: background-color 140ms ease, color 140ms ease;
+          box-sizing: border-box;
+          outline: none;
+        }
+
+        .sidebar-sub-btn:hover {
+          background: var(--glass-surface-hover);
+          color: var(--text-primary);
+        }
+
+        .sidebar-sub-btn.active {
+          background: var(--brand-primary-light);
+          color: var(--brand-primary);
+          font-weight: 600;
+        }
+
+        .sidebar-sub-btn-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: var(--text-muted);
+          flex-shrink: 0;
+          transition: background-color 140ms ease, transform 140ms ease;
+        }
+
+        .sidebar-sub-btn.active .sidebar-sub-btn-dot {
+          background: var(--brand-primary);
+          transform: scale(1.25);
+        }
+
+        .sidebar-sub-btn-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          min-width: 0;
         }
 
         /* Collapsed Floating Tooltip */
@@ -959,7 +1218,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           opacity: 0;
           transform: translateX(-6px);
           pointer-events: none;
-          transition: opacity 120ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: opacity 100ms ease, transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
           padding-right: 0.5rem;
         }
 
@@ -1058,9 +1317,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         /* Reduced Motion Override */
         @media (prefers-reduced-motion: reduce) {
           .app-shell-body,
+          .app-shell-body::before,
+          .desktop-sidebar,
           .sidebar-section-header,
           .sidebar-nav-label,
-          .status-label-text {
+          .status-label-text,
+          .sidebar-submodules-container,
+          .sidebar-sub-btn,
+          .sidebar-sub-btn-dot {
             transition: none !important;
           }
         }

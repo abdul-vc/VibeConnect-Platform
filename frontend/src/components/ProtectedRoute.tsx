@@ -137,7 +137,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Block tenant members from adminOnly routes
   if (adminOnly && isTenantMember) {
-    return <Navigate to="/tenant/products" replace />;
+    return <Navigate to="/tenant/dashboard" replace />;
   }
 
   // Enforce context type if required by route (normalizing "owner" alias to "platform_owner")
@@ -147,23 +147,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return <Navigate to="/" replace />;
     }
     if (user.active_context.type === "tenant") {
-      return <Navigate to={isTenantMember ? "/tenant/products" : "/tenant"} replace />;
+      return <Navigate to={isTenantMember ? "/tenant/dashboard" : "/tenant"} replace />;
     }
     return <Navigate to="/select-context" replace />;
   }
 
   // Enforce module if required by route (reads solely from user.active_context)
   if (requiredModule) {
-    const isMemberMyProducts =
+    const isMemberAllowedPage =
       isTenantMember &&
-      requiredModule === "tenant_my_products" &&
-      location.pathname === "/tenant/products";
+      ((requiredModule === "tenant_my_products" && location.pathname === "/tenant/products") ||
+        location.pathname === "/tenant/dashboard");
 
-    if (!isMemberMyProducts) {
+    if (!isMemberAllowedPage) {
       const allowedModules = user.active_context.allowed_modules ?? [];
       if (!allowedModules.includes(requiredModule)) {
         if (user.active_context.type === "tenant") {
-          return <Navigate to={isTenantMember ? "/tenant/products" : "/tenant"} replace />;
+          return <Navigate to={isTenantMember ? "/tenant/dashboard" : "/tenant"} replace />;
         }
         return <Navigate to="/" replace />;
       }
@@ -172,24 +172,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Enforce permission if required by route (reads solely from user.active_context)
   if (requiredPermission) {
-    const isMemberMyProducts =
+    const isMemberAllowedPage =
       isTenantMember &&
-      requiredPermission === "products.view" &&
-      location.pathname === "/tenant/products";
+      ((requiredPermission === "products.view" && location.pathname === "/tenant/products") ||
+        location.pathname === "/tenant/dashboard");
 
-    if (!isMemberMyProducts) {
+    if (!isMemberAllowedPage) {
       if (user.is_platform_owner) {
         return children;
       }
       const effectivePermissions = user.active_context.effective_permissions ?? [];
       if (!effectivePermissions.includes(requiredPermission)) {
         if (user.active_context.type === "tenant") {
-          return <Navigate to={isTenantMember ? "/tenant/products" : "/tenant"} replace />;
+          return <Navigate to={isTenantMember ? "/tenant/dashboard" : "/tenant"} replace />;
         }
         return <Navigate to="/" replace />;
       }
     }
-
   }
 
   return children;

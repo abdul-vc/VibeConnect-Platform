@@ -383,6 +383,14 @@ export function ShowcasePresentPage() {
               productCode={active.product_code}
               launchUrl={demoLaunchUrl}
               onBack={() => setDemoLaunchUrl(null)}
+              onReload={async () => {
+                const res = await showcaseApi.launchDemo(active.id);
+                if (res?.redirect_url) {
+                  setDemoLaunchUrl(res.redirect_url);
+                  return res.redirect_url;
+                }
+                return null;
+              }}
               backLabel="Back to Presentation"
             />
           )}

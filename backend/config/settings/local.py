@@ -52,3 +52,7 @@ if raw_csrf:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_csrf.split(",") if origin.strip()]
 else:
     CSRF_TRUSTED_ORIGINS = []
+
+# Phase 3A: Email & Frontend Configuration for Local Development
+if not FRONTEND_BASE_URL:
+    FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:6392").rstrip("/")

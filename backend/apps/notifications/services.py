@@ -18,6 +18,7 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db import transaction
 from django.template import Context, Template
+from django.template.loader import TemplateDoesNotExist, get_template
 from django.utils import timezone
 
 from apps.notifications.models import (
@@ -45,6 +46,19 @@ class NotificationTemplateNotFoundError(NotificationServiceError):
 class RecipientInvalidError(NotificationServiceError):
     """Raised when recipient is invalid or has no deliverable address."""
     pass
+
+
+DEFAULT_NOTIFICATION_TEMPLATES = {
+    "user_invitation": (
+        "Hello,\n\n"
+        "You have been invited to join {{ org_name }} on VibeConnect as a {{ role_name }}.\n\n"
+        "Please click the secure link below to activate your account and set your password:\n"
+        "{{ activation_url }}\n\n"
+        "This invitation link is single-use and will expire on {{ expires_at }}.\n"
+        "You must set your own password to activate your account.\n\n"
+        "If you did not expect this invitation, please ignore this email."
+    ),
+}
 
 
 def _mask_email(email: str) -> str:
@@ -121,8 +135,21 @@ def execute_delivery(delivery_id: uuid.UUID | str) -> NotificationDelivery:
             # 1. Render subject and body
             subject = render_template_string(delivery.template.subject_template, delivery.payload_context)
             # Body rendering: reference server-side template or body_ref string
-            body_template = delivery.payload_context.get("body_template") or f"Notification: {subject}\n\nReference: {delivery.template.body_ref}"
-            body = render_template_string(body_template, delivery.payload_context)
+            body = None
+            if not delivery.payload_context.get("body_template") and delivery.template.body_ref:
+                try:
+                    loaded = get_template(delivery.template.body_ref)
+                    body = loaded.render(delivery.payload_context)
+                except (TemplateDoesNotExist, Exception):
+                    body = None
+
+            if not body:
+                body_template = (
+                    delivery.payload_context.get("body_template")
+                    or DEFAULT_NOTIFICATION_TEMPLATES.get(delivery.template.code)
+                    or f"Notification: {subject}\n\nReference: {delivery.template.body_ref}"
+                )
+                body = render_template_string(body_template, delivery.payload_context)
 
             # 2. Transmit via channel
             if delivery.template.channel == NotificationChannel.EMAIL:

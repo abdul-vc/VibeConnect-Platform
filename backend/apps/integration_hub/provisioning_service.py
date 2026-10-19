@@ -265,8 +265,11 @@ def provision_user_to_lms(
     lms_role = LMS_ROLE_MEMBER
     if (
         membership
-        and membership.membership_type == MembershipType.TENANT_ADMIN
-        and membership.role_id is not None
+        and (
+            membership.membership_type == MembershipType.TENANT_ADMIN
+            or (membership.role and getattr(membership.role, 'is_admin_role', False))
+            or (membership.role and getattr(membership.role, 'code', '') == 'system_tenant_admin')
+        )
     ):
         lms_role = LMS_ROLE_ORGANIZATION_ADMIN
 
@@ -306,7 +309,15 @@ def provision_user_to_lms(
     }
 
     # 4. Call LMS M2M user provisioning endpoint
-    resp = client.provision_user(payload)
+    try:
+        resp = client.provision_user(payload)
+    except LmsConnectorPermanentError as exc:
+        if exc.failure_code == "TENANT_NOT_FOUND" or getattr(exc, "status_code", None) == 404:
+            logger.info("LMS tenant mapping not found during user provisioning. Ensuring tenant provisioning first.")
+            provision_tenant_to_lms(organization, instance=instance, client=client)
+            resp = client.provision_user(payload)
+        else:
+            raise
 
     lms_user_id = str(resp.get("lms_user_id", "")).strip()
     if not lms_user_id:

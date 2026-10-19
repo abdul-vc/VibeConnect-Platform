@@ -489,6 +489,7 @@ class TenantHomeApiTests(APITestCase):
         data = response.json()
         self.assertEqual(data["schema_version"], "1.0")
         self.assertEqual(data["entitled_products"], [])
+        self.assertEqual(data["products"], [])
         self.assertEqual(data["membership"]["membership_type"], "member")
         # Regular members have no admin console modules
         self.assertEqual(data["console_modules"], [])

@@ -178,13 +178,15 @@ def transition_case_step(
                 # 3. Issue initial Tenant Admin Invitation (Phase 3C)
                 admin_role = Role.objects.filter(code="system_tenant_admin", is_system_role=True).first()
                 from apps.invitations.services import issue_invitation
-                issue_invitation(
+                invitation_res = issue_invitation(
                     organization=org,
                     email=case.admin_email,
                     role=admin_role,
                     membership_type=MembershipType.TENANT_ADMIN,
                     invited_by=actor,
                 )
+                if isinstance(invitation_res, (list, tuple)) and len(invitation_res) >= 2:
+                    case.initial_admin_activation_token = invitation_res[1]
 
                 # 4. Provision initial Plan / Subscription if selected
                 if case.plan_version and case.plan_price:

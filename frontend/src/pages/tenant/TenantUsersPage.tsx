@@ -4,6 +4,8 @@ import { apiClient } from "../../api/client.ts";
 import { ENDPOINTS } from "../../api/endpoints.ts";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
 import { UserIcon, SearchIcon, RotateCcwIcon } from "../../components/Icons.tsx";
+import { useAuth } from "../../context/AuthContext.tsx";
+import { InviteUserDialog } from "../../components/users/InviteUserDialog.tsx";
 
 interface MemberRecord {
   id: string;
@@ -24,6 +26,9 @@ interface MemberRecord {
 }
 
 export const TenantUsersPage: React.FC = () => {
+  const { user } = useAuth();
+  const currentOrgId = user?.active_context?.organization?.id;
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [members, setMembers] = useState<readonly MemberRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,14 +81,25 @@ export const TenantUsersPage: React.FC = () => {
               Active users and organization memberships isolated strictly to your organization.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadMembers()}
-            className="btn-secondary"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 0.9rem", fontSize: "0.82rem" }}
-          >
-            <RotateCcwIcon size={14} /> Refresh
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => setIsInviteOpen(true)}
+              className="btn btn-primary"
+              disabled={!currentOrgId}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 0.9rem", fontSize: "0.82rem" }}
+            >
+              <UserIcon size={14} /> Invite Member
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadMembers()}
+              className="btn-secondary"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 0.9rem", fontSize: "0.82rem" }}
+            >
+              <RotateCcwIcon size={14} /> Refresh
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -230,6 +246,18 @@ export const TenantUsersPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+
+        {currentOrgId && (
+          <InviteUserDialog
+            isOpen={isInviteOpen}
+            onClose={() => setIsInviteOpen(false)}
+            defaultOrganizationId={currentOrgId}
+            allowedMembershipTypes={["member"]}
+            onSuccess={() => {
+              void loadMembers();
+            }}
+          />
         )}
       </div>
     </AppShell>

@@ -2,7 +2,7 @@
  * ShowcasePortfolioPage – Owner-side showcase portfolio grid with filters and
  * a detail panel. Routes: /showcase
  */
-import { useEffect, useState, useCallback, useId, useMemo } from "react";
+import { useEffect, useState, useCallback, useId, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
 import { showcaseApi } from "../../api/showcase.ts";
@@ -273,6 +273,39 @@ export function ShowcasePortfolioPage() {
     };
   }, [selected?.id]);
 
+  const isDemoParam = searchParams.get("demo") === "true";
+  const lastLaunchedIdRef = useRef<string | null>(null);
+
+  // Sync selected with query param when user navigates or switches via sidebar
+  useEffect(() => {
+    if (selectedParamCode && profiles.length > 0) {
+      const match = profiles.find(
+        (p) => p.product_code.toLowerCase() === selectedParamCode.toLowerCase()
+      );
+      if (match && match.id !== selected?.id) {
+        setSelected(match);
+      }
+    }
+  }, [selectedParamCode, profiles, selected?.id]);
+
+  // When demo mode is active, automatically obtain a fresh launch grant for the selected product
+  useEffect(() => {
+    if (isDemoParam && selected && lastLaunchedIdRef.current !== selected.id) {
+      lastLaunchedIdRef.current = selected.id;
+      showcaseApi
+        .launchDemo(selected.id)
+        .then((res) => {
+          if (res?.redirect_url) {
+            setDemoLaunchUrl(res.redirect_url);
+          }
+        })
+        .catch((err) => {
+          const msg = err instanceof Error ? err.message : "Failed to launch demo.";
+          setActionMsg(`Demo launch failed: ${msg}`);
+        });
+    }
+  }, [isDemoParam, selected?.id]);
+
   const handleSelect = (profile: ShowcaseProfile) => {
     setSelected(profile);
     setActionMsg(null);
@@ -392,87 +425,102 @@ export function ShowcasePortfolioPage() {
   }, [selected]);
 
   return (
-    <AppShell>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.25rem",
-          padding: "1.5rem",
-          minHeight: "100%",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Page Header */}
+    <AppShell fullWidth={Boolean(demoLaunchUrl && selected)}>
+      {demoLaunchUrl && selected ? (
+        <ShowcaseEmbeddedDemo
+          productName={selected.product_name}
+          productCode={selected.product_code}
+          launchUrl={demoLaunchUrl}
+          onBack={() => {
+            setDemoLaunchUrl(null);
+            lastLaunchedIdRef.current = null;
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete("demo");
+              return next;
+            });
+          }}
+          onReload={async () => {
+            const res = await showcaseApi.launchDemo(selected.id);
+            if (res?.redirect_url) {
+              setDemoLaunchUrl(res.redirect_url);
+              return res.redirect_url;
+            }
+            return null;
+          }}
+          backLabel="Back to Product Showcase"
+        />
+      ) : (
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-            borderBottom: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-            paddingBottom: "1rem",
+            flexDirection: "column",
+            gap: "1.25rem",
+            padding: "1.5rem",
+            minHeight: "100%",
+            boxSizing: "border-box",
           }}
         >
-          <div>
-            <h1
-              style={{
-                fontSize: "1.375rem",
-                fontWeight: 800,
-                color: "var(--text-primary, #f8fafc)",
-                margin: 0,
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Product Showcase
-            </h1>
-            <p
-              style={{
-                fontSize: "0.85rem",
-                color: "var(--text-secondary, #94a3b8)",
-                margin: "4px 0 0 0",
-              }}
-            >
-              Enterprise portfolio management, product profiles, and presentation mode.
-            </p>
-          </div>
+          {/* Page Header */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "1rem",
+              borderBottom: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
+              paddingBottom: "1rem",
+            }}
+          >
+            <div>
+              <h1
+                style={{
+                  fontSize: "1.375rem",
+                  fontWeight: 800,
+                  color: "var(--text-primary, #f8fafc)",
+                  margin: 0,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Product Showcase
+              </h1>
+              <p
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--text-secondary, #94a3b8)",
+                  margin: "4px 0 0 0",
+                }}
+              >
+                Enterprise portfolio management, product profiles, and presentation mode.
+              </p>
+            </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <Link
-              to={presentUrl}
-              id="showcase-present-mode-link"
-              className="btn-primary"
-              style={{
-                padding: "0.55rem 1.15rem",
-                borderRadius: "8px",
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                background: "var(--brand-primary, #6366f1)",
-                color: "#ffffff",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            >
-              <LayersIcon size={15} />
-              <span>Present Mode</span>
-            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <Link
+                to={presentUrl}
+                id="showcase-present-mode-link"
+                className="btn-primary"
+                style={{
+                  padding: "0.55rem 1.15rem",
+                  borderRadius: "8px",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  background: "var(--brand-primary, #6366f1)",
+                  color: "#ffffff",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                <LayersIcon size={15} />
+                <span>Present Mode</span>
+              </Link>
+            </div>
           </div>
-        </div>
-
-        {demoLaunchUrl && selected ? (
-          <ShowcaseEmbeddedDemo
-            productName={selected.product_name}
-            productCode={selected.product_code}
-            launchUrl={demoLaunchUrl}
-            onBack={() => setDemoLaunchUrl(null)}
-            backLabel="Back to Product Showcase"
-          />
-        ) : (
-          /* 2-Column Layout */
+          {/* 2-Column Layout */}
           <div
             style={{
               display: "grid",
@@ -1328,8 +1376,8 @@ export function ShowcasePortfolioPage() {
             )}
           </div>
         </div>
-        )}
       </div>
-    </AppShell>
-  );
+    )}
+  </AppShell>
+);
 }

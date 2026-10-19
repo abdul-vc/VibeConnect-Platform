@@ -45,6 +45,7 @@ import { ThemeProvider } from "../../context/ThemeContext.tsx";
 import { showcaseApi } from "../../api/showcase.ts";
 import { ShowcasePortfolioPage } from "../../pages/showcase/ShowcasePortfolioPage.tsx";
 import { ShowcasePresentPage } from "../../pages/showcase/ShowcasePresentPage.tsx";
+import { ShowcaseEmbeddedDemo } from "../../pages/showcase/ShowcaseEmbeddedDemo.tsx";
 import type { ShowcaseProfile } from "../../api/types.ts";
 
 const mockProfiles: ShowcaseProfile[] = [
@@ -142,3 +143,19 @@ test("AC-4: Showcase nav item route is defined and owner-scoped", () => {
   assert.ok(knownOwnerPaths.includes("/showcase"), "/showcase must be in owner routes");
   assert.ok(knownOwnerPaths.includes("/showcase/present"), "/showcase/present must be in owner routes");
 });
+
+test("AC-5: ShowcaseEmbeddedDemo renders workspace iframe and reload controls", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(ShowcaseEmbeddedDemo, {
+      productName: "Sales Tracker",
+      productCode: "CRM",
+      launchUrl: "http://localhost:5173/sso/callback?code=test-code-1",
+      onBack: () => {},
+      onReload: async () => "http://localhost:5173/sso/callback?code=test-code-2",
+    })
+  );
+  assert.ok(html.includes("Sales Tracker Live Demo Workspace"), "Must render iframe with product title");
+  assert.ok(html.includes("Reload"), "Must render reload button");
+  assert.ok(html.includes("test-code-1"), "Must set initial iframe src");
+});
+

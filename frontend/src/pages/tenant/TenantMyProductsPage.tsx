@@ -170,10 +170,19 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
     }
   }, [fetchTenantHome, initialData]);
 
-  const products: readonly TenantProductAccessItem[] =
+  const isMember =
+    user?.active_context?.type === "tenant" &&
+    user?.active_context?.membership_type === "member";
+
+  const rawProducts: readonly TenantProductAccessItem[] =
     homeData?.products && homeData.products.length > 0
       ? homeData.products
       : homeData?.entitled_products ?? [];
+
+  // For tenant members, strictly display only effective authorized products
+  const products: readonly TenantProductAccessItem[] = isMember
+    ? rawProducts.filter((p) => p.access_state === "available")
+    : rawProducts;
 
   // Authoritative SSO capability status from backend per product and active tenant
   const [ssoPilotStatuses, setSsoPilotStatuses] = useState<Record<string, boolean>>({});
@@ -492,7 +501,7 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
                   <div style={{ paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
                     {(() => {
                       const isSsoEnabled = Boolean(ssoPilotStatuses[product.id]);
-                      const isPilotLaunchable = isLaunchable && isSsoEnabled;
+                      const isPilotLaunchable = isLaunchable && (isSsoEnabled || product.code === "quiz");
 
                       return (
                         <>
@@ -503,7 +512,9 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
                             onClick={isPilotLaunchable ? () => handleLaunchProduct(product) : undefined}
                             title={
                               isPilotLaunchable
-                                ? "Launch Application via SSO"
+                                ? product.code === "quiz"
+                                  ? "Launch Application"
+                                  : "Launch Application via SSO"
                                 : isLaunchable
                                 ? "Launch available after SSO integration"
                                 : `Launch unavailable: ${badge.label}`
@@ -538,7 +549,9 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
                             }}
                           >
                             {isPilotLaunchable
-                              ? "SSO Pilot Enabled — Ready to Launch"
+                              ? product.code === "quiz"
+                                ? "Direct Launch — Ready to Launch"
+                                : "SSO Pilot Enabled — Ready to Launch"
                               : "Launch available after SSO integration"}
                           </div>
                         </>

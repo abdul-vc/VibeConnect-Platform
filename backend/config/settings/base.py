@@ -288,6 +288,46 @@ SPECTACULAR_SETTINGS = {
 VIBECONNECT_LMS_M2M_SECRET = os.environ.get("VIBECONNECT_LMS_M2M_SECRET", "").strip()
 VIBECONNECT_LMS_BACKEND_URL = os.environ.get("VIBECONNECT_LMS_BACKEND_URL", "").strip()
 
+# Quiz Integration Configuration
+QUIZ_API_BASE_URL = os.environ.get("QUIZ_API_BASE_URL", "https://quizz.digielvestech.in").strip().rstrip("/")
+QUIZ_M2M_SECRET = os.environ.get("QUIZ_M2M_SECRET", "").strip()
+QUIZ_FRONTEND_URL = os.environ.get("QUIZ_FRONTEND_URL", "https://quiz.digielvestech.in").strip().rstrip("/")
+
+# LMS Launch-Grant SSO Configuration
+LMS_LAUNCH_GRANT_M2M_SECRET = os.environ.get("LMS_LAUNCH_GRANT_M2M_SECRET", "").strip()
+LMS_FRONTEND_URL = os.environ.get("LMS_FRONTEND_URL", "https://lms.vibesandbox.live").strip().rstrip("/")
+
+# LMS Showcase Platform Superadmin Identity Configuration
+LMS_SHOWCASE_SUPERADMIN_EMAIL = os.environ.get(
+    "LMS_SHOWCASE_SUPERADMIN_EMAIL",
+    os.environ.get("LMS_SHOWCASE_USER_EMAIL", "superadmin@gmail.com")
+).strip().lower()
+LMS_SHOWCASE_USER_EMAIL = LMS_SHOWCASE_SUPERADMIN_EMAIL
+LMS_SHOWCASE_ORG_CODE = os.environ.get("LMS_SHOWCASE_ORG_CODE", "boss-demo-org").strip()
+
+# Sales Tracker Integration Configuration (Showcase SSO)
+SALESTRACKER_SHOWCASE_API_BASE_URL = os.environ.get("SALESTRACKER_SHOWCASE_API_BASE_URL", "http://localhost:8000").strip().rstrip("/")
+SALESTRACKER_SHOWCASE_FRONTEND_URL = os.environ.get("SALESTRACKER_SHOWCASE_FRONTEND_URL", "http://localhost:5173").strip().rstrip("/")
+SALESTRACKER_SHOWCASE_M2M_SECRET = os.environ.get("SALESTRACKER_SHOWCASE_M2M_SECRET", "").strip()
+SALESTRACKER_SHOWCASE_SUPERADMIN_EMPLOYEE_ID = os.environ.get(
+    "SALESTRACKER_SHOWCASE_SUPERADMIN_EMPLOYEE_ID", "9930663966"
+).strip()
+
+# Divine Connect Integration Configuration (Showcase SSO)
+DIVINECONNECT_SHOWCASE_API_BASE_URL = os.environ.get("DIVINECONNECT_SHOWCASE_API_BASE_URL", "http://localhost:8001").strip().rstrip("/")
+DIVINECONNECT_SHOWCASE_FRONTEND_URL = os.environ.get("DIVINECONNECT_SHOWCASE_FRONTEND_URL", "http://localhost:8080").strip().rstrip("/")
+DIVINECONNECT_SHOWCASE_M2M_SECRET = os.environ.get("DIVINECONNECT_SHOWCASE_M2M_SECRET", "").strip()
+DIVINECONNECT_SHOWCASE_ADMIN_USERNAME = os.environ.get("DIVINECONNECT_SHOWCASE_ADMIN_USERNAME", "admin").strip()
+DIVINECONNECT_SHOWCASE_ADMIN_EMAIL = os.environ.get("DIVINECONNECT_SHOWCASE_ADMIN_EMAIL", "admin@sansthan.org").strip()
+
+# WorkHub Integration Configuration (Showcase SSO)
+WORKHUB_SHOWCASE_API_BASE_URL = os.environ.get("WORKHUB_SHOWCASE_API_BASE_URL", "http://localhost:8002").strip().rstrip("/")
+WORKHUB_SHOWCASE_FRONTEND_URL = os.environ.get("WORKHUB_SHOWCASE_FRONTEND_URL", "http://localhost:6395").strip().rstrip("/")
+WORKHUB_SHOWCASE_M2M_SECRET = os.environ.get("WORKHUB_SHOWCASE_M2M_SECRET", "").strip()
+WORKHUB_SHOWCASE_ADMIN_USERNAME = os.environ.get("WORKHUB_SHOWCASE_ADMIN_USERNAME", "admin").strip()
+
+
+
 # Observability & Structured Application Logging (Phase 7D)
 DJANGO_LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "INFO").strip().upper()
 DJANGO_LOG_FORMAT = os.environ.get("DJANGO_LOG_FORMAT", "json").strip().lower()
@@ -336,4 +376,26 @@ LOGGING = {
         },
     },
 }
+
+# Email Delivery Configuration (Phase 3A)
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+).strip()
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "").strip()
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587").strip() or 587)
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "").strip()
+EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_USE_TLS", "True").strip().lower() in ("true", "1")
+EMAIL_USE_SSL = os.environ.get("DJANGO_EMAIL_USE_SSL", "False").strip().lower() in ("true", "1")
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured(
+        "DJANGO_EMAIL_USE_TLS and DJANGO_EMAIL_USE_SSL are mutually exclusive. Only one may be True."
+    )
+
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "notifications@vibeconnect.internal").strip()
+
+# Canonical Frontend Base URL for activation links and invitations
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "").strip().rstrip("/")
 

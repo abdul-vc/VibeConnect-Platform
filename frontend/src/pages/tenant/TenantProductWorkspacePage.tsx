@@ -9,7 +9,7 @@
  * Preserves the existing left sidebar, header, navigation, and tenant context.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { AppShell } from "../../components/AppShell.tsx";
@@ -29,9 +29,14 @@ export const TenantProductWorkspacePage: React.FC = () => {
 
   // Resolve product either from navigation state or fetch from tenant home
   const stateProduct = (location.state as { product?: TenantProductAccessItem } | null)?.product;
-  const [product, setProduct] = useState<TenantProductAccessItem | null>(stateProduct ?? null);
-  const [isLoading, setIsLoading] = useState<boolean>(!stateProduct);
+  const [product, setProduct] = useState<TenantProductAccessItem | null>(
+    stateProduct && (stateProduct.id === productId || stateProduct.code === productId)
+      ? stateProduct
+      : null
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(!product);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const cachedProductsRef = useRef<readonly TenantProductAccessItem[] | null>(null);
 
   const fetchProductResolution = useCallback(async () => {
     if (!productId) {
@@ -46,15 +51,16 @@ export const TenantProductWorkspacePage: React.FC = () => {
     try {
       const homeData = await tenantHomeApi.getTenantHome();
       const allProducts: readonly TenantProductAccessItem[] =
-        homeData.products && homeData.products.length > 0
-          ? homeData.products
-          : homeData.entitled_products ?? [];
+        homeData.entitled_products && homeData.entitled_products.length > 0
+          ? homeData.entitled_products
+          : (homeData.products ?? []).filter((p) => p.access_state === "available");
 
+      cachedProductsRef.current = allProducts;
       const found = allProducts.find((p) => p.id === productId || p.code === productId);
       if (found) {
         setProduct(found);
       } else {
-        setErrorMessage("The requested product is not assigned or available for your organization.");
+        setErrorMessage("The requested product is not assigned or available for your account.");
       }
     } catch (err: unknown) {
       const detail =
@@ -68,10 +74,27 @@ export const TenantProductWorkspacePage: React.FC = () => {
   }, [productId]);
 
   useEffect(() => {
-    if (!stateProduct) {
-      void fetchProductResolution();
+    if (stateProduct && (stateProduct.id === productId || stateProduct.code === productId)) {
+      setProduct(stateProduct);
+      setIsLoading(false);
+      setErrorMessage(null);
+      return;
     }
-  }, [stateProduct, fetchProductResolution]);
+
+    if (cachedProductsRef.current) {
+      const found = cachedProductsRef.current.find(
+        (p: TenantProductAccessItem) => p.id === productId || p.code === productId
+      );
+      if (found) {
+        setProduct(found);
+        setIsLoading(false);
+        setErrorMessage(null);
+        return;
+      }
+    }
+
+    void fetchProductResolution();
+  }, [productId, stateProduct, fetchProductResolution]);
 
   return (
     <AppShell fullWidth>

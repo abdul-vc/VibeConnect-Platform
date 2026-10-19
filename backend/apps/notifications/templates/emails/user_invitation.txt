@@ -1,0 +1,11 @@
+Hello,
+
+You have been invited to join {{ org_name }} on VibeConnect as a {{ role_name }}.
+
+Please click the secure link below to activate your account and establish your password:
+{{ activation_url }}
+
+This invitation link is single-use and will expire on {{ expires_at }}.
+You must set your own password upon visiting this link to complete your account activation.
+
+If you did not expect this invitation, please ignore this email.

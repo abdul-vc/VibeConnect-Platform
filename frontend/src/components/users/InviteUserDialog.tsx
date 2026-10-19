@@ -27,6 +27,7 @@ interface InviteUserDialogProps {
   readonly onClose: () => void;
   readonly onSuccess?: (invitation: IssueInvitationResponse) => void;
   readonly defaultOrganizationId?: string;
+  readonly allowedMembershipTypes?: readonly ("member" | "admin")[];
   readonly triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
@@ -35,6 +36,7 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   onClose,
   onSuccess,
   defaultOrganizationId,
+  allowedMembershipTypes,
   triggerRef,
 }) => {
   const baseId = useId();
@@ -43,7 +45,9 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   const [organizations, setOrganizations] = useState<readonly OrganizationListItem[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>(defaultOrganizationId || "");
   const [email, setEmail] = useState<string>("");
-  const [membershipType, setMembershipType] = useState<string>("member");
+  const [membershipType, setMembershipType] = useState<string>(
+    allowedMembershipTypes && allowedMembershipTypes.length > 0 ? allowedMembershipTypes[0] : "member"
+  );
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -133,22 +137,22 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
     }
   };
 
-  const invitationRelativePath = issuedInvitation?.raw_token
-    ? `/invitations/${issuedInvitation.raw_token}`
-    : null;
+  const invitationLink = issuedInvitation?.activation_url || (issuedInvitation?.raw_token
+    ? `/invitations/accept/${issuedInvitation.raw_token}`
+    : null);
 
   const handleCopyLink = () => {
-    if (invitationRelativePath && typeof navigator !== "undefined" && navigator.clipboard) {
-      void navigator.clipboard.writeText(invitationRelativePath);
+    if (invitationLink && typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(invitationLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
   };
 
   const handleNavigateToAccept = () => {
-    if (invitationRelativePath) {
+    if (issuedInvitation?.raw_token) {
       handleClose();
-      navigate(invitationRelativePath);
+      navigate(`/invitations/accept/${issuedInvitation.raw_token}`);
     }
   };
 
@@ -229,17 +233,22 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
                   Invitation Issued Successfully
                 </h4>
                 <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  An automated email delivery has been dispatched to <strong>{issuedInvitation.email}</strong>.
+                  An activation notification has been queued for dispatch to <strong>{issuedInvitation.email}</strong>.
                   The single-use activation link is valid until {formatDateTime(issuedInvitation.expires_at)}.
                 </p>
               </div>
             </div>
 
-            {invitationRelativePath && (
+            {invitationLink && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                  Activation Route
-                </label>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                    One-Time Activation Link (Fallback)
+                  </label>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    Bearer secret · Shown once
+                  </span>
+                </div>
                 <div
                   style={{
                     display: "flex",
@@ -254,7 +263,7 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
                     overflowX: "auto",
                   }}
                 >
-                  <span style={{ flex: 1, wordBreak: "break-all" }}>{invitationRelativePath}</span>
+                  <span style={{ flex: 1, wordBreak: "break-all" }}>{invitationLink}</span>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -272,7 +281,7 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
               <button type="button" className="btn btn-secondary" onClick={handleClose}>
                 Done
               </button>
-              {invitationRelativePath && (
+              {issuedInvitation?.raw_token && (
                 <button type="button" className="btn btn-primary" onClick={handleNavigateToAccept}>
                   Go to Activation Page
                 </button>
@@ -403,10 +412,14 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
                     style={{ width: "100%", height: "2.5rem" }}
                     value={membershipType}
                     onChange={(e) => setMembershipType(e.target.value)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (allowedMembershipTypes !== undefined && allowedMembershipTypes.length <= 1)}
                   >
-                    <option value="member">Standard Member</option>
-                    <option value="admin">Tenant Administrator</option>
+                    {(!allowedMembershipTypes || allowedMembershipTypes.includes("member")) && (
+                      <option value="member">Standard Member</option>
+                    )}
+                    {(!allowedMembershipTypes || allowedMembershipTypes.includes("admin")) && (
+                      <option value="admin">Tenant Administrator</option>
+                    )}
                   </select>
                 </div>
               </div>
