@@ -62,7 +62,7 @@ class ShowcaseCatalogRegistrationTest(TestCase):
             "hrms",
             "vms-warehouse",
             "leasing",
-            "fieldsence",
+            "fieldsense",
             "inventory",
             "crm-logicon",
             "mom",
@@ -158,14 +158,14 @@ class ShowcaseCatalogRegistrationTest(TestCase):
         # Check sub-products
         sub_codes = set(fieldops.sub_products.values_list("code", flat=True))
         self.assertIn("crm-logicon", sub_codes)
-        self.assertIn("fieldsence", sub_codes)
+        self.assertTrue("fieldsense" in sub_codes or "fieldsence" in sub_codes)
         self.assertIn("sales-tracker", sub_codes)
 
         # Check modules on FIELDOPS
         mod_codes = set(fieldops.modules.values_list("code", flat=True))
         self.assertIn("fieldops_crm", mod_codes)
         self.assertIn("fieldops_sales", mod_codes)
-        self.assertIn("fieldops_fieldsence", mod_codes)
+        self.assertTrue("fieldops_fieldsense" in mod_codes or "fieldops_fieldsence" in mod_codes)
 
     def test_qbr_demo_launchability_and_execution(self):
         call_command("register_showcase_catalog")

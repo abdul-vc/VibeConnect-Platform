@@ -6,5 +6,7 @@
     "backend"
   ],
   "venvPath": "backend",
-  "venv": "venv"
+  "venv": "venv",
+  "reportMissingTypeStubs": false,
+  "reportIncompatibleVariableOverride": false
 }

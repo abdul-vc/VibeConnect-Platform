@@ -27,41 +27,16 @@ const VISIBILITY_OPTIONS: Array<{ value: ShowcaseVisibility | ""; label: string 
 ];
 
 function VisibilityBadge({ v }: { v: ShowcaseVisibility }) {
-  const styleMap: Record<ShowcaseVisibility, { bg: string; color: string; border: string }> = {
-    published: {
-      bg: "var(--status-success-bg, rgba(16, 185, 129, 0.12))",
-      color: "var(--status-success, #10b981)",
-      border: "var(--status-success-border, rgba(16, 185, 129, 0.28))",
-    },
-    draft: {
-      bg: "var(--status-neutral-bg, rgba(148, 163, 184, 0.1))",
-      color: "var(--status-neutral, #94a3b8)",
-      border: "var(--status-neutral-border, rgba(148, 163, 184, 0.22))",
-    },
-    hidden: {
-      bg: "var(--status-warning-bg, rgba(245, 158, 11, 0.12))",
-      color: "var(--status-warning, #f59e0b)",
-      border: "var(--status-warning-border, rgba(245, 158, 11, 0.28))",
-    },
-  };
-  const current = styleMap[v] ?? styleMap.draft;
+  const badgeClass =
+    v === "published"
+      ? "badge-success"
+      : v === "hidden"
+      ? "badge-warning"
+      : "badge-neutral";
 
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "3px 10px",
-        borderRadius: "999px",
-        fontSize: "0.72rem",
-        fontWeight: 600,
-        letterSpacing: "0.02em",
-        background: current.bg,
-        color: current.color,
-        border: `1px solid ${current.border}`,
-        textTransform: "capitalize",
-      }}
-    >
+    <span className={`badge ${badgeClass}`} style={{ textTransform: "capitalize" }}>
+      <span className="badge-dot" />
       {v}
     </span>
   );
@@ -86,79 +61,24 @@ function ShowcaseCard({
       data-profile-id={profile.id}
       data-product-code={profile.product_code}
       onClick={onClick}
-      style={{
-        display: "block",
-        width: "100%",
-        textAlign: "left",
-        background: selected ? "var(--glass-surface-hover, rgba(26, 38, 64, 0.85))" : "var(--glass-surface, rgba(15, 23, 42, 0.72))",
-        border: selected
-          ? "1.5px solid var(--brand-primary, #6366f1)"
-          : "1px solid var(--border-glass, rgba(255, 255, 255, 0.14))",
-        borderRadius: "12px",
-        padding: "1rem 1.15rem",
-        cursor: "pointer",
-        transition: "all 0.18s ease",
-        boxShadow: selected ? "0 0 0 1px var(--brand-primary, #6366f1), var(--shadow-sm)" : "var(--shadow-sm)",
-        boxSizing: "border-box",
-      }}
+      className={`showcase-card ${selected ? "selected" : ""}`}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+      <div className="showcase-card-header">
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: "0.95rem",
-              color: "var(--text-primary, #f8fafc)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <div className="showcase-card-title">
             {profile.product_name}
           </div>
-          <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
-            <span
-              style={{
-                display: "inline-block",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "var(--brand-primary, #6366f1)",
-                background: "var(--brand-primary-light, rgba(99, 102, 241, 0.12))",
-                padding: "1px 6px",
-                borderRadius: "4px",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
+          <div className="showcase-card-badges">
+            <span className="showcase-badge-code">
               {profile.product_code}
             </span>
             {profile.parent_product_code && (
-              <span
-                style={{
-                  fontSize: "0.68rem",
-                  fontWeight: 600,
-                  color: "#c084fc",
-                  background: "rgba(168, 85, 247, 0.12)",
-                  padding: "1px 6px",
-                  borderRadius: "4px",
-                  border: "1px solid rgba(168, 85, 247, 0.25)",
-                }}
-              >
+              <span className="showcase-badge-suite">
                 Suite: {profile.parent_product_code.toUpperCase()}
               </span>
             )}
             {profile.category && (
-              <span
-                style={{
-                  fontSize: "0.68rem",
-                  fontWeight: 500,
-                  color: "var(--text-secondary, #94a3b8)",
-                  background: "rgba(255, 255, 255, 0.04)",
-                  padding: "1px 6px",
-                  borderRadius: "4px",
-                  border: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-                }}
-              >
+              <span className="showcase-badge-cat">
                 {profile.category}
               </span>
             )}
@@ -168,47 +88,16 @@ function ShowcaseCard({
       </div>
 
       {profile.tagline ? (
-        <div
-          style={{
-            marginTop: 8,
-            fontSize: "0.82rem",
-            color: "var(--text-secondary, #94a3b8)",
-            lineHeight: 1.45,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
+        <div className="showcase-card-tagline">
           {profile.tagline}
         </div>
       ) : null}
 
-      <div
-        style={{
-          marginTop: 10,
-          paddingTop: 8,
-          borderTop: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-          fontSize: "0.72rem",
-          color: "var(--text-muted, #64748b)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <div className="showcase-card-footer">
         <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 3,
-            fontSize: "0.68rem",
-            fontWeight: isDemoReady ? 700 : 500,
-            color: isDemoReady ? "var(--status-success, #10b981)" : "var(--text-muted, #64748b)",
-            background: isDemoReady ? "var(--status-success-bg, rgba(16, 185, 129, 0.12))" : "rgba(148, 163, 184, 0.08)",
-            padding: "1px 6px",
-            borderRadius: "4px",
-            border: `1px solid ${isDemoReady ? "var(--status-success-border, rgba(16, 185, 129, 0.25))" : "rgba(148, 163, 184, 0.12)"}`,
-          }}
+          className={`showcase-status-indicator ${
+            isDemoReady ? "showcase-status-ready" : "showcase-status-catalog"
+          }`}
         >
           {isDemoReady ? "● Live Demo Ready" : "○ Catalog Preview"}
         </span>
@@ -440,6 +329,7 @@ export function ShowcasePortfolioPage() {
       await showcaseApi.updateLaunchConfig(selected.id, {
         launch_mode: cfgLaunchMode,
         target_environment: cfgEnvId || null,
+        target_environment_id: cfgEnvId || null,
         policy: {
           demo_organization_code: cfgOrgCode.trim(),
           demo_user_email: cfgUserEmail.trim(),
@@ -464,47 +354,18 @@ export function ShowcasePortfolioPage() {
 
   return (
     <AppShell>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.25rem",
-          padding: "1.5rem",
-          minHeight: "100%",
-          boxSizing: "border-box",
-        }}
-      >
+      <div className="showcase-layout-container">
         {/* Page Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-            borderBottom: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-            paddingBottom: "1rem",
-          }}
-        >
+        <div className="showcase-page-header">
           <div>
-            <h1
-              style={{
-                fontSize: "1.375rem",
-                fontWeight: 800,
-                color: "var(--text-primary, #f8fafc)",
-                margin: 0,
-                letterSpacing: "-0.01em",
-              }}
-            >
+            <div className="showcase-header-eyebrow">
+              <BoxIcon size={14} />
+              <span>Catalog & Portfolio</span>
+            </div>
+            <h1 className="showcase-header-title">
               Product Showcase
             </h1>
-            <p
-              style={{
-                fontSize: "0.85rem",
-                color: "var(--text-secondary, #94a3b8)",
-                margin: "4px 0 0 0",
-              }}
-            >
+            <p className="showcase-header-subtitle">
               Enterprise portfolio management, product profiles, and presentation mode.
             </p>
           </div>
@@ -513,20 +374,7 @@ export function ShowcasePortfolioPage() {
             <Link
               to={presentUrl}
               id="showcase-present-mode-link"
-              className="btn-primary"
-              style={{
-                padding: "0.55rem 1.15rem",
-                borderRadius: "8px",
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                background: "var(--brand-primary, #6366f1)",
-                color: "#ffffff",
-                boxShadow: "var(--shadow-sm)",
-              }}
+              className="showcase-present-btn"
             >
               <LayersIcon size={15} />
               <span>Present Mode</span>
@@ -544,545 +392,212 @@ export function ShowcasePortfolioPage() {
           />
         ) : (
           /* 2-Column Layout */
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "340px 1fr",
-              gap: "1.5rem",
-              alignItems: "start",
-            }}
-          >
-          {/* Left Column: Filter + Product List */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
-            {/* Search Input */}
-            <div>
-              <label
-                htmlFor={searchId}
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "var(--text-secondary)",
-                  display: "block",
-                  marginBottom: 6,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Search Products
-              </label>
-              <div style={{ position: "relative" }}>
-                <input
-                  id={searchId}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Filter by product name…"
-                  style={{
-                    width: "100%",
-                    padding: "0.55rem 0.75rem 0.55rem 2.25rem",
-                    borderRadius: "8px",
-                    border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.14))",
-                    background: "var(--glass-surface, rgba(15, 23, 42, 0.7))",
-                    color: "var(--text-primary)",
-                    fontSize: "0.85rem",
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "0.75rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <SearchIcon size={14} />
-                </div>
-              </div>
-            </div>
-
-            {/* Visibility Filters */}
-            <div>
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "var(--text-secondary)",
-                  marginBottom: 6,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Visibility
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {VISIBILITY_OPTIONS.map((opt) => {
-                  const isActive = visibility === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      id={`filter-visibility-${opt.value || "all"}`}
-                      onClick={() => setVisibility(opt.value)}
-                      style={{
-                        padding: "4px 11px",
-                        borderRadius: "999px",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        border: isActive
-                          ? "1.5px solid var(--brand-primary, #6366f1)"
-                          : "1px solid var(--border-glass, rgba(255, 255, 255, 0.12))",
-                        background: isActive
-                          ? "var(--brand-primary-light, rgba(99, 102, 241, 0.16))"
-                          : "var(--glass-surface, rgba(15, 23, 42, 0.6))",
-                        color: isActive
-                          ? "var(--brand-primary, #6366f1)"
-                          : "var(--text-secondary, #94a3b8)",
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Category Filters */}
-            {categories.length > 0 && (
+          <div className="showcase-main-grid">
+            {/* Left Column: Filter + Product List */}
+            <div className="showcase-sidebar">
+              {/* Search Input */}
               <div>
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    color: "var(--text-secondary)",
-                    marginBottom: 6,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  Category
+                <label htmlFor={searchId} className="showcase-filter-group-label">
+                  Search Products
+                </label>
+                <div className="showcase-search-box">
+                  <input
+                    id={searchId}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Filter by product name…"
+                    className="showcase-search-input"
+                  />
+                  <div className="showcase-search-icon">
+                    <SearchIcon size={14} />
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    id="filter-category-all"
-                    onClick={() => setSelectedCategory("")}
-                    style={{
-                      padding: "3px 10px",
-                      borderRadius: "999px",
-                      fontSize: "0.72rem",
-                      fontWeight: 600,
-                      border: !selectedCategory
-                        ? "1.5px solid var(--brand-primary, #6366f1)"
-                        : "1px solid var(--border-glass, rgba(255, 255, 255, 0.12))",
-                      background: !selectedCategory
-                        ? "var(--brand-primary-light, rgba(99, 102, 241, 0.16))"
-                        : "var(--glass-surface, rgba(15, 23, 42, 0.6))",
-                      color: !selectedCategory ? "var(--brand-primary, #6366f1)" : "var(--text-secondary, #94a3b8)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    All Categories
-                  </button>
-                  {categories.map((cat) => {
-                    const isCatActive = selectedCategory === cat;
+              </div>
+
+              {/* Visibility Filters */}
+              <div>
+                <div className="showcase-filter-group-label">
+                  Visibility
+                </div>
+                <div className="showcase-segmented-control">
+                  {VISIBILITY_OPTIONS.map((opt) => {
+                    const isActive = visibility === opt.value;
                     return (
                       <button
-                        key={cat}
+                        key={opt.value}
                         type="button"
-                        id={`filter-category-${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                        onClick={() => setSelectedCategory(cat)}
-                        style={{
-                          padding: "3px 10px",
-                          borderRadius: "999px",
-                          fontSize: "0.72rem",
-                          fontWeight: 600,
-                          border: isCatActive
-                            ? "1.5px solid var(--brand-primary, #6366f1)"
-                            : "1px solid var(--border-glass, rgba(255, 255, 255, 0.12))",
-                          background: isCatActive
-                            ? "var(--brand-primary-light, rgba(99, 102, 241, 0.16))"
-                            : "var(--glass-surface, rgba(15, 23, 42, 0.6))",
-                          color: isCatActive ? "var(--brand-primary, #6366f1)" : "var(--text-secondary, #94a3b8)",
-                          cursor: "pointer",
-                        }}
+                        id={`filter-visibility-${opt.value || "all"}`}
+                        onClick={() => setVisibility(opt.value)}
+                        className={`showcase-segmented-btn ${isActive ? "active" : ""}`}
                       >
-                        {cat}
+                        {opt.label}
                       </button>
                     );
                   })}
                 </div>
               </div>
-            )}
 
-            <div
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--text-muted)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderBottom: "1px solid var(--border-subtle)",
-                paddingBottom: 6,
-              }}
-            >
-              <span>{filteredProfiles.length} of {count} product{count !== 1 ? "s" : ""} shown</span>
-              {selectedCategory && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory("")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--brand-primary, #6366f1)",
-                    fontSize: "0.72rem",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  Clear category filter
-                </button>
+              {/* Category Filters */}
+              {categories.length > 0 && (
+                <div>
+                  <div className="showcase-filter-group-label">
+                    Category
+                  </div>
+                  <div className="showcase-category-chips">
+                    <button
+                      type="button"
+                      id="filter-category-all"
+                      onClick={() => setSelectedCategory("")}
+                      className={`showcase-chip ${!selectedCategory ? "active" : ""}`}
+                    >
+                      All Categories
+                    </button>
+                    {categories.map((cat) => {
+                      const isCatActive = selectedCategory === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          id={`filter-category-${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={`showcase-chip ${isCatActive ? "active" : ""}`}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
+
+              <div className="showcase-meta-row">
+                <span>{filteredProfiles.length} of {count} product{count !== 1 ? "s" : ""} shown</span>
+                {selectedCategory && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory("")}
+                    className="showcase-clear-btn"
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </div>
+
+              {loading && <LoadingSpinner label="Loading portfolio…" />}
+              {error && (
+                <div className="alert-box alert-danger">
+                  <AlertCircleIcon size={16} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {!loading && !error && filteredProfiles.length === 0 && (
+                <div className="showcase-detail-empty" style={{ height: "200px" }}>
+                  <span>No showcase profiles match the selected criteria.</span>
+                </div>
+              )}
+
+              <div className="showcase-cards-list">
+                {filteredProfiles.map((p) => (
+                  <ShowcaseCard
+                    key={p.id}
+                    profile={p}
+                    selected={selected?.id === p.id}
+                    onClick={() => handleSelect(p)}
+                  />
+                ))}
+              </div>
             </div>
 
-            {loading && <LoadingSpinner label="Loading portfolio…" />}
-            {error && (
-              <div
-                style={{
-                  color: "var(--status-danger)",
-                  background: "var(--status-danger-bg)",
-                  border: "1px solid var(--status-danger-border)",
-                  borderRadius: "8px",
-                  padding: "0.75rem",
-                  fontSize: "0.8125rem",
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            {!loading && !error && filteredProfiles.length === 0 && (
-              <div
-                style={{
-                  padding: "2.5rem 1rem",
-                  textAlign: "center",
-                  color: "var(--text-muted)",
-                  border: "1px dashed var(--border-glass)",
-                  borderRadius: "12px",
-                  fontSize: "0.85rem",
-                }}
-              >
-                No showcase profiles match the selected criteria.
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-              {filteredProfiles.map((p) => (
-                <ShowcaseCard
-                  key={p.id}
-                  profile={p}
-                  selected={selected?.id === p.id}
-                  onClick={() => handleSelect(p)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column: Selected Product Detail Panel */}
-          <div>
-            {!selected ? (
-              <div
-                style={{
-                  height: "380px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--text-muted)",
-                  fontSize: "0.9rem",
-                  border: "1px dashed var(--border-glass)",
-                  borderRadius: "16px",
-                  background: "var(--glass-surface, rgba(15, 23, 42, 0.4))",
-                  gap: "0.75rem",
-                }}
-              >
-                <BoxIcon size={32} />
-                <span>Select a product to view showcase profile details</span>
-              </div>
-            ) : (
-              <div
-                style={{
-                  background: "var(--glass-surface-elevated, rgba(24, 34, 56, 0.88))",
-                  border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.14))",
-                  borderRadius: "16px",
-                  padding: "1.75rem",
-                  boxShadow: "var(--shadow-sm)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1.5rem",
-                }}
-              >
-                {/* Header Section */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "1rem",
-                    flexWrap: "wrap",
-                    borderBottom: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-                    paddingBottom: "1.25rem",
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                      <h2
-                        style={{
-                          fontSize: "1.35rem",
-                          fontWeight: 800,
-                          color: "var(--text-primary)",
-                          margin: 0,
-                        }}
-                      >
-                        {selected.product_name}
-                      </h2>
-                      <span
-                        style={{
-                          padding: "2px 8px",
-                          borderRadius: "4px",
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          background: "var(--brand-primary-light, rgba(99, 102, 241, 0.12))",
-                          color: "var(--brand-primary, #6366f1)",
-                          border: "1px solid var(--brand-primary-light)",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {selected.product_code}
-                      </span>
-                      {selected.parent_product_code && (
-                        <span
-                          style={{
-                            fontSize: "0.72rem",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            fontWeight: 600,
-                            background: "rgba(168, 85, 247, 0.15)",
-                            color: "#c084fc",
-                            border: "1px solid rgba(168, 85, 247, 0.3)",
-                          }}
-                        >
-                          Part of FIELDOPS Suite
-                        </span>
-                      )}
-                      {selected.category && (
-                        <span
-                          style={{
-                            fontSize: "0.72rem",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            fontWeight: 600,
-                            background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
-                            color: "var(--text-secondary, #94a3b8)",
-                            border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.1))",
-                          }}
-                        >
-                          {selected.category}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.78rem",
-                        color: "var(--text-muted)",
-                        marginTop: 4,
-                      }}
-                    >
-                      Status: {selected.product_status} · Order #{selected.display_order}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        padding: "2px 8px",
-                        borderRadius: "999px",
-                        background: launchContract?.launchable
-                          ? "var(--status-success-bg, rgba(16, 185, 129, 0.12))"
-                          : "var(--status-neutral-bg, rgba(148, 163, 184, 0.1))",
-                        color: launchContract?.launchable
-                          ? "var(--status-success, #10b981)"
-                          : "var(--status-neutral, #94a3b8)",
-                        border: `1px solid ${
-                          launchContract?.launchable
-                            ? "var(--status-success-border, rgba(16, 185, 129, 0.28))"
-                            : "var(--status-neutral-border, rgba(148, 163, 184, 0.22))"
-                        }`,
-                      }}
-                    >
-                      <ShieldCheckIcon size={12} />
-                      {launchContract?.launchable ? "Live Demo Ready" : "Catalog Preview Only"}
-                    </span>
-                    <VisibilityBadge v={selected.visibility} />
-                  </div>
+            {/* Right Column: Selected Product Detail Panel */}
+            <div>
+              {!selected ? (
+                <div className="showcase-detail-empty">
+                  <BoxIcon size={32} />
+                  <span>Select a product to view showcase profile details</span>
                 </div>
-
-                {/* Tagline & Overview */}
-                <div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: 6,
-                    }}
-                  >
-                    Tagline
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "0.95rem",
-                      fontWeight: 500,
-                      color: "var(--text-primary)",
-                      margin: "0 0 1rem 0",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {selected.tagline || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No tagline defined.</span>}
-                  </p>
-
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: 6,
-                    }}
-                  >
-                    Product Overview
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.875rem",
-                      color: "var(--text-secondary)",
-                      lineHeight: 1.65,
-                      background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.6))",
-                      padding: "1rem 1.25rem",
-                      borderRadius: "10px",
-                      border: "1px solid var(--border-subtle)",
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {selected.overview || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No overview provided.</span>}
-                  </div>
-                </div>
-
-                {/* Media Section */}
-                <div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Media Assets ({selected.media.length})
-                  </div>
-                  {selected.media.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "1rem",
-                        textAlign: "center",
-                        color: "var(--text-muted)",
-                        fontSize: "0.8125rem",
-                        background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.4))",
-                        borderRadius: "8px",
-                        border: "1px dashed var(--border-subtle)",
-                      }}
-                    >
-                      No media assets attached to this profile.
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                        gap: "0.75rem",
-                      }}
-                    >
-                      {selected.media.map((m) => (
-                        <div
-                          key={m.id}
-                          style={{
-                            background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.6))",
-                            border: "1px solid var(--border-subtle)",
-                            borderRadius: "8px",
-                            padding: "0.75rem",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "0.68rem",
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              background: "var(--brand-primary-light, rgba(99, 102, 241, 0.12))",
-                              color: "var(--brand-primary, #6366f1)",
-                              textTransform: "uppercase",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {m.media_type}
+              ) : (
+                <div className="showcase-detail-panel">
+                  {/* Header Section */}
+                  <div className="showcase-detail-header">
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                        <h2 className="showcase-detail-title">
+                          {selected.product_name}
+                        </h2>
+                        <span className="showcase-badge-code">
+                          {selected.product_code}
+                        </span>
+                        {selected.parent_product_code && (
+                          <span className="showcase-badge-suite">
+                            Part of {selected.parent_product_code.toUpperCase()} Suite
                           </span>
-                          <div
-                            style={{
-                              fontSize: "0.8125rem",
-                              fontWeight: 600,
-                              color: "var(--text-primary)",
-                              marginTop: 6,
-                            }}
-                          >
-                            {m.title}
-                          </div>
-                        </div>
-                      ))}
+                        )}
+                        {selected.category && (
+                          <span className="showcase-badge-cat">
+                            {selected.category}
+                          </span>
+                        )}
+                      </div>
+                      <div className="showcase-detail-subtitle">
+                        Status: <strong style={{ color: "var(--text-secondary)" }}>{selected.product_status}</strong> · Display Order: #{selected.display_order}
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Launch Readiness & Actions */}
-                <div
-                  style={{
-                    borderTop: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-                    paddingTop: "1.25rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1rem",
-                  }}
-                >
-                  <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                      <span
+                        className={`showcase-status-indicator ${
+                          launchContract?.launchable ? "showcase-status-ready" : "showcase-status-catalog"
+                        }`}
+                        style={{ padding: "4px 8px" }}
+                      >
+                        <ShieldCheckIcon size={13} />
+                        <span>{launchContract?.launchable ? "Live Demo Ready" : "Catalog Preview Only"}</span>
+                      </span>
+                      <VisibilityBadge v={selected.visibility} />
+                    </div>
+                  </div>
+
+                  {/* Tagline & Overview */}
+                  <div>
+                    <div className="showcase-section-title">Tagline</div>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 500, color: "var(--text-primary)", margin: "0 0 1.25rem 0", lineHeight: 1.5 }}>
+                      {selected.tagline || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No tagline defined.</span>}
+                    </p>
+
+                    <div className="showcase-section-title">Product Overview</div>
+                    <div className="showcase-overview-box">
+                      {selected.overview || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No overview provided.</span>}
+                    </div>
+                  </div>
+
+                  {/* Media Section */}
+                  <div>
+                    <div className="showcase-section-title">
+                      Media Assets ({selected.media.length})
+                    </div>
+                    {selected.media.length === 0 ? (
+                      <div className="showcase-overview-box" style={{ textAlign: "center", color: "var(--text-muted)", padding: "1rem" }}>
+                        No media assets attached to this profile.
+                      </div>
+                    ) : (
+                      <div className="showcase-media-grid">
+                        {selected.media.map((m) => (
+                          <div key={m.id} className="showcase-media-card">
+                            <span className="showcase-badge-code">
+                              {m.media_type}
+                            </span>
+                            <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)", marginTop: 6 }}>
+                              {m.title}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Launch Readiness & Actions */}
+                  <div className="showcase-actions-bar">
                     {selected.visibility !== "published" ? (
                       <button
                         type="button"
@@ -1090,14 +605,7 @@ export function ShowcasePortfolioPage() {
                         onClick={handlePublish}
                         disabled={actionPending}
                         className="btn-primary"
-                        style={{
-                          padding: "0.55rem 1.25rem",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                          fontSize: "0.8125rem",
-                          cursor: actionPending ? "not-allowed" : "pointer",
-                          opacity: actionPending ? 0.6 : 1,
-                        }}
+                        style={{ minHeight: "36px", padding: "0 1rem", fontSize: "0.8125rem" }}
                       >
                         Publish Profile
                       </button>
@@ -1107,17 +615,8 @@ export function ShowcasePortfolioPage() {
                         id="showcase-unpublish-btn"
                         onClick={handleUnpublish}
                         disabled={actionPending}
-                        style={{
-                          padding: "0.55rem 1.25rem",
-                          borderRadius: "8px",
-                          border: "1px solid var(--status-warning-border, #f59e0b)",
-                          background: "var(--status-warning-bg, rgba(245, 158, 11, 0.1))",
-                          color: "var(--status-warning, #f59e0b)",
-                          fontWeight: 600,
-                          fontSize: "0.8125rem",
-                          cursor: actionPending ? "not-allowed" : "pointer",
-                          opacity: actionPending ? 0.6 : 1,
-                        }}
+                        className="btn-secondary"
+                        style={{ minHeight: "36px", padding: "0 1rem", fontSize: "0.8125rem", color: "var(--status-warning)", borderColor: "var(--status-warning-border)" }}
                       >
                         Unpublish Profile
                       </button>
@@ -1125,19 +624,8 @@ export function ShowcasePortfolioPage() {
 
                     <Link
                       to={presentUrl}
-                      style={{
-                        padding: "0.55rem 1.15rem",
-                        borderRadius: "8px",
-                        fontSize: "0.8125rem",
-                        fontWeight: 600,
-                        textDecoration: "none",
-                        background: "var(--glass-surface-sunken)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border-glass)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.4rem",
-                      }}
+                      className="btn-secondary"
+                      style={{ minHeight: "36px", padding: "0 1rem", fontSize: "0.8125rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
                     >
                       <LayersIcon size={14} />
                       <span>Present Mode</span>
@@ -1148,28 +636,8 @@ export function ShowcasePortfolioPage() {
                       id="showcase-live-demo-btn"
                       onClick={handleLiveDemoClick}
                       disabled={actionPending}
-                      style={{
-                        padding: "0.55rem 1.15rem",
-                        borderRadius: "8px",
-                        fontSize: "0.8125rem",
-                        fontWeight: 600,
-                        background: launchContract?.launchable
-                          ? "var(--brand-primary, #6366f1)"
-                          : "var(--glass-surface-sunken)",
-                        color: launchContract?.launchable
-                          ? "#ffffff"
-                          : "var(--text-muted, #64748b)",
-                        border: `1px solid ${
-                          launchContract?.launchable
-                            ? "var(--brand-primary)"
-                            : "var(--border-subtle)"
-                        }`,
-                        cursor: actionPending ? "not-allowed" : "pointer",
-                        opacity: actionPending ? 0.7 : 1,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.4rem",
-                      }}
+                      className={launchContract?.launchable ? "btn-primary" : "btn-secondary"}
+                      style={{ minHeight: "36px", padding: "0 1rem", fontSize: "0.8125rem", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
                     >
                       <ShieldCheckIcon size={14} />
                       <span>
@@ -1185,32 +653,15 @@ export function ShowcasePortfolioPage() {
                       type="button"
                       id="showcase-configure-demo-btn"
                       onClick={handleOpenConfig}
-                      style={{
-                        padding: "0.55rem 1.15rem",
-                        borderRadius: "8px",
-                        fontSize: "0.8125rem",
-                        fontWeight: 600,
-                        background: "var(--glass-surface-sunken)",
-                        color: "var(--text-secondary)",
-                        border: "1px solid var(--border-subtle)",
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.4rem",
-                      }}
+                      className="btn-secondary"
+                      style={{ minHeight: "36px", padding: "0 1rem", fontSize: "0.8125rem", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
                     >
                       <SlidersIcon size={14} />
                       <span>Configure Demo</span>
                     </button>
 
                     {launchContract?.launchable && launchContract.demo_user && (
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--brand-primary, #818cf8)",
-                          paddingLeft: "0.25rem",
-                        }}
-                      >
+                      <span style={{ fontSize: "0.75rem", color: "var(--brand-primary)", fontWeight: 500 }}>
                         Demo: {launchContract.demo_user} ({launchContract.demo_organization})
                       </span>
                     )}
@@ -1218,20 +669,13 @@ export function ShowcasePortfolioPage() {
 
                   {actionMsg && (
                     <div
-                      style={{
-                        fontSize: "0.8125rem",
-                        color: actionMsg.startsWith("Failed")
-                          ? "var(--status-danger)"
-                          : "var(--status-success)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.4rem",
-                      }}
+                      className={`alert-box ${actionMsg.startsWith("Failed") ? "alert-danger" : "alert-success"}`}
+                      style={{ marginBottom: 0 }}
                     >
                       {actionMsg.startsWith("Failed") ? (
-                        <AlertCircleIcon size={14} />
+                        <AlertCircleIcon size={15} />
                       ) : (
-                        <CheckCircleIcon size={14} />
+                        <CheckCircleIcon size={15} />
                       )}
                       <span>{actionMsg}</span>
                     </div>
@@ -1239,31 +683,14 @@ export function ShowcasePortfolioPage() {
 
                   {/* Diagnostic Demo Dialog */}
                   {showDemoDialog && (
-                    <div
-                      style={{
-                        background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.8))",
-                        border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.14))",
-                        borderRadius: "10px",
-                        padding: "1rem 1.25rem",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.625rem",
-                      }}
-                    >
+                    <div className="alert-box alert-danger" style={{ flexDirection: "column", gap: "0.5rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <AlertCircleIcon size={16} color="var(--status-warning, #f59e0b)" />
-                        <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                        <AlertCircleIcon size={16} />
+                        <span style={{ fontSize: "0.875rem", fontWeight: 700 }}>
                           Live Demo Configuration Diagnostic
                         </span>
                       </div>
-                      <p
-                        style={{
-                          fontSize: "0.8125rem",
-                          color: "var(--text-secondary)",
-                          margin: 0,
-                          lineHeight: 1.5,
-                        }}
-                      >
+                      <p style={{ margin: 0, fontSize: "0.8125rem", lineHeight: 1.5 }}>
                         Interactive Live Demo for product <strong>{selected.product_name}</strong> is currently unconfigured.
                         <br />
                         Reason: <code>{launchContract?.reason || "LAUNCH_CONFIG_NOT_FOUND"}</code>.
@@ -1274,16 +701,8 @@ export function ShowcasePortfolioPage() {
                         <button
                           type="button"
                           onClick={() => setShowDemoDialog(false)}
-                          style={{
-                            padding: "4px 12px",
-                            borderRadius: "6px",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            background: "var(--glass-surface)",
-                            border: "1px solid var(--border-subtle)",
-                            color: "var(--text-primary)",
-                            cursor: "pointer",
-                          }}
+                          className="btn-secondary"
+                          style={{ minHeight: "28px", padding: "0 0.75rem", fontSize: "0.75rem" }}
                         >
                           Dismiss
                         </button>
@@ -1293,36 +712,8 @@ export function ShowcasePortfolioPage() {
 
                   {/* Platform Owner Demo Configuration Modal */}
                   {showConfigModal && (
-                    <div
-                      style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(0, 0, 0, 0.75)",
-                        backdropFilter: "blur(6px)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1000,
-                        padding: "1rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          background: "var(--glass-surface-elevated, #0f172a)",
-                          border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.16))",
-                          borderRadius: "14px",
-                          width: "100%",
-                          maxWidth: "520px",
-                          padding: "1.75rem",
-                          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "1.25rem",
-                        }}
-                      >
+                    <div className="showcase-modal-overlay">
+                      <div className="showcase-modal-dialog">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <div>
                             <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
@@ -1355,17 +746,9 @@ export function ShowcasePortfolioPage() {
                         ) : (
                           <>
                             {configError && (
-                              <div
-                                style={{
-                                  background: "var(--status-danger-bg, rgba(239, 68, 68, 0.12))",
-                                  border: "1px solid var(--status-danger-border, rgba(239, 68, 68, 0.3))",
-                                  borderRadius: "8px",
-                                  padding: "0.75rem",
-                                  color: "var(--status-danger, #ef4444)",
-                                  fontSize: "0.8125rem",
-                                }}
-                              >
-                                {configError}
+                              <div className="alert-box alert-danger">
+                                <AlertCircleIcon size={15} />
+                                <span>{configError}</span>
                               </div>
                             )}
 
@@ -1378,16 +761,7 @@ export function ShowcasePortfolioPage() {
                                   id="cfg-target-env"
                                   value={cfgEnvId}
                                   onChange={(e) => setCfgEnvId(e.target.value)}
-                                  style={{
-                                    width: "100%",
-                                    padding: "0.55rem 0.75rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                                    background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.8))",
-                                    color: "var(--text-primary)",
-                                    fontSize: "0.85rem",
-                                    outline: "none",
-                                  }}
+                                  className="form-input"
                                 >
                                   <option value="">-- Select Target Environment --</option>
                                   {(launchConfig?.available_environments ?? []).map((env) => (
@@ -1406,16 +780,7 @@ export function ShowcasePortfolioPage() {
                                   id="cfg-launch-mode"
                                   value={cfgLaunchMode}
                                   onChange={(e) => setCfgLaunchMode(e.target.value)}
-                                  style={{
-                                    width: "100%",
-                                    padding: "0.55rem 0.75rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                                    background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.8))",
-                                    color: "var(--text-primary)",
-                                    fontSize: "0.85rem",
-                                    outline: "none",
-                                  }}
+                                  className="form-input"
                                 >
                                   <option value="demo_only">Demo Only (Dedicated Sandbox)</option>
                                   <option value="direct_sso">Direct SSO Launch</option>
@@ -1434,17 +799,7 @@ export function ShowcasePortfolioPage() {
                                     value={cfgOrgCode}
                                     onChange={(e) => setCfgOrgCode(e.target.value)}
                                     placeholder="e.g. boss-demo-org"
-                                    style={{
-                                      width: "100%",
-                                      padding: "0.55rem 0.75rem",
-                                      borderRadius: "8px",
-                                      border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                                      background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.8))",
-                                      color: "var(--text-primary)",
-                                      fontSize: "0.85rem",
-                                      boxSizing: "border-box",
-                                      outline: "none",
-                                    }}
+                                    className="form-input"
                                   />
                                 </div>
                                 <div>
@@ -1457,17 +812,7 @@ export function ShowcasePortfolioPage() {
                                     value={cfgUserEmail}
                                     onChange={(e) => setCfgUserEmail(e.target.value)}
                                     placeholder="e.g. demo.member@demotenant.test"
-                                    style={{
-                                      width: "100%",
-                                      padding: "0.55rem 0.75rem",
-                                      borderRadius: "8px",
-                                      border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                                      background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.8))",
-                                      color: "var(--text-primary)",
-                                      fontSize: "0.85rem",
-                                      boxSizing: "border-box",
-                                      outline: "none",
-                                    }}
+                                    className="form-input"
                                   />
                                 </div>
                               </div>
@@ -1482,18 +827,8 @@ export function ShowcasePortfolioPage() {
                                   onChange={(e) => setCfgNotes(e.target.value)}
                                   rows={2}
                                   placeholder="Operational launch guidelines..."
-                                  style={{
-                                    width: "100%",
-                                    padding: "0.55rem 0.75rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                                    background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.8))",
-                                    color: "var(--text-primary)",
-                                    fontSize: "0.85rem",
-                                    boxSizing: "border-box",
-                                    outline: "none",
-                                    resize: "none",
-                                  }}
+                                  className="form-input"
+                                  style={{ resize: "none" }}
                                 />
                               </div>
                             </div>
@@ -1503,16 +838,8 @@ export function ShowcasePortfolioPage() {
                                 type="button"
                                 onClick={() => setShowConfigModal(false)}
                                 disabled={configSaving}
-                                style={{
-                                  padding: "0.5rem 1rem",
-                                  borderRadius: "8px",
-                                  fontSize: "0.8125rem",
-                                  fontWeight: 600,
-                                  background: "var(--glass-surface)",
-                                  border: "1px solid var(--border-subtle)",
-                                  color: "var(--text-secondary)",
-                                  cursor: "pointer",
-                                }}
+                                className="btn-secondary"
+                                style={{ minHeight: "36px", padding: "0 1rem" }}
                               >
                                 Cancel
                               </button>
@@ -1522,14 +849,7 @@ export function ShowcasePortfolioPage() {
                                 onClick={handleSaveConfig}
                                 disabled={configSaving}
                                 className="btn-primary"
-                                style={{
-                                  padding: "0.5rem 1.25rem",
-                                  borderRadius: "8px",
-                                  fontSize: "0.8125rem",
-                                  fontWeight: 600,
-                                  cursor: configSaving ? "not-allowed" : "pointer",
-                                  opacity: configSaving ? 0.7 : 1,
-                                }}
+                                style={{ minHeight: "36px", padding: "0 1.25rem" }}
                               >
                                 {configSaving ? "Saving…" : "Save Configuration"}
                               </button>
@@ -1540,10 +860,9 @@ export function ShowcasePortfolioPage() {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </AppShell>

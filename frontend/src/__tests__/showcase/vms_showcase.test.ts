@@ -107,3 +107,25 @@ test("VMS AC-4: ShowcaseEmbeddedDemo provides tab switching and informs about X-
   assert.ok(markup.includes("vms-tab-api-insights-btn"), "Must have VMS API insights tab button");
   assert.ok(markup.includes("vms-tab-live-app-btn"), "Must have VMS live app tab button");
 });
+
+test("VMS AC-5: ShowcaseEmbeddedDemo defaults to live application iframe for vms-warehouse SSO launch", () => {
+  const ssoUrl = "http://localhost:8080/sso/callback?code=test-code&state=nonce.12345.sig";
+  const markup = renderToStaticMarkup(
+    React.createElement(ShowcaseEmbeddedDemo, {
+      productName: "VMS (Warehouse)",
+      productCode: "vms-warehouse",
+      launchUrl: ssoUrl,
+      onBack: () => {},
+    })
+  );
+
+  assert.ok(markup.includes("VMS (Warehouse) Live Demo"), "Must render correct product title");
+  assert.ok(markup.includes("Connecting VMS (Warehouse)"), "Must render connecting status badge while loading");
+  assert.ok(markup.includes("showcase-demo-iframe"), "Must render live application iframe");
+  assert.ok(markup.includes("http://localhost:8080/sso/callback"), "Must embed VMS callback launch URL");
+  // Should NOT display the old sandbox X-Frame-Options DENY banner when launching with SSO
+  assert.ok(!markup.includes("blocks iframe embedding via X-Frame-Options: DENY"), "Must not display X-Frame-Options warning for SSO launch");
+  // Tab buttons must still exist for switching to API insights
+  assert.ok(markup.includes("vms-tab-api-insights-btn"), "Must still provide API insights tab button");
+});
+

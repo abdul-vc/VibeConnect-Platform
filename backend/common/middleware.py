@@ -66,7 +66,7 @@ class ContentSecurityPolicyMiddleware:
                 "font-src 'self' data:; "
                 "img-src 'self' data: https:; "
                 "connect-src 'self'; "
-                "frame-src 'self' http://localhost:8080 http://127.0.0.1:8080 https://hrms.vibesandbox.live https://*.vibesandbox.live https://excelreports.vibecopilot.ai; "
+                "frame-src 'self' http://localhost:8080 http://127.0.0.1:8080 http://localhost:8081 http://127.0.0.1:8081 https://hrms.vibesandbox.live https://*.vibesandbox.live https://excelreports.vibecopilot.ai; "
                 "frame-ancestors 'none'; "
                 "object-src 'none'; "
                 "base-uri 'self';"

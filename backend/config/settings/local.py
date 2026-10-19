@@ -7,7 +7,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-env_local_file = Path(__file__).resolve().parent.parent.parent / ".env.local"
+backend_dir = Path(__file__).resolve().parent.parent.parent
+env_file = backend_dir / ".env"
+if env_file.exists():
+    load_dotenv(env_file, override=True)
+
+env_local_file = backend_dir / ".env.local"
 if env_local_file.exists():
     load_dotenv(env_local_file, override=True)
 
@@ -59,3 +64,4 @@ if raw_csrf:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_csrf.split(",") if origin.strip()]
 else:
     CSRF_TRUSTED_ORIGINS = []
+# auto-reload: 1792234304.7693195

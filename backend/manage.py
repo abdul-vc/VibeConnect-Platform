@@ -5,16 +5,19 @@ from pathlib import Path
 
 
 def main():
-    # Load .env.local for local CLI development if present
+    # Load .env and .env.local for local CLI development if present
     base_dir = Path(__file__).resolve().parent
+    env_file = base_dir / ".env"
     env_local = base_dir / ".env.local"
-    if env_local.exists():
-        try:
-            from dotenv import load_dotenv
+    try:
+        from dotenv import load_dotenv
 
+        if env_file.exists():
+            load_dotenv(env_file, override=True)
+        if env_local.exists():
             load_dotenv(env_local, override=True)
-        except ImportError:
-            pass
+    except ImportError:
+        pass
 
     settings_module = os.environ.get("DJANGO_SETTINGS_MODULE")
     if not settings_module:

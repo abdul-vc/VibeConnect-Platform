@@ -20,8 +20,9 @@ import {
   LayersIcon,
   BoxIcon,
   AlertCircleIcon,
+  ExternalLinkIcon,
+  CloseIcon,
 } from "../../components/Icons.tsx";
-import { HrmsLiveShowcase } from "./HrmsLiveShowcase.tsx";
 import { VmsLiveShowcase } from "./VmsLiveShowcase.tsx";
 
 export interface ShowcaseEmbeddedDemoProps {
@@ -43,18 +44,27 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
   const isVms =
     productCode.toLowerCase() === "vms-warehouse" ||
     productCode.toLowerCase() === "vms";
+  const isFieldSense =
+    productCode.toLowerCase() === "fieldsense" ||
+    productCode.toLowerCase() === "fieldsence";
+  const isSsoLaunch =
+    Boolean(launchUrl) &&
+    (launchUrl.includes("/sso/") ||
+      launchUrl.includes("code=") ||
+      launchUrl.includes("ticket="));
 
-  // For HRMS and VMS, default to the no-login Demonstration Console ("insights")
-  // For other products (e.g. LMS with embedded SSO), default to the embedded application ("app")
+  // Only VMS unconfigured sandbox defaults to insights; HRMS and others launch live app
   const [activeTab, setActiveTab] = useState<"app" | "insights">(
-    isHrms || isVms ? "insights" : "app"
+    isVms && !isSsoLaunch ? "insights" : "app"
   );
   const [isIframeLoading, setIsIframeLoading] = useState<boolean>(true);
+  const [iframeError, setIframeError] = useState<boolean>(false);
   const [iframeKey, setIframeKey] = useState<number>(1);
 
   const handleReload = () => {
     if (activeTab === "app") {
       setIsIframeLoading(true);
+      setIframeError(false);
       setIframeKey((prev) => prev + 1);
     }
   };
@@ -149,10 +159,10 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
           </div>
         </div>
 
-        {/* Center: In-Window View Tabs if HRMS or VMS (Demo Console vs Upstream Live Application) */}
-        {(isHrms || isVms) && (
+        {/* Center: In-Window View Tabs if VMS (Demo Console vs Upstream Live Application) */}
+        {isVms && (
           <div
-            id={isHrms ? "hrms-workspace-tab-group" : "vms-workspace-tab-group"}
+            id="vms-workspace-tab-group"
             style={{
               display: "flex",
               background: "var(--glass-surface-sunken, rgba(4, 8, 18, 0.6))",
@@ -164,7 +174,7 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
           >
             <button
               type="button"
-              id={isHrms ? "hrms-tab-api-insights-btn" : "vms-tab-api-insights-btn"}
+              id="vms-tab-api-insights-btn"
               onClick={() => setActiveTab("insights")}
               style={{
                 padding: "0.35rem 0.85rem",
@@ -187,7 +197,7 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
 
             <button
               type="button"
-              id={isHrms ? "hrms-tab-live-app-btn" : "vms-tab-live-app-btn"}
+              id="vms-tab-live-app-btn"
               onClick={() => setActiveTab("app")}
               style={{
                 padding: "0.35rem 0.85rem",
@@ -233,36 +243,91 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
                   ? "WarehouseOS Sandbox · Live API"
                   : "PeoplePulse Sandbox · Live API"
                 : isIframeLoading
-                ? "Connecting Live App…"
+                ? `Connecting ${productName}…`
+                : isVms && isSsoLaunch
+                ? "WarehouseOS · Live SSO Session"
+                : isHrms && isSsoLaunch
+                ? "PeoplePulse · Live SSO Session"
+                : isFieldSense
+                ? "FieldSense Hub · Live Sandbox"
                 : "Live Application Embedded"}
             </span>
           </span>
 
           {activeTab === "app" && (
-            <button
-              type="button"
-              id="showcase-demo-reload-btn"
-              onClick={handleReload}
-              title="Reload embedded view"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.35rem",
-                padding: "0.4rem 0.75rem",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                borderRadius: "6px",
-                border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
-                color: "var(--text-secondary, #94a3b8)",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <RotateCcwIcon size={13} />
-              <span>Reload</span>
-            </button>
+            <>
+              <button
+                type="button"
+                id="showcase-demo-reload-btn"
+                onClick={handleReload}
+                title="Reload embedded view"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  padding: "0.4rem 0.75rem",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
+                  background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
+                  color: "var(--text-secondary, #94a3b8)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <RotateCcwIcon size={13} />
+                <span>Reload</span>
+              </button>
+
+              <button
+                type="button"
+                id="showcase-demo-newtab-btn"
+                onClick={() => window.open(launchUrl, "_blank", "noopener,noreferrer")}
+                title="Open demo in a separate browser tab"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  padding: "0.4rem 0.75rem",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
+                  background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
+                  color: "var(--text-secondary, #94a3b8)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <ExternalLinkIcon size={13} />
+                <span>Open in Tab</span>
+              </button>
+            </>
           )}
+
+          <button
+            type="button"
+            id="showcase-demo-close-btn"
+            onClick={onBack}
+            title="Close demo panel"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "32px",
+              height: "32px",
+              padding: 0,
+              cursor: "pointer",
+              borderRadius: "6px",
+              border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
+              background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
+              color: "var(--text-secondary, #94a3b8)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <CloseIcon size={15} />
+          </button>
         </div>
       </div>
 
@@ -286,13 +351,6 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
           boxSizing: "border-box",
         }}
       >
-        {/* Live API Demonstration Console Tab (No login required, real sandbox data) */}
-        {isHrms && activeTab === "insights" && (
-          <div style={{ width: "100%", maxWidth: "1280px", margin: "0 auto", overflowY: "auto" }}>
-            <HrmsLiveShowcase isEmbedded={true} />
-          </div>
-        )}
-
         {isVms && activeTab === "insights" && (
           <div style={{ width: "100%", maxWidth: "1280px", margin: "0 auto", overflowY: "auto" }}>
             <VmsLiveShowcase
@@ -302,49 +360,7 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
           </div>
         )}
 
-        {/* Informative Provider SSO Notice Banner when viewing the raw upstream app */}
-        {isHrms && activeTab === "app" && (
-          <div
-            style={{
-              padding: "0.75rem 1rem",
-              background: "rgba(99, 102, 241, 0.1)",
-              borderBottom: "1px solid rgba(99, 102, 241, 0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "0.75rem",
-              fontSize: "0.8rem",
-              color: "var(--text-secondary)",
-              zIndex: 3,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <AlertCircleIcon size={16} />
-              <span>
-                <strong>Notice:</strong> The upstream PeoplePulse standalone app requires manual login because no SSO ticket exchange endpoint exists on the sandbox. For presentations without login screens, use the <strong>API Metrics & Insights</strong> tab.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab("insights")}
-              style={{
-                padding: "0.25rem 0.65rem",
-                borderRadius: "5px",
-                background: "var(--brand-primary, #6366f1)",
-                border: "none",
-                color: "#ffffff",
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Switch to Demo Console
-            </button>
-          </div>
-        )}
-
-        {isVms && activeTab === "app" && (
+        {isVms && activeTab === "app" && !isSsoLaunch && (
           <div
             style={{
               padding: "0.75rem 1rem",
@@ -405,12 +421,12 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
         )}
 
         {/* Loading Overlay for App Iframe */}
-        {activeTab === "app" && isIframeLoading && (
+        {activeTab === "app" && isIframeLoading && !iframeError && (
           <div
             id="showcase-demo-loading-state"
             style={{
               position: "absolute",
-              top: isHrms ? "48px" : 0,
+              top: 0,
               left: 0,
               right: 0,
               bottom: 0,
@@ -431,27 +447,113 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
           </div>
         )}
 
+        {/* App Error State if iframe fails to render */}
+        {activeTab === "app" && iframeError && (
+          <div
+            id="showcase-demo-error-state"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              flex: 1,
+              padding: "2.5rem 1.5rem",
+              textAlign: "center",
+              gap: "1rem",
+              background: "var(--glass-surface-elevated, rgba(15, 23, 42, 0.95))",
+              borderRadius: "10px",
+            }}
+          >
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "rgba(239, 68, 68, 0.12)",
+                border: "1px solid rgba(239, 68, 68, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AlertCircleIcon size={24} color="var(--status-danger, #ef4444)" />
+            </div>
+            <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary, #f8fafc)" }}>
+              Unable to Display Live Demo in Frame
+            </h3>
+            <p style={{ maxWidth: "460px", margin: 0, fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)", lineHeight: 1.5 }}>
+              The application could not be rendered inside the in-page frame. You can launch the authenticated session directly in a separate browser tab.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => window.open(launchUrl, "_blank", "noopener,noreferrer")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <ExternalLinkIcon size={14} />
+                <span>Open in New Tab</span>
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleReload}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <RotateCcwIcon size={14} />
+                <span>Retry</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Central Iframe embedding the actual product application */}
-        <iframe
-          key={iframeKey}
-          id="showcase-demo-iframe"
-          data-testid="showcase-demo-iframe"
-          title={`${productName} Live Demo Workspace`}
-          src={launchUrl}
-          onLoad={() => setIsIframeLoading(false)}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads allow-modals"
-          allow="clipboard-read; clipboard-write; fullscreen"
-          referrerPolicy="strict-origin-when-cross-origin"
-          style={{
-            width: "100%",
-            height: "100%",
-            flex: 1,
-            border: "none",
-            borderRadius: "8px",
-            background: "#ffffff",
-            display: activeTab === "app" ? (isIframeLoading ? "none" : "block") : "none",
-          }}
-        />
+        {!iframeError && (
+          <iframe
+            key={iframeKey}
+            id="showcase-demo-iframe"
+            data-testid="showcase-demo-iframe"
+            title={`${productName} Live Demo Workspace`}
+            src={launchUrl}
+            onLoad={() => setIsIframeLoading(false)}
+            onError={() => {
+              setIsIframeLoading(false);
+              setIframeError(true);
+            }}
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads allow-modals"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            referrerPolicy="strict-origin-when-cross-origin"
+            style={{
+              width: "100%",
+              height: "100%",
+              flex: 1,
+              border: "none",
+              borderRadius: "8px",
+              background: "#ffffff",
+              display: activeTab === "app" ? "block" : "none",
+              opacity: isIframeLoading ? 0 : 1,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+          />
+        )}
       </div>
     </div>
   );

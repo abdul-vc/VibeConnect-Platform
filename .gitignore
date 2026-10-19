@@ -14,6 +14,8 @@ build/
 .next/
 
 # Environments and Secrets
+.env
+.env.*
 .env.local
 .env.*.local
 *.pem

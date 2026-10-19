@@ -94,8 +94,8 @@ CATALOG_PRODUCTS = [
         ],
     },
     {
-        "code": "fieldsence",
-        "name": "FIELDSENCE",
+        "code": "fieldsense",
+        "name": "FieldSense Operations Hub",
         "category": "Field Operations & Workforce",
         "tagline": "Intelligent field force tracking, route optimization, and activity logging",
         "description": "Real-time field force automation and tracking platform. Empowers mobile teams with GPS-enabled task allocation, automated geo-fenced attendance, route optimization, real-time beat plans, and client visit reporting.",
@@ -107,9 +107,9 @@ CATALOG_PRODUCTS = [
         "display_order": 5,
         "is_fieldops_child": True,
         "modules": [
-            ("fieldsence_tracking", "Location & Beat Planning", "Live GPS tracking, route deviation alerts, and daily travel logs."),
-            ("fieldsence_tasks", "Field Task Allocation", "Dynamic dispatching of service tasks and delivery assignments."),
-            ("fieldsence_reporting", "Visit & Activity Reports", "Client meeting checklists, signature capture, and photographic proof."),
+            ("fieldsense_tracking", "Location & Beat Planning", "Live GPS tracking, route deviation alerts, and daily travel logs."),
+            ("fieldsense_tasks", "Field Task Allocation", "Dynamic dispatching of service tasks and delivery assignments."),
+            ("fieldsense_reporting", "Visit & Activity Reports", "Client meeting checklists, signature capture, and photographic proof."),
         ],
     },
     {
@@ -279,7 +279,7 @@ CATALOG_PRODUCTS = [
         "modules": [
             ("fieldops_crm", "Logicon CRM Module", "Integrated customer acquisition and lead lifecycle module."),
             ("fieldops_sales", "Sales Tracker Module", "Revenue quota, deal closure, and performance tracking module."),
-            ("fieldops_fieldsence", "FIELDSENCE Field Force Module", "Live mobile workforce dispatch, beat plans, and geo-tracking module."),
+            ("fieldops_fieldsense", "FieldSense Field Force Module", "Live mobile workforce dispatch, beat plans, and geo-tracking module."),
         ],
     },
     {
@@ -427,6 +427,13 @@ class Command(BaseCommand):
             for item in CATALOG_PRODUCTS:
                 code = item["code"]
                 existing_product = Product.objects.filter(code=code).first()
+                if not existing_product and code in ("fieldsense", "fieldsence"):
+                    alt_code = "fieldsence" if code == "fieldsense" else "fieldsense"
+                    existing_product = Product.objects.filter(code=alt_code).first()
+                    if existing_product and code == "fieldsense":
+                        existing_product.code = "fieldsense"
+                        existing_product.name = item["name"]
+                        existing_product.save(update_fields=["code", "name"])
 
                 if existing_product:
                     # Preserve existing record! Never overwrite status if active, never overwrite existing custom values
@@ -470,6 +477,13 @@ class Command(BaseCommand):
                 prod = created_products[item["code"]]
                 for idx, (m_code, m_name, m_desc) in enumerate(item.get("modules", [])):
                     mod = ProductModule.objects.filter(product=prod, code=m_code).first()
+                    if not mod and ("fieldsense" in m_code or "fieldsence" in m_code):
+                        alt_mod = m_code.replace("fieldsense", "fieldsence") if "fieldsense" in m_code else m_code.replace("fieldsence", "fieldsense")
+                        mod = ProductModule.objects.filter(product=prod, code=alt_mod).first()
+                        if mod and "fieldsense" in m_code:
+                            mod.code = m_code
+                            mod.name = m_name
+                            mod.save(update_fields=["code", "name"])
                     if not mod:
                         ProductModule.objects.create(
                             product=prod,
@@ -679,7 +693,7 @@ class Command(BaseCommand):
             # 6. Sixth pass: Non-demo products must not have misleading active demo links
             for item in CATALOG_PRODUCTS:
                 code = item["code"]
-                if code in ("qbr", "lms", "hrms", "vms-warehouse"):
+                if code in ("qbr", "lms", "hrms", "vms-warehouse", "fieldsense", "fieldsence", "workshop-trinity"):
                     continue
                 prod = created_products[code]
                 profile = ProductShowcaseProfile.objects.filter(product=prod).first()

@@ -1,3 +1,5 @@
+# pyright: reportIncompatibleVariableOverride=false
+# pyright: reportMissingTypeStubs=false
 """Identity admin configuration.
 
 PlatformUserAdmin enforces the last-active-owner rule in a locked transaction
@@ -9,6 +11,8 @@ from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from apps.identity.constants import SYSTEM_SERVICE_ACTOR_EMAIL
 from .models import LoginAttempt, PlatformUser
@@ -23,6 +27,9 @@ class PlatformUserAdminForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        if not cleaned:
+            return cleaned
+
         instance = self.instance
 
         if not instance.pk:
@@ -92,7 +99,7 @@ class PlatformUserAdmin(admin.ModelAdmin):
         admin messages rather than propagated as HTTP 500 responses.
         """
         try:
-            with transaction.atomic():
+            with transaction.atomic():  # type: ignore[attr-defined]
                 if change and obj.pk:
                     # Acquire row locks on all active qualifying human owners
                     active_owners = list(
@@ -139,8 +146,6 @@ class PlatformUserAdmin(admin.ModelAdmin):
             return super().changeform_view(request, object_id, form_url, extra_context)
         except ValidationError as exc:
             messages.error(request, exc.message)
-            from django.http import HttpResponseRedirect
-            from django.urls import reverse
             opts = self.model._meta
             return HttpResponseRedirect(
                 reverse(

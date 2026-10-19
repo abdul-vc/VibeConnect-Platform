@@ -69,7 +69,7 @@ export const MasterSetupPage: React.FC = () => {
           </p>
         </div>
 
-        {/* 4-Card Responsive Grid (Resizes naturally with grid layout) */}
+        {/* 4-Card Responsive Grid */}
         <div className="security-cards-grid">
           {securityFeatures.map((item, index) => (
             <div
@@ -81,14 +81,14 @@ export const MasterSetupPage: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: "0.875rem",
+                  marginBottom: "0.75rem",
                 }}
               >
                 <div
                   style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "6px",
                     background: "var(--brand-primary-light)",
                     color: "var(--brand-primary)",
                     display: "flex",
@@ -101,10 +101,10 @@ export const MasterSetupPage: React.FC = () => {
                 </div>
                 <span className={`badge ${item.badgeClass}`}>{item.status}</span>
               </div>
-              <h2 className="heading-subtitle" style={{ fontSize: "0.9375rem", marginBottom: "0.35rem" }}>
+              <h2 className="heading-subtitle" style={{ fontSize: "0.875rem", marginBottom: "0.25rem", fontWeight: 600 }}>
                 {item.title}
               </h2>
-              <p className="text-caption" style={{ lineHeight: 1.5, margin: 0 }}>
+              <p className="text-caption" style={{ lineHeight: 1.45, margin: 0, fontSize: "0.75rem" }}>
                 {item.description}
               </p>
             </div>
@@ -113,12 +113,12 @@ export const MasterSetupPage: React.FC = () => {
 
         {/* Foundation Readiness Card */}
         <div className="status-overview-panel">
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
             <div
               style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
+                width: "28px",
+                height: "28px",
+                borderRadius: "6px",
                 background: "var(--status-success-bg)",
                 color: "var(--status-success)",
                 display: "flex",
@@ -127,13 +127,13 @@ export const MasterSetupPage: React.FC = () => {
                 flexShrink: 0,
               }}
             >
-              <CheckCircleIcon size={18} />
+              <CheckCircleIcon size={16} />
             </div>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
+            <h3 style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
               Platform Control Plane Initialized
             </h3>
           </div>
-          <p className="text-caption" style={{ paddingLeft: "2.75rem", margin: 0 }}>
+          <p className="text-caption" style={{ paddingLeft: "2.375rem", margin: 0, fontSize: "0.75rem" }}>
             All authentication protocols, CSRF protections, and session isolation parameters are operational.
           </p>
         </div>

@@ -20,11 +20,9 @@ import {
   AlertCircleIcon,
   SearchIcon,
   BoxIcon,
-  LayersIcon,
   ExternalLinkIcon,
 } from "../../components/Icons.tsx";
 import { ShowcaseEmbeddedDemo } from "./ShowcaseEmbeddedDemo.tsx";
-import { HrmsLiveShowcase } from "./HrmsLiveShowcase.tsx";
 
 export function ShowcasePresentPage() {
   const [searchParams] = useSearchParams();
@@ -720,41 +718,9 @@ export function ShowcasePresentPage() {
                     </span>
                   </button>
 
-                  {active.product_code.toLowerCase() === "hrms" && (
-                    <button
-                      type="button"
-                      id="showcase-present-explore-hrms-btn"
-                      onClick={() => {
-                        const el = document.getElementById("hrms-live-showcase-container");
-                        if (el) {
-                          el.scrollIntoView({ behavior: "smooth" });
-                        }
-                      }}
-                      style={{
-                        padding: "0.75rem 1.4rem",
-                        borderRadius: "10px",
-                        border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.18))",
-                        background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
-                        color: "var(--text-primary, #f8fafc)",
-                        cursor: "pointer",
-                        fontSize: "0.9rem",
-                        fontWeight: 600,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <LayersIcon size={16} />
-                      <span>API Metrics & Insights</span>
-                    </button>
-                  )}
-
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                      {active.product_code.toLowerCase() === "hrms"
-                        ? "Launches the live PeoplePulse HRMS application directly in this showcase window. Use API Metrics & Insights to inspect live API telemetry."
-                        : launchContract?.launchable
+                      {launchContract?.launchable
                         ? "Ready for authorized demonstration."
                         : "Target environment readiness: " + (launchContract?.reason || "SSO_NOT_CONFIGURED")}
                     </div>
@@ -906,11 +872,6 @@ export function ShowcasePresentPage() {
                       </button>
                     </div>
                   </div>
-                )}
-
-                {/* HRMS Interactive Demo Panel */}
-                {active.product_code.toLowerCase() === "hrms" && (
-                  <HrmsLiveShowcase onLaunchExternal={handleStartLiveDemo} />
                 )}
               </div>
             </div>

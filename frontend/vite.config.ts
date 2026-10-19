@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 const allowedFrameOrigins =
   process.env.VITE_FRAME_SRC_ALLOWLIST ||
-  "http://localhost:8080 http://127.0.0.1:8080 https://hrms.vibesandbox.live https://*.vibesandbox.live https://excelreports.vibecopilot.ai";
+  "http://localhost:8080 http://127.0.0.1:8080 http://localhost:8081 http://127.0.0.1:8081 https://hrms.vibesandbox.live https://*.vibesandbox.live https://excelreports.vibecopilot.ai";
 
 const cspHeader = [
   "default-src 'self'",

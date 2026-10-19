@@ -8,14 +8,6 @@ import { ENDPOINTS } from "./endpoints.ts";
 import type {
   CreateShowcaseProfilePayload,
   DemoEnvironment,
-  HrmsAttendanceHistoryResponse,
-  HrmsAttendanceResponse,
-  HrmsDepartmentListResponse,
-  HrmsEmployeeListResponse,
-  HrmsHealthStatus,
-  HrmsLeavesSummaryResponse,
-  HrmsOrgStructureResponse,
-  HrmsOverviewResponse,
   LaunchabilityContract,
   ReorderPayload,
   ShowcaseDemoLaunchResponse,
@@ -128,57 +120,6 @@ export const showcaseApi = {
   /** Launch demo environment for a profile via authorized Showcase SSO. */
   async launchDemo(profileId: string): Promise<ShowcaseDemoLaunchResponse> {
     return apiClient.post<ShowcaseDemoLaunchResponse>(ENDPOINTS.SHOWCASE.LAUNCH_DEMO(profileId), {});
-  },
-
-  /** HRMS Live Sandbox demonstration endpoints */
-  hrms: {
-    /** Probe health of upstream HRMS sandbox */
-    async getHealth(): Promise<HrmsHealthStatus> {
-      return apiClient.get<HrmsHealthStatus>(ENDPOINTS.SHOWCASE.HRMS_HEALTH);
-    },
-
-    /** Fetch HRMS demonstration overview metrics */
-    async getOverview(): Promise<HrmsOverviewResponse> {
-      return apiClient.get<HrmsOverviewResponse>(ENDPOINTS.SHOWCASE.HRMS_OVERVIEW);
-    },
-
-    /** Fetch sanitized and paginated employee list */
-    async getEmployees(params?: {
-      department?: string;
-      search?: string;
-      page?: number;
-      page_size?: number;
-    }): Promise<HrmsEmployeeListResponse> {
-      return apiClient.get<HrmsEmployeeListResponse>(ENDPOINTS.SHOWCASE.HRMS_EMPLOYEES, { params });
-    },
-
-    /** Fetch today's attendance summary and punch feed */
-    async getAttendance(): Promise<HrmsAttendanceResponse> {
-      return apiClient.get<HrmsAttendanceResponse>(ENDPOINTS.SHOWCASE.HRMS_ATTENDANCE);
-    },
-
-    /** Fetch organization department list for UI filtering */
-    async getDepartments(): Promise<HrmsDepartmentListResponse> {
-      return apiClient.get<HrmsDepartmentListResponse>(ENDPOINTS.SHOWCASE.HRMS_DEPARTMENTS);
-    },
-
-    /** Fetch historical attendance punch telemetry */
-    async getAttendanceHistory(params?: {
-      limit?: number;
-      search?: string;
-    }): Promise<HrmsAttendanceHistoryResponse> {
-      return apiClient.get<HrmsAttendanceHistoryResponse>(ENDPOINTS.SHOWCASE.HRMS_ATTENDANCE_HISTORY, { params });
-    },
-
-    /** Fetch organizational structure (departments, designations, sites) */
-    async getOrgStructure(): Promise<HrmsOrgStructureResponse> {
-      return apiClient.get<HrmsOrgStructureResponse>(ENDPOINTS.SHOWCASE.HRMS_ORG_STRUCTURE);
-    },
-
-    /** Fetch leave approval status metrics */
-    async getLeavesSummary(): Promise<HrmsLeavesSummaryResponse> {
-      return apiClient.get<HrmsLeavesSummaryResponse>(ENDPOINTS.SHOWCASE.HRMS_LEAVES_SUMMARY);
-    },
   },
 
   /** VMS (WarehouseOS) Live Sandbox demonstration endpoints */

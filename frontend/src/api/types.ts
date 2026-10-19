@@ -1900,6 +1900,7 @@ export interface ShowcaseLaunchConfig {
   readonly product_name: string;
   readonly launch_mode: string;
   readonly target_environment: string | null;
+  readonly target_environment_id?: string | null;
   readonly target_environment_name?: string;
   readonly allowed_targets: readonly string[];
   readonly policy: Record<string, unknown>;
