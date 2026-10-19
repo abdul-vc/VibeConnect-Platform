@@ -622,7 +622,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             </div>
 
             {/* Navigation Items (Scrolls independently if needed) */}
-            <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+            <nav className="sidebar-nav-container">
               {navItems.map((item) => (
                 <div key={item.id} className="nav-item-wrapper">
                   <button
@@ -988,6 +988,53 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           will-change: transform;
         }
 
+        /* Sleek Modern Unobtrusive Sidebar Navigation Scrollbar */
+        .sidebar-nav-container {
+          flex: 1;
+          overflow-y: auto;
+          overflow-x: hidden;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+          transition: scrollbar-color 0.15s ease;
+        }
+
+        .desktop-sidebar:hover .sidebar-nav-container,
+        .desktop-sidebar:focus-within .sidebar-nav-container {
+          scrollbar-color: var(--border-glass) transparent;
+        }
+
+        .sidebar-nav-container::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .sidebar-nav-container::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .sidebar-nav-container::-webkit-scrollbar-thumb {
+          background-color: transparent;
+          border-radius: 9999px;
+          transition: background-color 0.15s ease;
+        }
+
+        .desktop-sidebar:hover .sidebar-nav-container::-webkit-scrollbar-thumb,
+        .desktop-sidebar:focus-within .sidebar-nav-container::-webkit-scrollbar-thumb {
+          background-color: var(--border-glass);
+        }
+
+        .sidebar-nav-container::-webkit-scrollbar-thumb:hover {
+          background-color: var(--border-strong) !important;
+        }
+
+        .sidebar-nav-container::-webkit-scrollbar-button {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+
         /* Section Header */
         .sidebar-section-header {
           font-size: 0.6875rem;
@@ -1083,6 +1130,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           padding-left: 0.25rem;
           padding-right: 0.5rem;
           color: var(--text-primary);
+          min-width: 0;
+          flex: 1;
+          text-align: left;
           max-width: 196px;
         }
 

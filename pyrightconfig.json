@@ -1,0 +1,12 @@
+{
+  "include": [
+    "backend"
+  ],
+  "extraPaths": [
+    "backend"
+  ],
+  "venvPath": "backend",
+  "venv": "venv",
+  "reportMissingTypeStubs": false,
+  "reportIncompatibleVariableOverride": false
+}

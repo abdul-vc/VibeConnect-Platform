@@ -20,6 +20,7 @@ import {
   AlertCircleIcon,
   SearchIcon,
   BoxIcon,
+  ExternalLinkIcon,
 } from "../../components/Icons.tsx";
 import { ShowcaseEmbeddedDemo } from "./ShowcaseEmbeddedDemo.tsx";
 

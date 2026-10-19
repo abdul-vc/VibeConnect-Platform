@@ -629,6 +629,8 @@ class ProductShowcaseService:
                     "allowed_targets": launch_config.allowed_targets,
                 }
 
+        open_mode = (launch_config.policy or {}).get("open_mode", "embed")
+
         return {
             "launchable": True,
             "reason": "READY",
@@ -638,6 +640,8 @@ class ProductShowcaseService:
             "demo_user": demo_user.email,
             "demo_organization": demo_org.code,
             "sso_enabled": True,
+            "open_mode": open_mode,
+            "policy": launch_config.policy or {},
             "target_environment": {
                 "id": str(target_env.id),
                 "name": target_env.name,
@@ -1150,6 +1154,8 @@ class ProductShowcaseService:
         expires_at_val = sso_result.get("expires_at")
         expires_at_str = expires_at_val.isoformat() if hasattr(expires_at_val, "isoformat") else str(expires_at_val)
 
+        open_mode = (launch_config.policy or {}).get("open_mode", "embed")
+
         return {
             "redirect_url": sso_result["redirect_url"],
             "expires_at": expires_at_str,
@@ -1157,6 +1163,7 @@ class ProductShowcaseService:
             "demo_organization": demo_org.code,
             "product_name": profile.product.name,
             "target_name": launch_config.target_environment.name if launch_config.target_environment else "",
+            "open_mode": open_mode,
         }
 
     @staticmethod
@@ -1185,14 +1192,27 @@ class ProductShowcaseService:
                 raise ShowcaseServiceError(f"Invalid launch_mode '{data['launch_mode']}'.")
             launch_config.launch_mode = data["launch_mode"]
 
-        if "target_environment_id" in data:
-            env_id = data["target_environment_id"]
-            if env_id:
+        if "target_environment_id" in data or "target_environment" in data:
+            raw_env_id = data.get("target_environment_id") if "target_environment_id" in data else data.get("target_environment")
+            if raw_env_id:
+                env_id = getattr(raw_env_id, "id", raw_env_id)
+                if isinstance(env_id, dict):
+                    env_id = env_id.get("id")
                 try:
-                    env = ProductDemoEnvironment.objects.get(pk=env_id, product=profile.product)
+                    env = ProductDemoEnvironment.objects.get(pk=env_id)
+                    if env.product_id != profile.product_id:
+                        raise ShowcaseServiceError(
+                            f"Demo environment '{env_id}' belongs to product '{env.product.code}', not '{profile.product.code}'."
+                        )
                     launch_config.target_environment = env
-                except ProductDemoEnvironment.DoesNotExist:
-                    raise ShowcaseServiceError(f"Demo environment '{env_id}' not found.")
+                    if env.base_url and env.base_url not in (launch_config.allowed_targets or []):
+                        current_targets = list(launch_config.allowed_targets or [])
+                        current_targets.append(env.base_url)
+                        launch_config.allowed_targets = current_targets
+                except (ProductDemoEnvironment.DoesNotExist, ValueError, ValidationError):
+                    raise ShowcaseServiceError(
+                        f"Demo environment '{env_id}' not found."
+                    )
             else:
                 launch_config.target_environment = None
 

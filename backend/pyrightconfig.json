@@ -1,0 +1,12 @@
+{
+  "include": [
+    "."
+  ],
+  "extraPaths": [
+    "."
+  ],
+  "venvPath": ".",
+  "venv": "venv",
+  "reportMissingTypeStubs": false,
+  "reportIncompatibleVariableOverride": false
+}
