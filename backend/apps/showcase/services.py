@@ -37,7 +37,7 @@ from apps.showcase.models import (
 
 _HTTPS_RE = re.compile(r"^https://", re.IGNORECASE)
 
-AUTHORIZED_DEMO_ORGANIZATION_CODES: frozenset[str] = frozenset({"boss-demo-org"})
+AUTHORIZED_DEMO_ORGANIZATION_CODES: frozenset[str] = frozenset({"boss-demo-org", "demo-org"})
 
 SALESTRACKER_PRODUCT_CODES: frozenset[str] = frozenset({"crm", "salestracker", "sales_tracker", "salestracker_crm"})
 

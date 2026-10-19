@@ -123,6 +123,28 @@ def issue_sso_authorization_code(
     code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()
     expires_at = timezone.now() + datetime.timedelta(minutes=5)
 
+    # Bind or generate state parameter
+    bound_state = state
+    if not bound_state:
+        try:
+            client_secret = get_m2m_connector_secret(
+                product_code=product.code,
+                client_identifier=sso_client.client_identifier,
+            )
+        except Exception:
+            client_secret = ""
+
+        if client_secret:
+            import time
+            import hmac
+            nonce = secrets.token_urlsafe(16)
+            ts = int(time.time())
+            msg = f"{nonce}.{ts}".encode("utf-8")
+            sig = hmac.new(client_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+            bound_state = f"{nonce}.{ts}.{sig}"
+        else:
+            bound_state = secrets.token_urlsafe(32)
+
     SsoAuthorizationCode.objects.create(
         user=user,
         organization=organization,
@@ -132,6 +154,7 @@ def issue_sso_authorization_code(
         code_hash=code_hash,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method or "S256",
+        state=bound_state,
         expires_at=expires_at,
     )
 
@@ -139,8 +162,8 @@ def issue_sso_authorization_code(
     parsed = urlparse(sso_client.callback_uri)
     query_params = dict(parse_qsl(parsed.query))
     query_params["code"] = raw_code
-    if state:
-        query_params["state"] = state
+    if bound_state:
+        query_params["state"] = bound_state
     new_query = urlencode(query_params)
     redirect_url = urlunparse(
         (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
@@ -158,11 +181,12 @@ def validate_sso_authorization_code(
     code_verifier: Optional[str] = None,
     expected_org_id: Optional[str] = None,
     expected_product_id: Optional[str] = None,
+    state: Optional[str] = None,
 ) -> dict[str, Any]:
     """Validates an SSO authorization code and returns user/org claims.
 
-    Atomically checks single-use, expiration, PKCE, tenant/product binding,
-    and confirms that user's assignment is still active.
+    Atomically checks single-use, expiration, PKCE, state/CSRF match,
+    tenant/product binding, and confirms that user's assignment is still active.
     """
     if not code:
         raise exceptions.ValidationError(
@@ -201,7 +225,14 @@ def validate_sso_authorization_code(
                 {"error": "CLIENT_MISMATCH", "detail": "Code was not issued to this client."}
             )
 
-        # 4. Tenant and product binding check
+        # 4. State parameter binding check (if provided during validation)
+        if state is not None:
+            if not sso_code.state or not secrets.compare_digest(sso_code.state, state):
+                raise exceptions.ValidationError(
+                    {"error": "STATE_MISMATCH", "detail": "Provided state does not match launch state."}
+                )
+
+        # 5. Tenant and product binding check
         if expected_org_id and str(sso_code.organization_id) != str(expected_org_id):
             raise exceptions.ValidationError(
                 {"error": "TENANT_MISMATCH", "detail": "Code tenant binding mismatch."}

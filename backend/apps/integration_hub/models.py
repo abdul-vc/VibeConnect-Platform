@@ -828,6 +828,12 @@ class SsoAuthorizationCode(models.Model):
         default="S256",
         help_text="PKCE code challenge method (S256 or plain).",
     )
+    state = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True,
+        help_text="Opaque client state or signed CSRF nonce bound to launch.",
+    )
     expires_at = models.DateTimeField(db_index=True)
     used_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

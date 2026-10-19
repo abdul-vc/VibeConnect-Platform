@@ -232,7 +232,8 @@ class ProductSsoClientSerializer(serializers.ModelSerializer):
 
 
 class SsoLaunchRequestSerializer(serializers.Serializer):
-    product_id = serializers.UUIDField(required=True)
+    product_id = serializers.UUIDField(required=False)
+    product_code = serializers.CharField(required=False, allow_blank=True)
     organization_id = serializers.UUIDField(required=False)
     redirect_uri = serializers.CharField(required=False, allow_blank=True)
     code_challenge = serializers.CharField(required=False, allow_blank=True, max_length=128)
@@ -241,15 +242,27 @@ class SsoLaunchRequestSerializer(serializers.Serializer):
         default="S256",
         required=False,
     )
-    state = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=512)
+
+    def validate(self, attrs):
+        if not attrs.get("product_id") and not attrs.get("product_code"):
+            raise serializers.ValidationError("Either 'product_id' or 'product_code' is required.")
+        return attrs
 
 
 class SsoValidateRequestSerializer(serializers.Serializer):
     code = serializers.CharField(required=True)
     client_identifier = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    client_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     code_verifier = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     expected_org_id = serializers.UUIDField(required=False, allow_null=True)
     expected_product_id = serializers.UUIDField(required=False, allow_null=True)
+    state = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=512)
+
+    def validate(self, attrs):
+        if not attrs.get("client_identifier") and attrs.get("client_id"):
+            attrs["client_identifier"] = attrs["client_id"]
+        return attrs
 
 
 # ── 5D ────────────────────────────────────────────────────────────────────────
