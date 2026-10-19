@@ -1,4 +1,4 @@
-"""SSO API Views (Phase 5C).
+"""SSO API Views (Phase 5C, Trinity Workshop & FieldSense Operations Hub SSO).
 
 Endpoints:
 - POST /api/v1/sso/launch/
@@ -60,8 +60,14 @@ class SsoLaunchView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        product_id = data["product_id"]
-        product = Product.objects.filter(id=product_id).first()
+        product_id = data.get("product_id")
+        product_code = data.get("product_code")
+        product = None
+        if product_id:
+            product = Product.objects.filter(id=product_id).first()
+        elif product_code:
+            product = Product.objects.filter(code=product_code).first()
+
         if not product:
             return Response(
                 {"error": "PRODUCT_NOT_FOUND", "detail": "Product does not exist."},
@@ -379,8 +385,37 @@ class SsoValidateView(APIView):
             )
 
         provided_secret = parts[1]
+
+        # 2. Validate request payload
+        serializer = SsoValidateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        client_identifier = data.get("client_identifier") or data.get("client_id")
+        product_code = None
+
+        if not client_identifier:
+            raw_code = data.get("code")
+            if raw_code:
+                import hashlib
+                from apps.integration_hub.models import SsoAuthorizationCode
+                code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()
+                auth_code_obj = (
+                    SsoAuthorizationCode.objects.filter(code_hash=code_hash)
+                    .select_related("product", "sso_client")
+                    .first()
+                )
+                if auth_code_obj:
+                    if auth_code_obj.sso_client:
+                        client_identifier = auth_code_obj.sso_client.client_identifier
+                    if auth_code_obj.product:
+                        product_code = auth_code_obj.product.code
+
         try:
-            expected_secret = get_m2m_connector_secret(product_code="lms")
+            expected_secret = get_m2m_connector_secret(
+                product_code=product_code,
+                client_identifier=client_identifier,
+            )
         except exceptions.AuthenticationFailed as exc:
             return Response(exc.detail, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -390,18 +425,14 @@ class SsoValidateView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # 2. Validate request payload
-        serializer = SsoValidateRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
         # 3. Exchange code and resolve claims
         claims = validate_sso_authorization_code(
             code=data["code"],
-            client_identifier=data.get("client_identifier") or None,
+            client_identifier=client_identifier,
             code_verifier=data.get("code_verifier") or None,
             expected_org_id=data.get("expected_org_id") or None,
             expected_product_id=data.get("expected_product_id") or None,
+            state=data.get("state") or None,
         )
 
         return Response(claims, status=status.HTTP_200_OK)

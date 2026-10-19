@@ -68,6 +68,7 @@ class ProductShowcaseProfile(models.Model):
     )
     tagline = models.CharField(max_length=200, blank=True, default="")
     overview = models.TextField(blank=True, default="")
+    category = models.CharField(max_length=100, blank=True, default="")
     visibility = models.CharField(
         max_length=20,
         choices=ShowcaseVisibility.choices,

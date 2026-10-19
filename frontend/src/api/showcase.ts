@@ -114,4 +114,41 @@ export const showcaseApi = {
   async launchDemo(profileId: string): Promise<ShowcaseDemoLaunchResponse> {
     return apiClient.post<ShowcaseDemoLaunchResponse>(ENDPOINTS.SHOWCASE.LAUNCH_DEMO(profileId), {});
   },
+  /** VMS (WarehouseOS) Live Sandbox demonstration endpoints */
+  vms: {
+    /** Probe health of upstream VMS sandbox */
+    async getHealth(): Promise<VmsHealthStatus> {
+      return apiClient.get<VmsHealthStatus>(ENDPOINTS.SHOWCASE.VMS_HEALTH);
+    },
+
+    /** Fetch VMS demonstration overview metrics and KPIs */
+    async getOverview(): Promise<VmsOverviewResponse> {
+      return apiClient.get<VmsOverviewResponse>(ENDPOINTS.SHOWCASE.VMS_OVERVIEW);
+    },
+
+    /** Fetch real-time inventory stock statistics */
+    async getInventory(): Promise<VmsInventoryStockResponse> {
+      return apiClient.get<VmsInventoryStockResponse>(ENDPOINTS.SHOWCASE.VMS_INVENTORY);
+    },
+
+    /** Fetch active dock bays and allocations */
+    async getDocks(): Promise<VmsDocksResponse> {
+      return apiClient.get<VmsDocksResponse>(ENDPOINTS.SHOWCASE.VMS_DOCKS);
+    },
+
+    /** Fetch active fulfillment waves */
+    async getWaves(): Promise<VmsWavesResponse> {
+      return apiClient.get<VmsWavesResponse>(ENDPOINTS.SHOWCASE.VMS_WAVES);
+    },
+
+    /** Fetch gate vehicles and yard queue */
+    async getVehicles(): Promise<VmsVehiclesResponse> {
+      return apiClient.get<VmsVehiclesResponse>(ENDPOINTS.SHOWCASE.VMS_VEHICLES);
+    },
+
+    /** Fetch operational reports summary */
+    async getReports(): Promise<VmsReportsSummary> {
+      return apiClient.get<VmsReportsSummary>(ENDPOINTS.SHOWCASE.VMS_REPORTS);
+    },
+  },
 };

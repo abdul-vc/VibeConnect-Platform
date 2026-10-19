@@ -4,6 +4,17 @@ Explicitly configured via environment variables. No fallback values or hardcoded
 """
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+backend_dir = Path(__file__).resolve().parent.parent.parent
+env_file = backend_dir / ".env"
+if env_file.exists():
+    load_dotenv(env_file, override=True)
+
+env_local_file = backend_dir / ".env.local"
+if env_local_file.exists():
+    load_dotenv(env_local_file, override=True)
 from django.core.exceptions import ImproperlyConfigured
 from .base import *
 
@@ -52,7 +63,6 @@ if raw_csrf:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_csrf.split(",") if origin.strip()]
 else:
     CSRF_TRUSTED_ORIGINS = []
-
 # Phase 3A: Email & Frontend Configuration for Local Development
 if not FRONTEND_BASE_URL:
     FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:6392").rstrip("/")

@@ -1,4 +1,4 @@
-"""SSO Service for LMS Integration (Phase 5C).
+"""SSO Service for LMS, Trinity Workshop, and FieldSense Operations Hub Integration.
 
 Provides:
 - Short-lived, single-use, PKCE-supported authorization code issuance.
@@ -123,6 +123,28 @@ def issue_sso_authorization_code(
     code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()
     expires_at = timezone.now() + datetime.timedelta(minutes=5)
 
+    # Bind or generate state parameter
+    bound_state = state
+    if not bound_state:
+        try:
+            client_secret = get_m2m_connector_secret(
+                product_code=product.code,
+                client_identifier=sso_client.client_identifier,
+            )
+        except Exception:
+            client_secret = ""
+
+        if client_secret:
+            import time
+            import hmac
+            nonce = secrets.token_urlsafe(16)
+            ts = int(time.time())
+            msg = f"{nonce}.{ts}".encode("utf-8")
+            sig = hmac.new(client_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+            bound_state = f"{nonce}.{ts}.{sig}"
+        else:
+            bound_state = secrets.token_urlsafe(32)
+
     SsoAuthorizationCode.objects.create(
         user=user,
         organization=organization,
@@ -132,6 +154,7 @@ def issue_sso_authorization_code(
         code_hash=code_hash,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method or "S256",
+        state=bound_state,
         expires_at=expires_at,
     )
 
@@ -139,8 +162,8 @@ def issue_sso_authorization_code(
     parsed = urlparse(sso_client.callback_uri)
     query_params = dict(parse_qsl(parsed.query))
     query_params["code"] = raw_code
-    if state:
-        query_params["state"] = state
+    if bound_state:
+        query_params["state"] = bound_state
     new_query = urlencode(query_params)
     redirect_url = urlunparse(
         (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
@@ -158,11 +181,12 @@ def validate_sso_authorization_code(
     code_verifier: Optional[str] = None,
     expected_org_id: Optional[str] = None,
     expected_product_id: Optional[str] = None,
+    state: Optional[str] = None,
 ) -> dict[str, Any]:
     """Validates an SSO authorization code and returns user/org claims.
 
-    Atomically checks single-use, expiration, PKCE, tenant/product binding,
-    and confirms that user's assignment is still active.
+    Atomically checks single-use, expiration, PKCE, state/CSRF match,
+    tenant/product binding, and confirms that user's assignment is still active.
     """
     if not code:
         raise exceptions.ValidationError(
@@ -201,7 +225,14 @@ def validate_sso_authorization_code(
                 {"error": "CLIENT_MISMATCH", "detail": "Code was not issued to this client."}
             )
 
-        # 4. Tenant and product binding check
+        # 4. State parameter binding check (if provided during validation)
+        if state is not None:
+            if not sso_code.state or not secrets.compare_digest(sso_code.state, state):
+                raise exceptions.ValidationError(
+                    {"error": "STATE_MISMATCH", "detail": "Provided state does not match launch state."}
+                )
+
+        # 5. Tenant and product binding check
         if expected_org_id and str(sso_code.organization_id) != str(expected_org_id):
             raise exceptions.ValidationError(
                 {"error": "TENANT_MISMATCH", "detail": "Code tenant binding mismatch."}
@@ -264,20 +295,195 @@ def validate_sso_authorization_code(
     }
 
 
-def get_m2m_connector_secret(product_code: str = "lms") -> str:
+def is_fieldsense_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to FieldSense Operations Hub."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower == "fieldsense-ops-hub" or "fieldsense" in client_id_lower:
+        return True
+    if prod_code_lower in ("fieldsense", "fieldsense-ops-hub", "fieldsence"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("fieldsense", "fieldsense-ops-hub", "fieldsence"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def is_vms_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to WarehouseOS VMS."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower in ("vms-warehouse-app", "warehouseos_vms") or "vms-warehouse" in client_id_lower:
+        return True
+    if prod_code_lower in ("vms-warehouse", "vms"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("vms-warehouse", "vms"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def is_hrms_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to PeoplePulse HRMS."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower == "hrms-app" or client_id_lower.startswith("hrms"):
+        return True
+    if prod_code_lower in ("hrms", "hrms-core"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("hrms", "hrms-core"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def is_trinity_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to Trinity Workshop."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower == "trinity-workshop-app" or "trinity" in client_id_lower:
+        return True
+    if prod_code_lower in ("workshop-trinity", "workshop"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("workshop-trinity", "workshop"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def get_m2m_connector_secret(
+    product_code: Optional[str] = None,
+    client_identifier: Optional[str] = None,
+) -> str:
     """Retrieves the configured M2M secret for backend-to-backend authentication.
 
-    Loads from settings or environment. Never exposes the secret to clients.
+    Per-client and per-product secret isolation:
+    - FieldSense Operations Hub ('fieldsense-ops-hub' / 'fieldsense'):
+        Uses ONLY VIBECONNECT_FIELDSENSE_M2M_SECRET. Fails closed if missing.
+        Never falls back to Trinity, LMS, VMS, HRMS, or any shared secret.
+    - WarehouseOS VMS ('vms-warehouse-app' / 'vms-warehouse'):
+        Uses ONLY VIBECONNECT_VMS_M2M_SECRET. Fails closed if missing.
+        Never falls back to Trinity, LMS, FieldSense, HRMS, or any shared secret.
+    - PeoplePulse HRMS ('hrms-app' / 'hrms'):
+        Uses ONLY VIBECONNECT_HRMS_M2M_SECRET. Fails closed if missing.
+        Never falls back to Trinity, LMS, FieldSense, VMS, or any shared secret.
+    - Trinity Workshop ('trinity-workshop-app' / 'workshop-trinity'):
+        Loads VIBECONNECT_TRINITY_M2M_SECRET with fallback to VIBECONNECT_M2M_SECRET.
+    - LMS / Default ('pilot_lms_client' / 'lms' / other clients):
+        Loads VIBECONNECT_LMS_M2M_SECRET with fallback to VIBECONNECT_M2M_SECRET.
+
+    Never exposes or logs secret values.
     Raises exceptions.AuthenticationFailed if not configured.
     """
-    secret = (
-        getattr(settings, "VIBECONNECT_LMS_M2M_SECRET", None)
-        or os.environ.get("VIBECONNECT_LMS_M2M_SECRET", "")
-    ).strip()
+    if is_fieldsense_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_FIELDSENSE_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_FIELDSENSE_M2M_SECRET", "")
+        ).strip()
+        if not secret:
+            raise exceptions.AuthenticationFailed(
+                {
+                    "error": "SERVER_MISCONFIGURED",
+                    "detail": "FieldSense M2M connector secret is not configured on the server.",
+                }
+            )
+        return secret
+
+    if is_vms_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_VMS_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_VMS_M2M_SECRET", "")
+        ).strip()
+        if not secret:
+            raise exceptions.AuthenticationFailed(
+                {
+                    "error": "SERVER_MISCONFIGURED",
+                    "detail": "VMS M2M connector secret is not configured on the server.",
+                }
+            )
+        return secret
+
+    if is_hrms_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_HRMS_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_HRMS_M2M_SECRET", "")
+        ).strip()
+        if not secret:
+            raise exceptions.AuthenticationFailed(
+                {
+                    "error": "SERVER_MISCONFIGURED",
+                    "detail": "HRMS M2M connector secret is not configured on the server.",
+                }
+            )
+        return secret
+
+    if is_trinity_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_TRINITY_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_TRINITY_M2M_SECRET", "")
+        ).strip()
+    else:
+        secret = (
+            getattr(settings, "VIBECONNECT_LMS_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_LMS_M2M_SECRET", "")
+        ).strip()
+
     if not secret:
-        secret = os.environ.get("VIBECONNECT_M2M_SECRET", "").strip()
+        secret = (
+            getattr(settings, "VIBECONNECT_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_M2M_SECRET", "")
+        ).strip()
     if not secret:
         raise exceptions.AuthenticationFailed(
             {"error": "SERVER_MISCONFIGURED", "detail": "M2M connector secret is not configured on the server."}
         )
     return secret
+

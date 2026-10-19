@@ -185,6 +185,13 @@ export const ENDPOINTS = {
     LAUNCH_CONFIG: (id: string) => `/api/v1/showcase/profiles/${encodeURIComponent(id)}/launch-config/`,
     LAUNCH_DEMO: (id: string) => `/api/v1/showcase/profiles/${encodeURIComponent(id)}/launch-demo/`,
     PRESENT: "/api/v1/showcase/present/",
+    VMS_HEALTH: "/api/v1/showcase/vms/health/",
+    VMS_OVERVIEW: "/api/v1/showcase/vms/overview/",
+    VMS_INVENTORY: "/api/v1/showcase/vms/inventory/",
+    VMS_DOCKS: "/api/v1/showcase/vms/docks/",
+    VMS_WAVES: "/api/v1/showcase/vms/waves/",
+    VMS_VEHICLES: "/api/v1/showcase/vms/vehicles/",
+    VMS_REPORTS: "/api/v1/showcase/vms/reports/",
   },
   BRANDING: {
     ACTIVE: "/api/v1/branding/active/",

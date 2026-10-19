@@ -19,4 +19,5 @@ urlpatterns = [
     path("demo-environments/<uuid:env_id>/", views.DemoEnvironmentDetailView.as_view(), name="showcase-demo-env-detail"),
     # Presentation mode
     path("present/", views.ShowcasePresentationView.as_view(), name="showcase-present"),
+
 ]
