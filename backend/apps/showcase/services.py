@@ -39,7 +39,13 @@ _HTTPS_RE = re.compile(r"^https://", re.IGNORECASE)
 
 AUTHORIZED_DEMO_ORGANIZATION_CODES: frozenset[str] = frozenset({"boss-demo-org", "demo-org"})
 
-SALESTRACKER_PRODUCT_CODES: frozenset[str] = frozenset({"crm", "salestracker", "sales_tracker", "salestracker_crm"})
+SALESTRACKER_PRODUCT_CODES: frozenset[str] = frozenset({
+    "crm",
+    "salestracker",
+    "sales_tracker",
+    "sales-tracker",
+    "salestracker_crm",
+})
 
 
 def is_salestracker_product(product: Any) -> bool:
@@ -61,6 +67,7 @@ DIVINECONNECT_PRODUCT_CODES: frozenset[str] = frozenset({
     "events",
     "event",
     "event_module",
+    "event-module",
 })
 
 
@@ -675,7 +682,7 @@ class ProductShowcaseService:
             models.Q(profile=profile) | models.Q(product=profile.product)
         ).select_related("target_environment").first()
 
-        # Quiz launch handling: SSO launch grant when configured, fallback to direct launch otherwise
+        # Quiz launch handling: directly opens Quiz Admin via showcase demo gateway
         if profile.product.code == "quiz":
             from apps.integration_hub.quiz_sso_client import (
                 is_quiz_sso_configured,
@@ -686,28 +693,30 @@ class ProductShowcaseService:
             )
 
             target_env = launch_config.target_environment if launch_config else None
-            direct_fallback_url = target_env.base_url if target_env else "https://quiz.digielvestech.in/"
+            quiz_demo_target = (
+                getattr(settings, "QUIZ_DEMO_GATEWAY_URL", "")
+                or (target_env.base_url if target_env and "quiz-demo" in target_env.base_url else "")
+                or "http://127.0.0.1:8000/quiz-demo/admin"
+            )
+            direct_fallback_url = quiz_demo_target
 
             if is_quiz_sso_configured():
                 try:
                     grant = request_quiz_launch_grant(
-                        user_id="showcase_student",
+                        user_id="superadmin",
                         tenant_id="showcase",
-                        email="showcase@vibeconnect.internal",
-                        first_name="Showcase",
-                        last_name="Student",
-                        phone="",
+                        email="admin@gmail.com",
+                        first_name="Super",
+                        last_name="Admin",
+                        phone="08104771784",
                         context="showcase",
-                        target_path="/dashboard",
+                        target_path="/admin",
                     )
                     launch_url = grant["callback_url"]
                     direct_launch = False
-                except QuizSsoConflictError as exc:
-                    raise ShowcaseServiceError(f"Quiz showcase launch conflict: {exc.message}")
-                except QuizSsoAuthError:
-                    raise ShowcaseServiceError("Quiz showcase SSO authentication failed. Please verify server M2M secret.")
-                except QuizSsoError as exc:
-                    raise ShowcaseServiceError(f"Quiz showcase SSO launch failed: {exc.message}")
+                except (QuizSsoConflictError, QuizSsoAuthError, QuizSsoError):
+                    launch_url = direct_fallback_url
+                    direct_launch = True
             else:
                 launch_url = direct_fallback_url
                 direct_launch = True
@@ -733,11 +742,11 @@ class ProductShowcaseService:
             )
             return {
                 "redirect_url": launch_url,
-                "expires_at": (timezone.now() + timedelta(minutes=5)).isoformat() if not direct_launch else "",
-                "demo_user": "showcase_student" if not direct_launch else "",
-                "demo_organization": "showcase" if not direct_launch else "",
+                "expires_at": (timezone.now() + timedelta(minutes=45)).isoformat(),
+                "demo_user": "superadmin",
+                "demo_organization": "System Platform",
                 "product_name": profile.product.name,
-                "target_name": target_env.name if target_env else "Quiz Live Platform",
+                "target_name": target_env.name if target_env else "Quiz Admin",
             }
 
         # Sales Tracker launch handling: dedicated server-to-server launch grant
@@ -1017,8 +1026,42 @@ class ProductShowcaseService:
 
 
         if is_lms_product(profile.product):
+            target_env = launch_config.target_environment if launch_config else None
+            # Directly route to LMS superadmin dashboard via our showcase gateway
+            direct_fallback_url = (
+                getattr(settings, "LMS_DEMO_GATEWAY_URL", "")
+                or (target_env.base_url if target_env and "lms-demo" in target_env.base_url else "")
+                or "http://127.0.0.1:8000/lms-demo/super-admin/dashboard"
+            )
+
             if not is_lms_launch_grant_configured():
-                raise ShowcaseServiceError("Cannot launch demo: LMS launch grant SSO is not configured on the server.")
+                record_audit_event(
+                    action=AuditAction.SHOWCASE_DEMO_LAUNCHED,
+                    target_type=AuditTargetType.SHOWCASE_PROFILE,
+                    target_id=str(profile.id),
+                    target_repr=f"ShowcaseProfile({profile.product.name})",
+                    actor=actor,
+                    organization_id=None,
+                    operation_source=AuditOperationSource.INTERACTIVE,
+                    correlation_id=None,
+                    metadata={
+                        "operation": "showcase_demo_launched",
+                        "product_code": profile.product.code,
+                        "profile_id": str(profile.id),
+                        "product_name": profile.product.name,
+                        "direct_launch": True,
+                        "target_url": direct_fallback_url,
+                        "context": "showcase",
+                    },
+                )
+                return {
+                    "redirect_url": direct_fallback_url,
+                    "expires_at": "",
+                    "demo_user": "superadmin",
+                    "demo_organization": "System Platform",
+                    "product_name": profile.product.name,
+                    "target_name": target_env.name if target_env else "LMS Super Admin",
+                }
             instance = ConnectorInstance.objects.filter(
                 connector__product=profile.product,
                 organization=demo_org,
