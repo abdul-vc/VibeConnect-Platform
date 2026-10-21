@@ -82,6 +82,27 @@ interface NavItem {
   readonly subItems?: readonly NavSubItem[];
 }
 
+interface NavSection {
+  readonly title: string;
+  readonly items: readonly NavItem[];
+}
+
+function getInitials(name?: string, fallbackRole?: string): string {
+  if (name && name.trim().length > 0) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (fallbackRole) {
+    if (fallbackRole.toLowerCase().includes("owner") || fallbackRole.toLowerCase().includes("super")) return "DP";
+    if (fallbackRole.toLowerCase().includes("admin")) return "TA";
+    if (fallbackRole.toLowerCase().includes("member")) return "TM";
+  }
+  return "VC";
+}
+
 interface AppShellProps {
   readonly children: React.ReactNode;
   readonly fullWidth?: boolean;
@@ -91,6 +112,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -174,287 +196,371 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  const navItems: readonly NavItem[] = isOwnerContext
+  const navSections: readonly NavSection[] = isOwnerContext
     ? [
         {
-          id: "overview",
-          label: "Overview",
-          icon: <GridIcon size={18} />,
-          path: "/",
-          active: location.pathname === "/",
+          title: "OVERVIEW",
+          items: [
+            {
+              id: "overview",
+              label: "Overview",
+              icon: <GridIcon size={18} />,
+              path: "/",
+              active: location.pathname === "/",
+            },
+            {
+              id: "reports",
+              label: "Analytics & Health",
+              icon: <GridIcon size={18} />,
+              path: "/reports",
+              active: location.pathname.startsWith("/reports"),
+            },
+          ],
         },
         {
-          id: "products",
-          label: "Product Registry & Marketplace",
-          icon: <BoxIcon size={18} />,
-          path: "/products",
-          active: location.pathname.startsWith("/products"),
+          title: "CUSTOMER OPERATIONS",
+          items: [
+            {
+              id: "organizations",
+              label: "Organization Registry",
+              icon: <BuildingIcon size={18} />,
+              path: "/organizations",
+              active: location.pathname.startsWith("/organizations"),
+            },
+            {
+              id: "onboarding",
+              label: "Tenant Onboarding",
+              icon: <PlusIcon size={18} />,
+              path: "/onboarding",
+              active: location.pathname.startsWith("/onboarding"),
+            },
+            {
+              id: "subscriptions",
+              label: "Subscriptions",
+              icon: <CreditCardIcon size={18} />,
+              path: "/subscriptions",
+              active: location.pathname.startsWith("/subscriptions"),
+            },
+            {
+              id: "billing",
+              label: "Billing & Invoices",
+              icon: <CreditCardIcon size={18} />,
+              path: "/billing",
+              active: location.pathname.startsWith("/billing"),
+            },
+            {
+              id: "users",
+              label: "Central Users",
+              icon: <UserIcon size={18} />,
+              path: "/users",
+              active: location.pathname.startsWith("/users"),
+            },
+            {
+              id: "access-requests",
+              label: "Access Requests & Approvals",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/access-requests",
+              active: location.pathname.startsWith("/access-requests"),
+            },
+            {
+              id: "support-console",
+              label: "Support & Operations Console",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/support",
+              active: location.pathname === "/support",
+            },
+            {
+              id: "support-impersonation",
+              label: "Audited Support Impersonation",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/support/impersonation",
+              active: location.pathname.startsWith("/support/impersonation"),
+            },
+          ],
         },
         {
-          id: "plans",
-          label: "Plans & Pricing",
-          icon: <LayersIcon size={18} />,
-          path: "/plans",
-          active:
-            location.pathname.startsWith("/plans") ||
-            location.pathname.startsWith("/plan-versions"),
+          title: "PLATFORM",
+          items: [
+            {
+              id: "products",
+              label: "Product Registry & Marketplace",
+              icon: <BoxIcon size={18} />,
+              path: "/products",
+              active: location.pathname.startsWith("/products"),
+            },
+            {
+              id: "plans",
+              label: "Plans & Pricing",
+              icon: <LayersIcon size={18} />,
+              path: "/plans",
+              active:
+                location.pathname.startsWith("/plans") ||
+                location.pathname.startsWith("/plan-versions"),
+            },
+            {
+              id: "entitlements",
+              label: "Product Access",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/organization-product-entitlements",
+              active: location.pathname.startsWith("/organization-product-entitlements"),
+            },
+            {
+              id: "showcase",
+              label: "Product Showcase",
+              icon: <StarIcon size={18} />,
+              path: "/showcase",
+              active: location.pathname.startsWith("/showcase"),
+              subItems: showcaseProfiles.map((p) => ({
+                id: `showcase-sub-${p.product_code}`,
+                label: p.product_name,
+                code: p.product_code,
+                path: `/showcase?product=${encodeURIComponent(p.product_code)}&demo=true`,
+                active:
+                  location.pathname.startsWith("/showcase") &&
+                  location.search.toLowerCase().includes(`product=${encodeURIComponent(p.product_code).toLowerCase()}`),
+              })),
+            },
+            {
+              id: "usage",
+              label: "Usage & Metering",
+              icon: <GridIcon size={18} />,
+              path: "/usage",
+              active: location.pathname.startsWith("/usage"),
+            },
+            {
+              id: "reconciliation",
+              label: "Reconciliation",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/reconciliation",
+              active: location.pathname.startsWith("/reconciliation"),
+            },
+            {
+              id: "white-labeling",
+              label: "White Labeling",
+              icon: <LayersIcon size={18} />,
+              path: "/white-labeling",
+              active: location.pathname.startsWith("/white-labeling"),
+            },
+            {
+              id: "notifications",
+              label: "Notifications",
+              icon: <LayersIcon size={18} />,
+              path: "/notifications",
+              active: location.pathname.startsWith("/notifications"),
+            },
+          ],
         },
         {
-          id: "subscriptions",
-          label: "Subscriptions",
-          icon: <CreditCardIcon size={18} />,
-          path: "/subscriptions",
-          active: location.pathname.startsWith("/subscriptions"),
-        },
-        {
-          id: "organizations",
-          label: "Organization Registry",
-          icon: <BuildingIcon size={18} />,
-          path: "/organizations",
-          active: location.pathname.startsWith("/organizations"),
-        },
-        {
-          id: "onboarding",
-          label: "Tenant Onboarding",
-          icon: <PlusIcon size={18} />,
-          path: "/onboarding",
-          active: location.pathname.startsWith("/onboarding"),
-        },
-        {
-          id: "users",
-          label: "Central Users",
-          icon: <UserIcon size={18} />,
-          path: "/users",
-          active: location.pathname.startsWith("/users"),
-        },
-        {
-          id: "entitlements",
-          label: "Product Access",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/organization-product-entitlements",
-          active: location.pathname.startsWith("/organization-product-entitlements"),
-        },
-        {
-          id: "bulk-import",
-          label: "Data Import & Migration",
-          icon: <UploadIcon size={18} />,
-          path: "/bulk-import",
-          active: location.pathname.startsWith("/bulk-import"),
-        },
-        {
-          id: "access-requests",
-          label: "Access Requests & Approvals",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/access-requests",
-          active: location.pathname.startsWith("/access-requests"),
-        },
-        {
-          id: "showcase",
-          label: "Product Showcase",
-          icon: <StarIcon size={18} />,
-          path: "/showcase",
-          active: location.pathname.startsWith("/showcase"),
-          subItems: showcaseProfiles.map((p) => ({
-            id: `showcase-sub-${p.product_code}`,
-            label: p.product_name,
-            code: p.product_code,
-            path: `/showcase?product=${encodeURIComponent(p.product_code)}&demo=true`,
-            active:
-              location.pathname.startsWith("/showcase") &&
-              location.search.toLowerCase().includes(`product=${encodeURIComponent(p.product_code).toLowerCase()}`),
-          })),
-        },
-        {
-          id: "notifications",
-          label: "Notifications",
-          icon: <LayersIcon size={18} />,
-          path: "/notifications",
-          active: location.pathname.startsWith("/notifications"),
-        },
-        {
-          id: "white-labeling",
-          label: "White Labeling",
-          icon: <LayersIcon size={18} />,
-          path: "/white-labeling",
-          active: location.pathname.startsWith("/white-labeling"),
-        },
-        {
-          id: "usage",
-          label: "Usage & Metering",
-          icon: <GridIcon size={18} />,
-          path: "/usage",
-          active: location.pathname.startsWith("/usage"),
-        },
-        {
-          id: "billing",
-          label: "Billing & Invoices",
-          icon: <CreditCardIcon size={18} />,
-          path: "/billing",
-          active: location.pathname.startsWith("/billing"),
-        },
-        {
-          id: "reconciliation",
-          label: "Reconciliation",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/reconciliation",
-          active: location.pathname.startsWith("/reconciliation"),
-        },
-        {
-          id: "reports",
-          label: "Advanced Analytics, Adoption & Tenant Health",
-          icon: <GridIcon size={18} />,
-          path: "/reports",
-          active: location.pathname.startsWith("/reports"),
-        },
-        {
-          id: "integration-hub",
-          label: "Integration Hub",
-          icon: <LayersIcon size={18} />,
-          path: "/integration",
-          active: location.pathname === "/integration",
-        },
-        {
-          id: "external-mappings",
-          label: "External Mappings",
-          icon: <LayersIcon size={18} />,
-          path: "/integration/mappings",
-          active: location.pathname.startsWith("/integration/mappings"),
-        },
-        {
-          id: "lms-reconciliation",
-          label: "LMS Reconciliation",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/integration/reconciliation",
-          active: location.pathname.startsWith("/integration/reconciliation"),
-        },
-        {
-          id: "activity-log",
-          label: "Security, Privacy, Retention & Compliance",
-          icon: <HistoryIcon size={18} />,
-          path: "/activity-log",
-          active: location.pathname.startsWith("/activity-log"),
-        },
-        {
-          id: "developer-oversight",
-          label: "Developer & API Console",
-          icon: <CodeIcon size={18} />,
-          path: "/owner/developer-oversight",
-          active: location.pathname.startsWith("/owner/developer-oversight"),
-        },
-        {
-          id: "support-console",
-          label: "Support & Operations Console",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/support",
-          active: location.pathname === "/support",
-        },
-        {
-          id: "support-impersonation",
-          label: "Audited Support Impersonation",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/support/impersonation",
-          active: location.pathname.startsWith("/support/impersonation"),
+          title: "INFRASTRUCTURE",
+          items: [
+            {
+              id: "developer-oversight",
+              label: "Developer & API Console",
+              icon: <CodeIcon size={18} />,
+              path: "/owner/developer-oversight",
+              active: location.pathname.startsWith("/owner/developer-oversight"),
+            },
+            {
+              id: "integration-hub",
+              label: "Integration Hub",
+              icon: <LayersIcon size={18} />,
+              path: "/integration",
+              active: location.pathname === "/integration",
+            },
+            {
+              id: "external-mappings",
+              label: "External Mappings",
+              icon: <LayersIcon size={18} />,
+              path: "/integration/mappings",
+              active: location.pathname.startsWith("/integration/mappings"),
+            },
+            {
+              id: "lms-reconciliation",
+              label: "LMS Reconciliation",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/integration/reconciliation",
+              active: location.pathname.startsWith("/integration/reconciliation"),
+            },
+            {
+              id: "bulk-import",
+              label: "Data Import & Migration",
+              icon: <UploadIcon size={18} />,
+              path: "/bulk-import",
+              active: location.pathname.startsWith("/bulk-import"),
+            },
+            {
+              id: "activity-log",
+              label: "Security, Privacy, Retention & Compliance",
+              icon: <HistoryIcon size={18} />,
+              path: "/activity-log",
+              active: location.pathname.startsWith("/activity-log"),
+            },
+          ],
         },
       ]
     : user?.active_context?.type === "support"
     ? [
         {
-          id: "support-console",
-          label: "Support & Operations Console",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/support",
-          active: location.pathname === "/support",
-        },
-        {
-          id: "support-impersonation",
-          label: "Audited Support Impersonation",
-          icon: <ShieldCheckIcon size={18} />,
-          path: "/support/impersonation",
-          active: location.pathname.startsWith("/support/impersonation"),
+          title: "CUSTOMER OPERATIONS",
+          items: [
+            {
+              id: "support-console",
+              label: "Support & Operations Console",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/support",
+              active: location.pathname === "/support",
+            },
+            {
+              id: "support-impersonation",
+              label: "Audited Support Impersonation",
+              icon: <ShieldCheckIcon size={18} />,
+              path: "/support/impersonation",
+              active: location.pathname.startsWith("/support/impersonation"),
+            },
+          ],
         },
       ]
     : isMember
     ? [
         {
-          id: "member-dashboard",
-          label: "Dashboard",
-          icon: <GridIcon size={18} />,
-          path: "/tenant/dashboard",
-          active: location.pathname === "/tenant/dashboard",
+          title: "OVERVIEW",
+          items: [
+            {
+              id: "member-dashboard",
+              label: "Dashboard",
+              icon: <GridIcon size={18} />,
+              path: "/tenant/dashboard",
+              active: location.pathname === "/tenant/dashboard",
+            },
+          ],
         },
         {
-          id: "my-products",
-          label: "My Products & App Launcher",
-          icon: <BoxIcon size={18} />,
-          path: "/tenant/products",
-          active:
-            location.pathname.startsWith("/tenant/products") ||
-            location.pathname.startsWith("/tenant/workspace"),
-          subItems: tenantProducts.map((p) => ({
-            id: `member-sub-prod-${p.id}`,
-            label: p.name,
-            code: p.code,
-            path: `/tenant/workspace/${p.id}`,
-            active: location.pathname === `/tenant/workspace/${p.id}`,
-            product: p,
-          })),
+          title: "PLATFORM",
+          items: [
+            {
+              id: "my-products",
+              label: "My Products & App Launcher",
+              icon: <BoxIcon size={18} />,
+              path: "/tenant/products",
+              active:
+                location.pathname.startsWith("/tenant/products") ||
+                location.pathname.startsWith("/tenant/workspace"),
+              subItems: tenantProducts.map((p) => ({
+                id: `member-sub-prod-${p.id}`,
+                label: p.name,
+                code: p.code,
+                path: `/tenant/workspace/${p.id}`,
+                active: location.pathname === `/tenant/workspace/${p.id}`,
+                product: p,
+              })),
+            },
+          ],
         },
       ]
     : [
-        ...TENANT_MODULES_REGISTRY.filter((mod) => {
-          if (!mod.implemented) return false;
-          if (
-            mod.requiredModule &&
-            !user?.active_context?.allowed_modules?.includes(mod.requiredModule)
-          ) {
-            return false;
-          }
-          if (
-            mod.requiredPermission &&
-            !user?.active_context?.effective_permissions?.includes(mod.requiredPermission)
-          ) {
-            return false;
-          }
-          return true;
-        }).map((mod) => ({
-          id: mod.id,
-          label: mod.label,
-          icon: renderTenantIcon(mod.icon),
-          path: mod.path,
-          active:
-            mod.path === "/tenant"
-              ? location.pathname === "/tenant"
-              : mod.path === "/tenant/products"
-              ? location.pathname.startsWith("/tenant/products") ||
-                location.pathname.startsWith("/tenant/workspace")
-              : location.pathname.startsWith(mod.path),
-          subItems:
-            mod.path === "/tenant/products"
-              ? tenantProducts.map((p) => ({
-                  id: `tenant-admin-sub-prod-${p.id}`,
-                  label: p.name,
-                  code: p.code,
-                  path: `/tenant/workspace/${p.id}`,
-                  active: location.pathname === `/tenant/workspace/${p.id}`,
-                  product: p,
-                }))
-              : undefined,
-        })),
         {
-          id: "marketplace",
-          label: "Marketplace",
-          icon: <BoxIcon size={18} />,
-          path: "/tenant/marketplace",
-          active: location.pathname.startsWith("/tenant/marketplace"),
+          title: "OVERVIEW",
+          items: [
+            ...TENANT_MODULES_REGISTRY.filter((mod) => {
+              if (!mod.implemented) return false;
+              if (mod.id !== "dashboard" && mod.id !== "reports-analytics") return false;
+              if (mod.requiredModule && !user?.active_context?.allowed_modules?.includes(mod.requiredModule)) return false;
+              if (mod.requiredPermission && !user?.active_context?.effective_permissions?.includes(mod.requiredPermission)) return false;
+              return true;
+            }).map((mod) => ({
+              id: mod.id,
+              label: mod.label,
+              icon: renderTenantIcon(mod.icon),
+              path: mod.path,
+              active: mod.path === "/tenant" ? location.pathname === "/tenant" : location.pathname.startsWith(mod.path),
+            })),
+          ],
         },
         {
-          id: "developer-console",
-          label: "Developer & API Console",
-          icon: <CodeIcon size={18} />,
-          path: "/tenant/developer",
-          active: location.pathname.startsWith("/tenant/developer"),
+          title: "CUSTOMER OPERATIONS",
+          items: [
+            ...TENANT_MODULES_REGISTRY.filter((mod) => {
+              if (!mod.implemented) return false;
+              if (!["roles-permissions", "product-assignments", "bulk-user-onboarding", "access-requests", "users-memberships", "org-profile", "branding"].includes(mod.id)) return false;
+              if (mod.requiredModule && !user?.active_context?.allowed_modules?.includes(mod.requiredModule)) return false;
+              if (mod.requiredPermission && !user?.active_context?.effective_permissions?.includes(mod.requiredPermission)) return false;
+              return true;
+            }).map((mod) => ({
+              id: mod.id,
+              label: mod.label,
+              icon: renderTenantIcon(mod.icon),
+              path: mod.path,
+              active: location.pathname.startsWith(mod.path),
+            })),
+          ],
         },
-      ];
+        {
+          title: "PLATFORM",
+          items: [
+            ...TENANT_MODULES_REGISTRY.filter((mod) => {
+              if (!mod.implemented) return false;
+              if (!["my-products", "subscriptions-overview", "billing-invoices", "usage-quotas", "notifications"].includes(mod.id)) return false;
+              if (mod.requiredModule && !user?.active_context?.allowed_modules?.includes(mod.requiredModule)) return false;
+              if (mod.requiredPermission && !user?.active_context?.effective_permissions?.includes(mod.requiredPermission)) return false;
+              return true;
+            }).map((mod) => ({
+              id: mod.id,
+              label: mod.label,
+              icon: renderTenantIcon(mod.icon),
+              path: mod.path,
+              active:
+                mod.path === "/tenant/products"
+                  ? location.pathname.startsWith("/tenant/products") || location.pathname.startsWith("/tenant/workspace")
+                  : location.pathname.startsWith(mod.path),
+              subItems:
+                mod.path === "/tenant/products"
+                  ? tenantProducts.map((p) => ({
+                      id: `tenant-admin-sub-prod-${p.id}`,
+                      label: p.name,
+                      code: p.code,
+                      path: `/tenant/workspace/${p.id}`,
+                      active: location.pathname === `/tenant/workspace/${p.id}`,
+                      product: p,
+                    }))
+                  : undefined,
+            })),
+            {
+              id: "marketplace",
+              label: "Marketplace",
+              icon: <BoxIcon size={18} />,
+              path: "/tenant/marketplace",
+              active: location.pathname.startsWith("/tenant/marketplace"),
+            },
+          ],
+        },
+        {
+          title: "INFRASTRUCTURE",
+          items: [
+            {
+              id: "developer-console",
+              label: "Developer & API Console",
+              icon: <CodeIcon size={18} />,
+              path: "/tenant/developer",
+              active: location.pathname.startsWith("/tenant/developer"),
+            },
+            ...TENANT_MODULES_REGISTRY.filter((mod) => {
+              if (!mod.implemented) return false;
+              if (!["identity-providers", "security-policies", "audit-log", "tenant-settings"].includes(mod.id)) return false;
+              if (mod.requiredModule && !user?.active_context?.allowed_modules?.includes(mod.requiredModule)) return false;
+              if (mod.requiredPermission && !user?.active_context?.effective_permissions?.includes(mod.requiredPermission)) return false;
+              return true;
+            }).map((mod) => ({
+              id: mod.id,
+              label: mod.label,
+              icon: renderTenantIcon(mod.icon),
+              path: mod.path,
+              active: location.pathname.startsWith(mod.path),
+            })),
+          ],
+        },
+      ].filter((section) => section.items.length > 0);
+
+  const navItems: readonly NavItem[] = navSections.flatMap((s) => s.items);
 
   return (
     <div
@@ -609,98 +715,132 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
       )}
 
       {/* Main Synchronized Body (CSS Grid Controls Sidebar & Workspace Column) */}
-      <div className="app-shell-body">
+      <div className={`app-shell-body ${isSidebarCollapsed ? "sidebar-is-collapsed" : "sidebar-is-expanded"}`}>
         {/* Desktop LMS-Style Sidebar */}
         <aside
-          className="desktop-sidebar"
+          className={`desktop-sidebar ${isSidebarCollapsed ? "sidebar--collapsed" : "sidebar--expanded"}`}
           aria-label="Sidebar navigation"
         >
           <div className="sidebar-content-inner">
-            {/* Section Heading */}
-            <div className="sidebar-section-header">
-              Overview
+            {/* Top Bar with Hamburger Menu Toggle */}
+            <div className="sidebar-top-bar">
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                className="sidebar-hamburger-btn"
+                aria-label={isSidebarCollapsed ? "Expand sidebar navigation" : "Collapse sidebar navigation"}
+                aria-expanded={!isSidebarCollapsed}
+                title={isSidebarCollapsed ? "Expand sidebar (☰)" : "Collapse sidebar (☰)"}
+              >
+                <MenuIcon size={18} />
+              </button>
+              {!isSidebarCollapsed && (
+                <span className="sidebar-top-label">Navigation</span>
+              )}
             </div>
 
-            {/* Navigation Items (Scrolls independently if needed) */}
+            {/* Navigation Sections */}
             <nav className="sidebar-nav-container">
-              {navItems.map((item) => (
-                <div key={item.id} className="nav-item-wrapper">
-                  <button
-                    type="button"
-                    onClick={() => navigate(item.path)}
-                    className={`sidebar-nav-btn ${item.active ? "active" : ""}`}
-                    aria-label={item.label}
-                    aria-current={item.active ? "page" : undefined}
-                  >
-                    {/* Active Edge Indicator */}
-                    {item.active && <span className="active-edge-indicator" aria-hidden="true" />}
+              {navSections.map((section) => (
+                <div key={section.title} className="sidebar-section-group">
+                  <div className="sidebar-section-header">
+                    {section.title}
+                  </div>
+                  {section.items.map((item) => (
+                    <div key={item.id} className="nav-item-wrapper">
+                      <button
+                        type="button"
+                        onClick={() => navigate(item.path)}
+                        className={`sidebar-nav-btn ${item.active ? "active" : ""}`}
+                        aria-label={item.label}
+                        aria-current={item.active ? "page" : undefined}
+                      >
+                        {/* Active Edge Indicator */}
+                        {item.active && <span className="active-edge-indicator" aria-hidden="true" />}
 
-                    <span className="sidebar-icon-box">
-                      <span className="sidebar-icon-pill">
-                        {item.icon}
+                        <span className="sidebar-icon-box">
+                          {item.icon}
+                        </span>
+
+                        <span className="sidebar-nav-label">
+                          {item.label}
+                        </span>
+                      </button>
+
+                      {/* Floating tooltip displayed only in collapsed mode */}
+                      <span className="sidebar-tooltip" role="tooltip">
+                        {item.label}
                       </span>
-                    </span>
 
-                    <span className="sidebar-nav-label">
-                      {item.label}
-                    </span>
-                  </button>
-
-                  {/* Floating tooltip displayed only in collapsed state */}
-                  <span className="sidebar-tooltip" role="tooltip">
-                    {item.label}
-                  </span>
-
-                  {/* Render dynamic submodules if present */}
-                  {item.subItems && item.subItems.length > 0 && (
-                    <div className={`sidebar-submodules-container ${item.subItems.some((s) => s.active) ? "has-active" : ""}`}>
-                      {item.subItems.map((sub) => (
-                        <button
-                          key={sub.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(sub.path, { state: { product: sub.product } });
-                          }}
-                          className={`sidebar-sub-btn ${sub.active ? "active" : ""}`}
-                          title={sub.label}
-                          aria-label={sub.label}
-                        >
-                          <span className="sidebar-sub-btn-dot" aria-hidden="true" />
-                          <span className="sidebar-sub-btn-text">{sub.label}</span>
-                        </button>
-                      ))}
+                      {/* Render dynamic submodules if present and expanded */}
+                      {item.subItems && item.subItems.length > 0 && !isSidebarCollapsed && (
+                        <div className="sidebar-submodules-container">
+                          {item.subItems.map((sub) => (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(sub.path, { state: { product: sub.product } });
+                              }}
+                              className={`sidebar-sub-btn ${sub.active ? "active" : ""}`}
+                              title={sub.label}
+                              aria-label={sub.label}
+                            >
+                              <span className="sidebar-sub-btn-dot" aria-hidden="true" />
+                              <span className="sidebar-sub-btn-text">{sub.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
               ))}
             </nav>
 
-            {/* Bottom Context Status */}
-            <div className="sidebar-bottom-status">
-              <div className="status-item-pill">
-                <span className="status-icon-box">
-                  {isOwnerContext ? (
-                    <ShieldCheckIcon size={16} style={{ color: "var(--status-success)" }} />
-                  ) : (
-                    <BuildingIcon size={16} style={{ color: "rgb(99, 102, 241)" }} />
-                  )}
-                </span>
-                <span className="status-label-text">
-                  {isOwnerContext
+            {/* Bottom User Card */}
+            <div
+              className="sidebar-user-card"
+              title={
+                isSidebarCollapsed
+                  ? `${user?.full_name || (isOwnerContext ? "Demo Platform Owner" : isMember ? "Tenant Member" : "Tenant Admin")} (${isOwnerContext ? "SUPER ADMIN" : user?.active_context?.type === "support" ? "SUPPORT ADMIN" : isMember ? "TENANT MEMBER" : "TENANT ADMIN"})`
+                  : undefined
+              }
+            >
+              <div className="sidebar-user-avatar" aria-hidden="true">
+                {getInitials(
+                  user?.full_name,
+                  isOwnerContext
                     ? "Platform Owner"
                     : isMember
-                    ? `Member (${user?.active_context?.organization?.code || ""})`
-                    : `Tenant Admin (${user?.active_context?.organization?.code || ""})`}
-                </span>
+                    ? "Tenant Member"
+                    : "Tenant Admin"
+                )}
               </div>
-              <span className="sidebar-tooltip" role="tooltip">
-                {isOwnerContext
-                  ? "Platform Owner Active"
-                  : isMember
-                  ? `Member: ${user?.active_context?.organization?.name || ""}`
-                  : `Tenant Admin: ${user?.active_context?.organization?.name || ""}`}
-              </span>
+              {!isSidebarCollapsed && (
+                <div className="sidebar-user-details">
+                  <span
+                    className="sidebar-user-name"
+                    title={
+                      user?.full_name ||
+                      (isOwnerContext ? "Demo Platform Owner" : isMember ? "Tenant Member" : "Tenant Admin")
+                    }
+                  >
+                    {user?.full_name ||
+                      (isOwnerContext ? "Demo Platform Owner" : isMember ? "Tenant Member" : "Tenant Admin")}
+                  </span>
+                  <span className="sidebar-user-role">
+                    {isOwnerContext
+                      ? "SUPER ADMIN"
+                      : user?.active_context?.type === "support"
+                      ? "SUPPORT ADMIN"
+                      : isMember
+                      ? "TENANT MEMBER"
+                      : "TENANT ADMIN"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -882,20 +1022,28 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
 
       {/* Synchronized CSS Grid Styles */}
       <style>{`
-        /* AppShell Body: CSS Grid Controls Column Widths Synchronously */
+        /* AppShell Body: CSS Grid Controls Sidebar & Workspace Synchronously */
         .app-shell-body {
           --sidebar-width: 56px;
           display: grid;
           grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
           align-items: start;
-          transition: grid-template-columns 260ms cubic-bezier(0.16, 1, 0.3, 1);
-          will-change: grid-template-columns;
           min-height: calc(100dvh - 56px);
           width: 100%;
           position: relative;
+          transition: grid-template-columns 240ms cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: grid-template-columns;
         }
 
-        /* Persistent Sidebar Track Surface covering full scrollable page height */
+        .app-shell-body.sidebar-is-collapsed {
+          --sidebar-width: 56px;
+        }
+
+        .app-shell-body.sidebar-is-expanded {
+          --sidebar-width: 250px;
+        }
+
+        /* Persistent Sidebar Track Surface */
         .app-shell-body::before {
           content: "";
           position: absolute;
@@ -903,67 +1051,20 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           bottom: 0;
           left: 0;
           width: var(--sidebar-width);
-          background: var(--glass-surface-elevated);
+          background: var(--glass-surface-elevated, #ffffff);
           border-right: 1px solid var(--border-subtle);
           pointer-events: none;
           z-index: 10;
-          transition: width 260ms cubic-bezier(0.16, 1, 0.3, 1);
+          transition: width 240ms cubic-bezier(0.16, 1, 0.3, 1);
           will-change: width;
         }
 
-        /* Hover & Focus-Within Expansion (Desktop fine pointer only) */
-        @media (hover: hover) and (pointer: fine) and (min-width: 768px) {
-          .app-shell-body:has(.desktop-sidebar:hover),
-          .app-shell-body:has(.desktop-sidebar:focus-within) {
-            --sidebar-width: 264px;
-          }
-
-          .app-shell-body:has(.desktop-sidebar:hover) .sidebar-section-header,
-          .app-shell-body:has(.desktop-sidebar:focus-within) .sidebar-section-header {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: auto;
-            transition: opacity 200ms ease 45ms, transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 45ms;
-          }
-
-          .app-shell-body:has(.desktop-sidebar:hover) .sidebar-nav-label,
-          .app-shell-body:has(.desktop-sidebar:focus-within) .sidebar-nav-label {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: auto;
-            transition: opacity 200ms ease 40ms, transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 40ms;
-          }
-
-          .app-shell-body:has(.desktop-sidebar:hover) .status-label-text,
-          .app-shell-body:has(.desktop-sidebar:focus-within) .status-label-text {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: auto;
-            transition: opacity 200ms ease 45ms, transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 45ms;
-          }
-
-          /* Reveal submodules when sidebar is expanded */
-          .app-shell-body:has(.desktop-sidebar:hover) .sidebar-submodules-container,
-          .app-shell-body:has(.desktop-sidebar:focus-within) .sidebar-submodules-container {
-            opacity: 1;
-            pointer-events: auto;
-            max-height: 500px;
-            transition: opacity 220ms ease 60ms, max-height 280ms cubic-bezier(0.16, 1, 0.3, 1) 40ms;
-          }
-
-          /* Suppress floating tooltips when sidebar is expanded */
-          .app-shell-body:has(.desktop-sidebar:hover) .sidebar-tooltip,
-          .app-shell-body:has(.desktop-sidebar:focus-within) .sidebar-tooltip {
-            display: none !important;
-          }
-        }
-
-        /* Desktop Sidebar Surface (Solid, 0 backdrop-filter, 0 clip-path) */
+        /* Desktop Sidebar Surface */
         .desktop-sidebar {
-          width: 100%;
+          width: var(--sidebar-width);
           min-width: 0;
           overflow: hidden;
-          background: var(--glass-surface-elevated);
+          background: var(--glass-surface-elevated, #ffffff);
           border-right: 1px solid var(--border-subtle);
           display: flex;
           flex-direction: column;
@@ -974,18 +1075,76 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           user-select: none;
           z-index: 20;
           contain: layout style;
+          transition: width 240ms cubic-bezier(0.16, 1, 0.3, 1);
           will-change: width;
         }
 
         .sidebar-content-inner {
-          width: 264px;
+          width: 100%;
           height: 100%;
           display: flex;
           flex-direction: column;
-          padding: 1.25rem 0;
+          padding: 0.5rem 0;
           box-sizing: border-box;
-          transform: translateZ(0);
-          will-change: transform;
+          overflow: hidden;
+        }
+
+        /* Top Bar with Hamburger Menu Button */
+        .sidebar-top-bar {
+          display: flex;
+          align-items: center;
+          padding: 0.25rem 0.5rem 0.5rem;
+          min-height: 40px;
+          box-sizing: border-box;
+          flex-shrink: 0;
+        }
+
+        .sidebar-is-collapsed .sidebar-top-bar {
+          justify-content: center;
+          padding: 0.25rem 0 0.5rem;
+        }
+
+        .sidebar-is-expanded .sidebar-top-bar {
+          justify-content: space-between;
+          padding: 0.25rem 0.75rem 0.5rem;
+          border-bottom: 1px solid var(--border-subtle);
+          margin-bottom: 0.25rem;
+        }
+
+        .sidebar-hamburger-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 8px;
+          border: 1px solid var(--border-subtle);
+          background: var(--glass-surface, #f8fafc);
+          color: var(--text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+          outline: none;
+          padding: 0;
+          flex-shrink: 0;
+        }
+
+        .sidebar-hamburger-btn:hover {
+          background: var(--glass-surface-hover, #f1f5f9);
+          border-color: var(--brand-primary);
+          color: var(--brand-primary);
+        }
+
+        .sidebar-hamburger-btn:focus-visible {
+          outline: 2px solid var(--brand-primary);
+          outline-offset: 1px;
+        }
+
+        .sidebar-top-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: var(--text-muted, #64748b);
         }
 
         /* Sleek Modern Unobtrusive Sidebar Navigation Scrollbar */
@@ -995,19 +1154,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           overflow-x: hidden;
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.125rem;
+          padding: 0 0.5rem;
           scrollbar-width: thin;
-          scrollbar-color: transparent transparent;
-          transition: scrollbar-color 0.15s ease;
-        }
-
-        .desktop-sidebar:hover .sidebar-nav-container,
-        .desktop-sidebar:focus-within .sidebar-nav-container {
-          scrollbar-color: var(--border-glass) transparent;
+          scrollbar-color: #94a3b8 transparent;
         }
 
         .sidebar-nav-container::-webkit-scrollbar {
-          width: 4px;
+          width: 5px;
         }
 
         .sidebar-nav-container::-webkit-scrollbar-track {
@@ -1015,18 +1169,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         }
 
         .sidebar-nav-container::-webkit-scrollbar-thumb {
-          background-color: transparent;
+          background-color: #94a3b8;
           border-radius: 9999px;
-          transition: background-color 0.15s ease;
-        }
-
-        .desktop-sidebar:hover .sidebar-nav-container::-webkit-scrollbar-thumb,
-        .desktop-sidebar:focus-within .sidebar-nav-container::-webkit-scrollbar-thumb {
-          background-color: var(--border-glass);
         }
 
         .sidebar-nav-container::-webkit-scrollbar-thumb:hover {
-          background-color: var(--border-strong) !important;
+          background-color: #64748b;
         }
 
         .sidebar-nav-container::-webkit-scrollbar-button {
@@ -1041,47 +1189,65 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: var(--text-muted);
-          padding: 0.25rem 1.5rem 0.5rem;
+          color: var(--text-muted, #64748b);
+          padding: 1.1rem 0.75rem 0.4rem;
           white-space: nowrap;
-          opacity: 0;
-          transform: translateX(-8px);
-          pointer-events: none;
-          transition: opacity 100ms ease, transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
+          transition: opacity 0.15s ease;
+        }
+
+        .sidebar-section-group:first-child .sidebar-section-header {
+          padding-top: 0.35rem;
+        }
+
+        .sidebar-is-collapsed .sidebar-section-header {
+          display: none;
         }
 
         /* Nav Item Wrapper & Button */
         .nav-item-wrapper {
           position: relative;
           width: 100%;
-          padding: 0 0.25rem;
           box-sizing: border-box;
+          margin-bottom: 1px;
         }
 
         .sidebar-nav-btn {
           position: relative;
           width: 100%;
-          height: 44px;
+          min-height: 38px;
           display: flex;
           align-items: center;
           background: transparent;
           border: none;
           border-radius: 8px;
-          color: var(--text-secondary);
+          color: var(--text-primary);
           cursor: pointer;
-          padding: 0;
           outline: none;
           font-family: inherit;
           transition: background-color 0.15s ease, color 0.15s ease;
+          box-sizing: border-box;
+        }
+
+        .sidebar-is-expanded .sidebar-nav-btn {
+          padding: 0.4rem 0.75rem;
+          gap: 0.75rem;
+          justify-content: flex-start;
+        }
+
+        .sidebar-is-collapsed .sidebar-nav-btn {
+          padding: 0;
+          width: 44px;
+          height: 38px;
+          margin: 0 auto;
+          justify-content: center;
         }
 
         .sidebar-nav-btn:hover {
-          background: var(--glass-surface-hover);
-          color: var(--text-primary);
+          background: rgba(0, 0, 0, 0.04);
         }
 
         .sidebar-nav-btn.active {
-          background: var(--brand-primary-light);
+          background: #eef2ff;
           color: var(--brand-primary);
           font-weight: 600;
         }
@@ -1089,51 +1255,78 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         /* Active Far-Left Vertical Edge Indicator */
         .active-edge-indicator {
           position: absolute;
-          left: -4px;
-          top: 8px;
-          bottom: 8px;
-          width: 3px;
+          left: 0;
+          top: 6px;
+          bottom: 6px;
+          width: 3.5px;
           background: var(--brand-primary);
-          border-radius: 0 3px 3px 0;
+          border-radius: 0 4px 4px 0;
         }
 
         .sidebar-icon-box {
           flex: 0 0 auto;
-          width: 48px;
-          height: 44px;
+          width: 20px;
+          height: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
+          color: inherit;
         }
 
-        .sidebar-icon-pill {
-          width: 34px;
-          height: 34px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          transition: background-color 0.15s ease;
+        .sidebar-nav-btn.active .sidebar-icon-box {
+          color: var(--brand-primary);
         }
 
         .sidebar-nav-label {
           font-size: 0.8125rem;
-          font-weight: 600;
+          font-weight: 500;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          opacity: 0;
-          transform: translateX(-6px);
-          pointer-events: none;
-          transition: opacity 100ms ease, transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
-          padding-left: 0.25rem;
-          padding-right: 0.5rem;
-          color: var(--text-primary);
-          min-width: 0;
+          color: inherit;
           flex: 1;
           text-align: left;
-          max-width: 196px;
+        }
+
+        .sidebar-is-collapsed .sidebar-nav-label {
+          display: none;
+        }
+
+        .sidebar-nav-btn.active .sidebar-nav-label {
+          font-weight: 600;
+          color: var(--brand-primary);
+        }
+
+        /* Floating Tooltip in Collapsed Mode */
+        .sidebar-tooltip {
+          position: absolute;
+          left: 54px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: var(--glass-surface-elevated, #ffffff);
+          color: var(--text-primary);
+          border: 1px solid var(--border-subtle);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          padding: 0.35rem 0.65rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          white-space: nowrap;
+          pointer-events: none;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.12s ease, visibility 0.12s ease;
+          z-index: 50;
+        }
+
+        .sidebar-is-collapsed .nav-item-wrapper:hover .sidebar-tooltip,
+        .sidebar-is-collapsed .sidebar-nav-btn:focus-visible + .sidebar-tooltip {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .sidebar-is-expanded .sidebar-tooltip {
+          display: none !important;
         }
 
         /* Submodule Styles */
@@ -1141,15 +1334,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           display: flex;
           flex-direction: column;
           gap: 2px;
-          margin-top: 2px;
-          margin-left: 20px;
+          margin-top: 3px;
+          margin-bottom: 5px;
+          margin-left: 18px;
           padding-left: 10px;
           border-left: 1.5px solid var(--border-subtle);
-          opacity: 0;
-          pointer-events: none;
-          max-height: 0;
-          overflow: hidden;
-          transition: opacity 100ms ease, max-height 180ms cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .sidebar-sub-btn {
@@ -1157,14 +1346,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           align-items: center;
           gap: 0.45rem;
           width: 100%;
-          min-height: 30px;
-          padding: 0.25rem 0.5rem;
+          min-height: 28px;
+          padding: 0.2rem 0.5rem;
           border-radius: 6px;
           background: transparent;
           border: none;
           color: var(--text-secondary);
           font-family: inherit;
-          font-size: 0.78125rem;
+          font-size: 0.8125rem;
           font-weight: 500;
           text-align: left;
           cursor: pointer;
@@ -1174,12 +1363,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         }
 
         .sidebar-sub-btn:hover {
-          background: var(--glass-surface-hover);
+          background: rgba(0, 0, 0, 0.03);
           color: var(--text-primary);
         }
 
         .sidebar-sub-btn.active {
-          background: var(--brand-primary-light);
+          background: #eef2ff;
           color: var(--brand-primary);
           font-weight: 600;
         }
@@ -1188,7 +1377,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           width: 5px;
           height: 5px;
           border-radius: 50%;
-          background: var(--text-muted);
+          background: #94a3b8;
           flex-shrink: 0;
           transition: background-color 140ms ease, transform 140ms ease;
         }
@@ -1205,76 +1394,75 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           min-width: 0;
         }
 
-        /* Collapsed Floating Tooltip */
-        .sidebar-tooltip {
-          position: absolute;
-          left: 62px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: var(--glass-surface-elevated);
-          color: var(--text-primary);
-          border: 1px solid var(--border-glass);
-          box-shadow: var(--shadow-md);
-          padding: 0.35rem 0.65rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          white-space: nowrap;
-          pointer-events: none;
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.12s ease, visibility 0.12s ease;
-          z-index: 40;
+        /* Bottom User Card */
+        .sidebar-user-card {
+          border: 1px solid var(--border-subtle);
+          border-radius: 12px;
+          background: var(--glass-surface-elevated, #ffffff);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+          flex-shrink: 0;
+          box-sizing: border-box;
+          transition: width 240ms ease, margin 240ms ease, padding 240ms ease;
         }
 
-        .nav-item-wrapper:hover .sidebar-tooltip,
-        .sidebar-nav-btn:focus-visible + .sidebar-tooltip {
-          opacity: 1;
-          visibility: visible;
-        }
-
-        /* Bottom Status Area */
-        .sidebar-bottom-status {
-          position: relative;
-          margin-top: auto;
-          padding: 0.75rem 0.25rem 0;
-          border-top: 1px solid var(--border-subtle);
-        }
-
-        .status-item-pill {
-          height: 40px;
+        .sidebar-is-expanded .sidebar-user-card {
+          margin: 0.5rem 0.65rem 0.25rem;
+          padding: 0.65rem 0.75rem;
           display: flex;
           align-items: center;
-          background: var(--glass-surface);
-          border: 1px solid var(--border-subtle);
-          border-radius: 8px;
-          overflow: hidden;
+          gap: 0.75rem;
         }
 
-        .status-icon-box {
-          width: 48px;
-          height: 40px;
+        .sidebar-is-collapsed .sidebar-user-card {
+          margin: 0.5rem auto 0.25rem;
+          padding: 0.25rem;
+          width: 44px;
+          height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+
+        .sidebar-user-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: #e0e7ff;
+          color: #4338ca;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.8125rem;
           flex-shrink: 0;
         }
 
-        .status-label-text {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: var(--text-secondary);
-          white-space: nowrap;
-          opacity: 0;
-          transform: translateX(-6px);
-          pointer-events: none;
-          transition: opacity 100ms ease, transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
-          padding-right: 0.5rem;
+        .sidebar-user-details {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          overflow: hidden;
+          text-align: left;
         }
 
-        .sidebar-bottom-status:hover .sidebar-tooltip {
-          opacity: 1;
-          visibility: visible;
+        .sidebar-user-name {
+          font-size: 0.8125rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.25;
+        }
+
+        .sidebar-user-role {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          color: #2563eb;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          line-height: 1.2;
+          margin-top: 1px;
         }
 
         /* Main Workspace Container */

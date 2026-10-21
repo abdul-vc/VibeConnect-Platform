@@ -4,6 +4,7 @@ from django.urls import path
 
 from apps.notifications.views import (
     NotificationDeliveryListView,
+    NotificationDeliveryRetryView,
     NotificationTemplateDetailView,
     NotificationTemplateListCreateView,
     NotificationTemplateNewVersionView,
@@ -18,4 +19,5 @@ urlpatterns = [
     path("templates/<uuid:pk>/retire/", NotificationTemplateRetireView.as_view(), name="notification-template-retire"),
     path("templates/<uuid:pk>/preview/", NotificationTemplatePreviewView.as_view(), name="notification-template-preview"),
     path("deliveries/", NotificationDeliveryListView.as_view(), name="notification-delivery-list"),
+    path("deliveries/<uuid:pk>/retry/", NotificationDeliveryRetryView.as_view(), name="notification-delivery-retry"),
 ]

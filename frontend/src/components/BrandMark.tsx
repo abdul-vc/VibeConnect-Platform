@@ -18,7 +18,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
   subtitle,
 }) => {
   const iconSizes = {
-    sm: { box: 32, font: "0.875rem", text: "1rem" },
+    sm: { box: 36, font: "0.9375rem", text: "1.0625rem" },
     md: { box: 40, font: "1.0625rem", text: "1.1875rem" },
     lg: { box: 48, font: "1.25rem", text: "1.5rem" },
   };
@@ -31,9 +31,9 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
         style={{
           width: `${currentSize.box}px`,
           height: `${currentSize.box}px`,
-          borderRadius: size === "sm" ? "6px" : "8px",
+          borderRadius: size === "sm" ? "9px" : "10px",
           background: "var(--brand-primary)",
-          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.2)",
+          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

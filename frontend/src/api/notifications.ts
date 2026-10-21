@@ -56,11 +56,15 @@ export interface NotificationDeliveryListResponse {
 export interface TemplatePreviewResponse {
   template_id: string;
   code: string;
+  name?: string;
   version: number;
   channel: string;
   rendered_subject: string;
+  rendered_body?: string;
   body_ref: string;
   context: Record<string, unknown>;
+  supported_variables?: string[];
+  unresolved_variables?: string[];
 }
 
 export const notificationsApi = {
@@ -91,9 +95,9 @@ export const notificationsApi = {
 
   async previewTemplate(
     id: string,
-    context: Record<string, unknown>
+    context?: Record<string, unknown>
   ): Promise<TemplatePreviewResponse> {
-    return apiClient.post<TemplatePreviewResponse>(ENDPOINTS.NOTIFICATIONS.PREVIEW(id), { context });
+    return apiClient.post<TemplatePreviewResponse>(ENDPOINTS.NOTIFICATIONS.PREVIEW(id), { context: context || {} });
   },
 
   async listDeliveries(
@@ -104,5 +108,9 @@ export const notificationsApi = {
       params,
       signal,
     });
+  },
+
+  async retryDelivery(id: string): Promise<NotificationDelivery> {
+    return apiClient.post<NotificationDelivery>(ENDPOINTS.NOTIFICATIONS.RETRY(id), {});
   },
 };

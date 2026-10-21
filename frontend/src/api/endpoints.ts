@@ -170,6 +170,7 @@ export const ENDPOINTS = {
     RETIRE: (id: string) => `/api/v1/notifications/templates/${encodeURIComponent(id)}/retire/`,
     PREVIEW: (id: string) => `/api/v1/notifications/templates/${encodeURIComponent(id)}/preview/`,
     DELIVERIES: "/api/v1/notifications/deliveries/",
+    RETRY: (id: string) => `/api/v1/notifications/deliveries/${encodeURIComponent(id)}/retry/`,
   },
   SHOWCASE: {
     PROFILES: "/api/v1/showcase/profiles/",

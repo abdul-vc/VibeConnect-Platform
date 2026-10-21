@@ -1,6 +1,7 @@
-"""REST API Views for Notifications (Phase 3A)."""
+import re
 
 from django.db.models import Max, Q
+from django.template.loader import TemplateDoesNotExist, get_template
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.pagination import PageNumberPagination
@@ -24,7 +25,11 @@ from apps.notifications.serializers import (
     NotificationTemplateSerializer,
     TemplatePreviewSerializer,
 )
-from apps.notifications.services import render_template_string
+from apps.notifications.services import (
+    DEFAULT_NOTIFICATION_TEMPLATES,
+    execute_delivery,
+    render_template_string,
+)
 
 
 class NotificationPagination(PageNumberPagination):
@@ -178,8 +183,22 @@ class NotificationTemplateRetireView(APIView):
         return Response(NotificationTemplateSerializer(template).data, status=status.HTTP_200_OK)
 
 
+DEFAULT_SAMPLE_CONTEXT = {
+    "org_name": "Acme Global",
+    "role_name": "Administrator",
+    "activation_url": "https://vibeconnect.internal/auth/activate?token=sample_token_xyz",
+    "expires_at": "in 48 hours",
+    "user_name": "Alex Mercer",
+    "recipient_name": "Alex Mercer",
+    "actor_name": "Platform Admin",
+    "platform_name": "VibeConnect",
+    "code": "VC-8921",
+    "link": "https://vibeconnect.internal/dashboard",
+}
+
+
 class NotificationTemplatePreviewView(APIView):
-    """Preview rendered subject and body reference for a notification template."""
+    """Preview rendered subject and body for a notification template."""
 
     permission_classes = [IsAuthenticated]
 
@@ -194,28 +213,95 @@ class NotificationTemplatePreviewView(APIView):
 
         serializer = TemplatePreviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        context = serializer.validated_data.get("context", {})
+        user_context = serializer.validated_data.get("context", {})
+
+        # Merge user context over standard sample context so variables are resolved cleanly
+        resolved_context = {**DEFAULT_SAMPLE_CONTEXT, **user_context}
 
         try:
-            rendered_subject = render_template_string(template.subject_template, context)
+            rendered_subject = render_template_string(template.subject_template, resolved_context)
         except Exception as exc:
             return Response(
                 {"detail": f"Failed to render subject template: {exc}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Render body using template file or default string template
+        body = None
+        if not resolved_context.get("body_template") and template.body_ref:
+            try:
+                loaded = get_template(template.body_ref)
+                body = loaded.render(resolved_context)
+            except (TemplateDoesNotExist, Exception):
+                body = None
+
+        raw_body_template = (
+            resolved_context.get("body_template")
+            or DEFAULT_NOTIFICATION_TEMPLATES.get(template.code)
+            or f"Notification: {template.name}\n\nReference: {template.body_ref}"
+        )
+        if not body:
+            try:
+                body = render_template_string(raw_body_template, resolved_context)
+            except Exception:
+                body = raw_body_template
+
+        # Detect template variables in subject & body
+        combined_text = f"{template.subject_template} {raw_body_template}"
+        found_vars = sorted(list(set(re.findall(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}", combined_text))))
+        unresolved_vars = [v for v in found_vars if v not in resolved_context or resolved_context[v] == ""]
+
         return Response(
             {
                 "template_id": str(template.id),
                 "code": template.code,
+                "name": template.name,
                 "version": template.version,
                 "channel": template.channel,
                 "rendered_subject": rendered_subject,
+                "rendered_body": body,
                 "body_ref": template.body_ref,
-                "context": context,
+                "context": resolved_context,
+                "supported_variables": found_vars,
+                "unresolved_variables": unresolved_vars,
             },
             status=status.HTTP_200_OK,
         )
+
+
+class NotificationDeliveryRetryView(APIView):
+    """Manually trigger a retry for a queued, failed, or retrying delivery (Platform Owner only)."""
+
+    permission_classes = [IsAuthenticated, IsPlatformOwner]
+
+    def post(self, request, pk: str):
+        try:
+            delivery = NotificationDelivery.objects.select_related("template", "recipient_user").get(id=pk)
+        except NotificationDelivery.DoesNotExist:
+            return Response({"detail": "Delivery not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if delivery.status == NotificationDeliveryStatus.SENT:
+            return Response(
+                {"detail": "Delivery has already been successfully sent."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Allow manual retry even if maximum automated retries were reached
+        if delivery.retry_count >= delivery.max_retries:
+            delivery.max_retries = delivery.retry_count + 1
+            delivery.save(update_fields=["max_retries"])
+
+        try:
+            updated_delivery = execute_delivery(delivery.id)
+            return Response(
+                NotificationDeliverySerializer(updated_delivery).data,
+                status=status.HTTP_200_OK,
+            )
+        except Exception as exc:
+            return Response(
+                {"detail": f"Retry execution failed: {str(exc)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class NotificationDeliveryListView(APIView):
