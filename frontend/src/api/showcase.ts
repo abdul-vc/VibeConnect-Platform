@@ -24,6 +24,70 @@ export interface ShowcaseListParams {
   readonly visibility?: string;
 }
 
+export interface VmsHealthStatus {
+  readonly status: string;
+  readonly healthy?: boolean;
+  readonly upstream?: string;
+  readonly latency_ms?: number;
+  readonly details?: Record<string, unknown>;
+}
+
+export interface VmsOverviewResponse {
+  readonly total_skus?: number;
+  readonly occupancy_rate?: number;
+  readonly active_orders?: number;
+  readonly outbound_rate?: number;
+  readonly metrics?: Record<string, unknown>;
+}
+
+export interface VmsInventoryStockResponse {
+  readonly items?: ReadonlyArray<{
+    readonly id: string;
+    readonly sku: string;
+    readonly name: string;
+    readonly quantity: number;
+    readonly zone?: string;
+    readonly status?: string;
+  }>;
+  readonly total_count?: number;
+}
+
+export interface VmsDocksResponse {
+  readonly docks?: ReadonlyArray<{
+    readonly id: string;
+    readonly bay_number: string;
+    readonly status: string;
+    readonly assigned_vehicle?: string;
+  }>;
+}
+
+export interface VmsWavesResponse {
+  readonly waves?: ReadonlyArray<{
+    readonly id: string;
+    readonly wave_number: string;
+    readonly status: string;
+    readonly total_orders?: number;
+    readonly progress_percent?: number;
+  }>;
+}
+
+export interface VmsVehiclesResponse {
+  readonly vehicles?: ReadonlyArray<{
+    readonly id: string;
+    readonly license_plate: string;
+    readonly status: string;
+    readonly carrier?: string;
+    readonly dock?: string;
+  }>;
+}
+
+export interface VmsReportsSummary {
+  readonly daily_throughput?: number;
+  readonly error_rate?: number;
+  readonly cycle_time_minutes?: number;
+  readonly summaries?: Record<string, unknown>;
+}
+
 export const showcaseApi = {
   /** List showcase profiles with optional search/visibility filter. */
   async listProfiles(params?: ShowcaseListParams, signal?: AbortSignal): Promise<ShowcaseProfileListResponse> {
