@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const allowedFrameOrigins =
     env.VITE_FRAME_SRC_ALLOWLIST ||
     process.env.VITE_FRAME_SRC_ALLOWLIST ||
-    "http://localhost:8080 http://127.0.0.1:8080 http://localhost:8081 http://127.0.0.1:8081 https://lms.vibesandbox.live https://quiz.digielvestech.in http://localhost:5173 http://localhost:6395 http://127.0.0.1:6395 https://hrms.vibesandbox.live https://*.vibesandbox.live https://excelreports.vibecopilot.ai";
+    "http://localhost:8000 http://127.0.0.1:8000 http://localhost:8080 http://127.0.0.1:8080 http://localhost:8081 http://127.0.0.1:8081 https://lms.vibesandbox.live https://quiz.digielvestech.in http://localhost:5173 http://localhost:6395 http://127.0.0.1:6395 https://hrms.vibesandbox.live https://*.vibesandbox.live https://excelreports.vibecopilot.ai";
 
   const cspHeader = [
     "default-src 'self'",

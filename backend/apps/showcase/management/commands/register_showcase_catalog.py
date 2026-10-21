@@ -463,11 +463,11 @@ class Command(BaseCommand):
                     fieldops_product = product
 
             # 2. Second pass: link FIELDOPS sub-products if suite schema allows
-            if fieldops_product:
+            if fieldops_product and hasattr(Product, "parent"):
                 for item in CATALOG_PRODUCTS:
                     if item.get("is_fieldops_child"):
                         prod = created_products.get(item["code"])
-                        if prod and prod.parent_id != fieldops_product.id:
+                        if prod and getattr(prod, "parent_id", None) != fieldops_product.id:
                             prod.parent = fieldops_product
                             prod.save(update_fields=["parent"])
                             self.stdout.write(f"Linked {prod.code} as sub-product under FIELDOPS suite.")

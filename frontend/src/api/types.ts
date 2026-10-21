@@ -1880,6 +1880,11 @@ export interface LaunchabilityContract {
   readonly demo_user?: string;
   readonly demo_organization?: string;
   readonly allowed_targets?: readonly string[];
+  readonly target_environment?: {
+    readonly id?: string;
+    readonly name?: string;
+    readonly base_url?: string;
+  };
 }
 
 export interface ShowcaseDemoLaunchResponse {

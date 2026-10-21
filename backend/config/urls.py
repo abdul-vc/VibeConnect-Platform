@@ -4,11 +4,31 @@ Versioned API foundation under /api/v1/.
 """
 
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from apps.developer_console.management_urls import owner_urlpatterns, tenant_urlpatterns
+from apps.showcase.lms_proxy import lms_api_proxy_view, lms_assets_proxy_view, lms_demo_view
+from apps.showcase.quiz_proxy import quiz_assets_proxy_view, quiz_demo_view
 
 urlpatterns = [
+    # LMS Showcase Demonstration Gateway & Reverse Proxy
+    path("lms-demo/", lms_demo_view, {"path": "super-admin/dashboard"}),
+    path("lms-demo/<path:path>", lms_demo_view),
+    path("super-admin/<path:path>", lms_demo_view),
+    path("super-admin", lms_demo_view, {"path": "super-admin/dashboard"}),
+    path("org-admin/<path:path>", lms_demo_view),
+    path("org-admin", lms_demo_view, {"path": "org-admin"}),
+
+    # Quiz Showcase Demonstration Gateway & Reverse Proxy
+    path("quiz-demo/", quiz_demo_view, {"path": "admin"}),
+    path("quiz-demo/<path:path>", quiz_demo_view),
+    path("images/<path:path>", quiz_assets_proxy_view),
+
+    # Shared static assets and API reverse proxies
+    path("assets/<path:path>", lms_assets_proxy_view),
+    path("favicon.svg", lms_assets_proxy_view, {"path": "../favicon.svg"}),
+    re_path(r"^api/(?!v1/)(?P<path>.*)$", lms_api_proxy_view),
+
     path("admin/", admin.site.urls),
     path("api/v1/", include("common.urls")),
     path("api/v1/auth/", include("apps.identity.urls")),
