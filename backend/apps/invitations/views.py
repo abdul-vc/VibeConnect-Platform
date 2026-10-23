@@ -59,11 +59,55 @@ class IssueInvitationView(APIView):
             invitation, raw_token = issue_invitation(
                 organization=org,
                 email=data["email"],
+                full_name=data.get("full_name", ""),
                 role=data.get("role"),
                 membership_type=data["membership_type"],
                 product=data.get("product_id"),
+                product_ids=data.get("product_ids"),
+                module_ids=data.get("module_ids"),
                 invited_by=actor,
             )
+
+            # If user already exists with active membership, immediately assign products/modules
+            from django.contrib.auth import get_user_model
+            from apps.organizations.models import OrganizationMembership
+            clean_email = data["email"].strip().lower()
+            existing_user = get_user_model().objects.filter(email__iexact=clean_email).first()
+            if existing_user:
+                if data.get("full_name") and not existing_user.full_name:
+                    existing_user.full_name = data["full_name"].strip()
+                    existing_user.save(update_fields=["full_name"])
+                membership = OrganizationMembership.objects.filter(
+                    organization=org,
+                    user=existing_user,
+                    status="active",
+                ).first()
+                if membership:
+                    p_ids = data.get("product_ids") or ([] if not data.get("product_id") else [str(data.get("product_id"))])
+                    m_ids = data.get("module_ids") or []
+                    if p_ids:
+                        from apps.assignments.services.assignment_services import assign_user_to_product
+                        from apps.product_registry.models import ProductModule
+                        for pid in p_ids:
+                            try:
+                                prod_mods = list(
+                                    ProductModule.objects.filter(
+                                        product_id=pid,
+                                        id__in=m_ids,
+                                        status="active",
+                                    ).values_list("id", flat=True)
+                                ) if m_ids else None
+
+                                assign_user_to_product(
+                                    organization_id=org.id,
+                                    user_id=existing_user.id,
+                                    product_id=pid,
+                                    module_ids=prod_mods,
+                                    membership_id=membership.id,
+                                    actor=actor,
+                                )
+                            except Exception:
+                                pass
             frontend_base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
             activation_url = f"{frontend_base}/invitations/accept/{raw_token}"
             return Response(

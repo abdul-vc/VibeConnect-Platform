@@ -107,6 +107,15 @@ def compute_user_tenant_effective_access(
         )
 
     is_membership_active = (membership.status == MembershipStatus.ACTIVE)
+    is_tenant_admin = bool(
+        is_membership_active
+        and (
+            membership.membership_type == MembershipType.TENANT_ADMIN
+            or (membership.role and getattr(membership.role, "is_admin_role", False))
+            or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+            or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
+        )
+    )
 
     # 4. Organization Entitlements Resolution (Subscription + Direct Grants)
     eligible_sub = get_temporally_eligible_subscription(organization.id)
@@ -235,8 +244,19 @@ def compute_user_tenant_effective_access(
                 access_state = AccessState.ENTITLEMENT_UNAVAILABLE
                 denial_code = DenialCode.ENTITLEMENT_UNAVAILABLE
         elif not assignment:
-            access_state = AccessState.NOT_ASSIGNED
-            denial_code = DenialCode.NOT_ASSIGNED
+            # If the user has explicit product assignments, unassigned products are strictly NOT_ASSIGNED.
+            # Only root system_tenant_admin with no explicit assignments gets default organization-level bypass.
+            is_root_tenant_admin = bool(
+                is_tenant_admin
+                and membership.role
+                and getattr(membership.role, "code", "") in ("system_tenant_admin",)
+            )
+            if is_root_tenant_admin and not all_user_assignments:
+                access_state = AccessState.AVAILABLE
+                denial_code = None
+            else:
+                access_state = AccessState.NOT_ASSIGNED
+                denial_code = DenialCode.NOT_ASSIGNED
         elif assignment.status == AssignmentStatus.SUSPENDED:
             access_state = AccessState.ASSIGNMENT_SUSPENDED
             denial_code = DenialCode.ASSIGNMENT_SUSPENDED
@@ -264,26 +284,39 @@ def compute_user_tenant_effective_access(
                 allowed_mod_ids = assigned_enabled_mod_ids & sub_entitled_mod_ids
 
             product_active_mods = [m for m in product.modules.all() if m.status == CatalogStatus.ACTIVE]
-            eligible_mod_ids = {m.id for m in product_active_mods if m.id in allowed_mod_ids}
-
-            if not eligible_mod_ids:
-                access_state = AccessState.MODULE_UNAVAILABLE
-                denial_code = DenialCode.MODULE_UNAVAILABLE
+            if product_active_mods:
+                eligible_mod_ids = {m.id for m in product_active_mods if m.id in allowed_mod_ids}
+                if not eligible_mod_ids:
+                    access_state = AccessState.MODULE_UNAVAILABLE
+                    denial_code = DenialCode.MODULE_UNAVAILABLE
+                else:
+                    access_state = AccessState.AVAILABLE
+                    denial_code = None
             else:
+                # Product does not define granular sub-modules; seat assignment grants access
                 access_state = AccessState.AVAILABLE
                 denial_code = None
 
-        # Build module tree & per-module module_state
-        assigned_enabled_mod_ids = (
-            {uma.module_id for uma in assignment.module_assignments.all() if uma.is_enabled}
-            if assignment
-            else set()
+        is_root_tenant_admin = bool(
+            is_tenant_admin
+            and membership.role
+            and getattr(membership.role, "code", "") in ("system_tenant_admin",)
         )
-
-        if product.id in direct_grant_prod_ids:
-            allowed_mod_ids = assigned_enabled_mod_ids
+        if is_root_tenant_admin and not all_user_assignments and not assignment:
+            product_active_mods = [m for m in product.modules.all() if m.status == CatalogStatus.ACTIVE]
+            assigned_enabled_mod_ids = {m.id for m in product_active_mods}
+            allowed_mod_ids = set(assigned_enabled_mod_ids)
         else:
-            allowed_mod_ids = assigned_enabled_mod_ids & sub_entitled_mod_ids
+            assigned_enabled_mod_ids = (
+                {uma.module_id for uma in assignment.module_assignments.all() if uma.is_enabled}
+                if assignment
+                else set()
+            )
+
+            if product.id in direct_grant_prod_ids:
+                allowed_mod_ids = assigned_enabled_mod_ids
+            else:
+                allowed_mod_ids = assigned_enabled_mod_ids & sub_entitled_mod_ids
 
         modules_data = []
         eligible_modules_data = []
@@ -338,6 +371,65 @@ def compute_user_tenant_effective_access(
             if mod_state == ModuleState.AVAILABLE:
                 eligible_modules_data.append(mod_item)
 
+        # Check integration readiness (active connector instance or dedicated M2M/SSO readiness)
+        is_integration_ready = False
+        if product.code in ("lms", "lms_core", "lms-pilot"):
+            from apps.integration_hub.lms_launch_grant_client import is_lms_launch_grant_configured
+            from apps.integration_hub.models import ConnectorInstance, InstanceStatus, ProductSsoClient
+            has_legacy = (
+                ProductSsoClient.objects.filter(product=product, is_active=True).exists()
+                and ConnectorInstance.objects.filter(
+                    connector__product=product,
+                    organization=organization,
+                    status=InstanceStatus.ACTIVE,
+                ).exists()
+            )
+            is_integration_ready = is_lms_launch_grant_configured() or has_legacy
+        elif product.code == "quiz":
+            from apps.integration_hub.quiz_sso_client import is_quiz_sso_configured
+            from apps.showcase.models import ProductDemoEnvironment
+            is_integration_ready = (
+                is_quiz_sso_configured()
+                or ProductDemoEnvironment.objects.filter(product=product, is_active=True).exists()
+            )
+        elif product.code in ("crm", "salestracker", "sales_tracker", "sales-tracker", "salestracker_crm"):
+            from apps.integration_hub.salestracker_sso_client import is_salestracker_sso_configured
+            from apps.showcase.models import ProductDemoEnvironment
+            is_integration_ready = (
+                is_salestracker_sso_configured()
+                or ProductDemoEnvironment.objects.filter(product=product, is_active=True).exists()
+            )
+        elif product.code in ("divineconnect", "divine_connect", "divine-connect", "events", "event"):
+            from apps.integration_hub.divineconnect_sso_client import is_divineconnect_sso_configured
+            from apps.showcase.models import ProductDemoEnvironment
+            is_integration_ready = (
+                is_divineconnect_sso_configured()
+                or ProductDemoEnvironment.objects.filter(product=product, is_active=True).exists()
+            )
+        elif product.code in ("workhub", "work_hub", "work-hub"):
+            from apps.integration_hub.workhub_sso_client import is_workhub_sso_configured
+            from apps.showcase.models import ProductDemoEnvironment
+            is_integration_ready = (
+                is_workhub_sso_configured()
+                or ProductDemoEnvironment.objects.filter(product=product, is_active=True).exists()
+            )
+        else:
+            from apps.integration_hub.models import ConnectorInstance, InstanceStatus, ProductSsoClient
+            has_sso_client = ProductSsoClient.objects.filter(product=product, is_active=True).exists()
+            has_connector_instance = ConnectorInstance.objects.filter(
+                connector__product=product,
+                organization=organization,
+                status=InstanceStatus.ACTIVE,
+            ).exists()
+            is_integration_ready = has_sso_client and has_connector_instance
+
+        # If user has assignment and entitlements but integration is not ready, mark integration_pending
+        if access_state == AccessState.AVAILABLE and not is_integration_ready:
+            access_state = AccessState.INTEGRATION_PENDING
+            denial_code = DenialCode.INTEGRATION_PENDING
+
+        is_launchable = (access_state == AccessState.AVAILABLE and is_integration_ready)
+
         prod_item = {
             "id": str(product.id),
             "code": product.code,
@@ -348,12 +440,13 @@ def compute_user_tenant_effective_access(
             "assigned_at": assignment.assigned_at.isoformat() if assignment and assignment.assigned_at else None,
             "access_state": access_state.value if hasattr(access_state, "value") else str(access_state),
             "denial_code": denial_code.value if (denial_code and hasattr(denial_code, "value")) else denial_code,
+            "launchable": is_launchable,
             "eligible_modules": eligible_modules_data,
             "modules": modules_data,
         }
 
         all_products_data.append(prod_item)
-        if access_state == AccessState.AVAILABLE:
+        if access_state in (AccessState.AVAILABLE, AccessState.INTEGRATION_PENDING):
             entitled_products_data.append(prod_item)
 
     # 6. Tenant Admin Console Modules Resolution
@@ -468,11 +561,7 @@ def compute_user_tenant_effective_access(
             ),
         },
         "entitled_products": entitled_products_data,
-        "products": (
-            entitled_products_data
-            if membership.membership_type != MembershipType.TENANT_ADMIN
-            else all_products_data
-        ),
+        "products": all_products_data,
         "console_modules": console_modules_data,
         "seat_summary": {
             "total_assigned_seats": total_assigned_seats,

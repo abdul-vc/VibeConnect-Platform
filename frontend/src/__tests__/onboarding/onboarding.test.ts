@@ -141,7 +141,9 @@ test("test_onboarding_wizard_renders_step_indicator_and_initial_form", async () 
   assert.ok(markup.includes("Organization"), "Must render Step 1 indicator");
   assert.ok(markup.includes("Administrator"), "Must render Step 2 indicator");
   assert.ok(markup.includes("Plan &amp; Pricing") || markup.includes("Plan & Pricing"), "Must render Step 3 indicator");
-  assert.ok(markup.includes("Review &amp; Provision") || markup.includes("Review & Provision"), "Must render Step 4 indicator");
+  assert.ok(markup.includes("Product Entitlements"), "Must render Step 4 indicator");
+  assert.ok(markup.includes("Console Feature Ceilings"), "Must render Step 5 indicator");
+  assert.ok(markup.includes("Review &amp; Provision") || markup.includes("Review & Provision"), "Must render Step 6 indicator");
   assert.ok(markup.includes("Loading onboarding workspace"), "Must render loading skeleton during initialization");
 });
 

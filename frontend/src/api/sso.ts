@@ -57,7 +57,16 @@ export interface SsoPilotStatusResponse {
 
 export const ssoApi = {
   launch: async (payload: SsoLaunchPayload): Promise<SsoLaunchResponse> => {
-    return apiClient.post<SsoLaunchResponse>(ENDPOINTS.SSO.LAUNCH, payload);
+    const res = await apiClient.post<SsoLaunchResponse>(ENDPOINTS.SSO.LAUNCH, payload);
+    if (res && res.redirect_url) {
+      try {
+        sessionStorage.setItem("vc_tenant_products_revealed", "true");
+        window.dispatchEvent(new CustomEvent("vibeconnect:tenant-product-launched"));
+      } catch {
+        // Safe fallback
+      }
+    }
+    return res;
   },
 
   validate: async (payload: SsoValidatePayload): Promise<SsoValidateResponse> => {

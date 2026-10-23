@@ -33,6 +33,7 @@ class AccessState(models.TextChoices):
     MEMBERSHIP_INACTIVE = "membership_inactive", "Membership Inactive"
     PRODUCT_UNAVAILABLE = "product_unavailable", "Product Unavailable"
     ACCESS_EXPIRED = "access_expired", "Access Expired"
+    INTEGRATION_PENDING = "integration_pending", "Integration Pending"
 
 
 class DenialCode(models.TextChoices):
@@ -47,6 +48,7 @@ class DenialCode(models.TextChoices):
     MEMBERSHIP_INACTIVE = "membership_inactive", "User organization membership is inactive"
     PRODUCT_UNAVAILABLE = "product_unavailable", "Product is not active in the catalog"
     ACCESS_EXPIRED = "access_expired", "Access period has expired"
+    INTEGRATION_PENDING = "integration_pending", "Product integration or SSO client is not configured"
 
 
 class ModuleState(models.TextChoices):

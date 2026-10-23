@@ -281,4 +281,133 @@ class TenantOnboardingCaseDomainTests(APITestCase):
         mock_active_sub.assert_called_once()
         mock_trial_sub.assert_not_called()
 
+    def test_full_6_step_onboarding_with_entitlements_and_ceilings(self):
+        """Test complete 6-step tenant onboarding sequence with product entitlements and console feature ceilings."""
+        from apps.product_registry.models import Product, ProductStatus
+        from apps.entitlements.models import OrganizationProductEntitlement, EntitlementStatus
+        from apps.access_control.models import OrganizationConsoleModulePolicy, OrganizationPermissionCeiling
+
+        p1 = Product.objects.create(
+            code="test_lms_prod",
+            name="Test LMS Product",
+            status=ProductStatus.ACTIVE,
+            created_by=self.platform_owner,
+            updated_by=self.platform_owner,
+        )
+        p2 = Product.objects.create(
+            code="test_crm_prod",
+            name="Test CRM Product",
+            status=ProductStatus.ACTIVE,
+            created_by=self.platform_owner,
+            updated_by=self.platform_owner,
+        )
+
+        case = create_onboarding_case(actor=self.platform_owner)
+
+        # 1. Organization Profile
+        case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.ADMIN_SETUP,
+            step_data={
+                "organization_code": "six-step-corp",
+                "organization_name": "Six Step Corp",
+            },
+            actor=self.platform_owner,
+        )
+
+        # 2. Administrator
+        case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.PLAN_SELECTION,
+            step_data={
+                "admin_email": "admin@sixstep.internal",
+                "admin_full_name": "Sam Six",
+            },
+            actor=self.platform_owner,
+        )
+
+        # 3. Plan & Pricing
+        case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.PRODUCT_ENTITLEMENTS,
+            step_data={
+                "plan_version_id": str(self.plan_version.id),
+                "plan_price_id": str(self.plan_price.id),
+                "is_trial": True,
+            },
+            actor=self.platform_owner,
+        )
+        self.assertEqual(case.current_step, OnboardingStep.PRODUCT_ENTITLEMENTS)
+
+        # 4. Product Entitlements
+        case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.FEATURE_CEILINGS,
+            step_data={
+                "selected_product_ids": [str(p1.id), str(p2.id)],
+            },
+            actor=self.platform_owner,
+        )
+        self.assertEqual(case.current_step, OnboardingStep.FEATURE_CEILINGS)
+        self.assertEqual(len(case.selected_product_ids), 2)
+
+        # 5. Console Feature Ceilings
+        case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.REVIEW_CONFIRM,
+            step_data={
+                "feature_ceilings": {
+                    "modules": {"tenant_roles": True, "tenant_branding": False},
+                    "permissions": {"roles.manage": False},
+                },
+            },
+            actor=self.platform_owner,
+        )
+        self.assertEqual(case.current_step, OnboardingStep.REVIEW_CONFIRM)
+
+        # 6. Execute & Complete Provisioning
+        case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.COMPLETED,
+            step_data={},
+            actor=self.platform_owner,
+        )
+        self.assertEqual(case.status, OnboardingCaseStatus.COMPLETED)
+        org = Organization.objects.get(code="six-step-corp")
+
+        # Verify product entitlements were created and activated
+        entitlements = OrganizationProductEntitlement.objects.filter(
+            organization=org,
+            status=EntitlementStatus.ACTIVE,
+        )
+        self.assertEqual(entitlements.count(), 2)
+        entitled_pids = {str(e.product_id) for e in entitlements}
+        self.assertIn(str(p1.id), entitled_pids)
+        self.assertIn(str(p2.id), entitled_pids)
+
+        # Verify custom feature ceilings were applied
+        branding_pol = OrganizationConsoleModulePolicy.objects.filter(
+            organization=org,
+            console_module__key="tenant_branding",
+        ).first()
+        self.assertIsNotNone(branding_pol)
+        self.assertFalse(branding_pol.is_enabled)
+
+        manage_ceiling = OrganizationPermissionCeiling.objects.filter(
+            organization=org,
+            permission__key="roles.manage",
+        ).first()
+        self.assertIsNotNone(manage_ceiling)
+        self.assertFalse(manage_ceiling.is_allowed)
+
+        # 7. Idempotency verification: Calling transition on completed case returns case without error
+        idempotent_case = transition_case_step(
+            case_id=case.id,
+            target_step=OnboardingStep.COMPLETED,
+            step_data={},
+            actor=self.platform_owner,
+        )
+        self.assertEqual(idempotent_case.id, case.id)
+        self.assertEqual(idempotent_case.status, OnboardingCaseStatus.COMPLETED)
+
 

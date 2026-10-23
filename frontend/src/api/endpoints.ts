@@ -141,6 +141,7 @@ export const ENDPOINTS = {
     CASES: "/api/v1/onboarding/cases/",
     CASE_DETAIL: (id: string) => `/api/v1/onboarding/cases/${encodeURIComponent(id)}/`,
     STEP: (id: string) => `/api/v1/onboarding/cases/${encodeURIComponent(id)}/step/`,
+    OPTIONS: "/api/v1/onboarding/cases/options/",
   },
   INVITATIONS: {
     ISSUE: "/api/v1/invitations/",

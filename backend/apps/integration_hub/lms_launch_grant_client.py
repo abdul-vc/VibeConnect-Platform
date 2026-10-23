@@ -139,6 +139,8 @@ def sanitize_diagnostic_detail(detail: Any) -> str:
         return ""
     text = str(detail).strip()
     lower = text.lower()
+    if "invalid launch grant secret" in lower:
+        return text
     for sensitive in ("secret", "password", "token", "bearer", "code="):
         if sensitive in lower:
             return "Authorization error from upstream service."

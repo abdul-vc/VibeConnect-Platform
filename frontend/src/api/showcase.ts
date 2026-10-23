@@ -176,7 +176,16 @@ export const showcaseApi = {
 
   /** Launch demo environment for a profile via authorized Showcase SSO. */
   async launchDemo(profileId: string): Promise<ShowcaseDemoLaunchResponse> {
-    return apiClient.post<ShowcaseDemoLaunchResponse>(ENDPOINTS.SHOWCASE.LAUNCH_DEMO(profileId), {});
+    const res = await apiClient.post<ShowcaseDemoLaunchResponse>(ENDPOINTS.SHOWCASE.LAUNCH_DEMO(profileId), {});
+    if (res && res.redirect_url) {
+      try {
+        sessionStorage.setItem("vc_showcase_submodules_revealed", "true");
+        window.dispatchEvent(new CustomEvent("vibeconnect:showcase-launched"));
+      } catch {
+        // Safe fallback if sessionStorage is unavailable in current context
+      }
+    }
+    return res;
   },
   /** VMS (WarehouseOS) Live Sandbox demonstration endpoints */
   vms: {

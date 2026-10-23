@@ -279,6 +279,12 @@ const TenantUsersPage = lazy(() =>
   }))
 );
 
+const TenantMemberOnboardingPage = lazy(() =>
+  import("../pages/tenant/TenantMemberOnboardingPage.tsx").then((m) => ({
+    default: m.TenantMemberOnboardingPage,
+  }))
+);
+
 const TenantSubscriptionsPage = lazy(() =>
   import("../pages/tenant/TenantSubscriptionsPage.tsx").then((m) => ({
     default: m.TenantSubscriptionsPage,
@@ -642,6 +648,20 @@ export const AppRoutes: FC = () => {
                   >
                     <Suspense fallback={<ContextLoadingFallback />}>
                       <TenantUsersPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tenant/member-onboarding"
+                element={
+                  <ProtectedRoute
+                    requiredContext="tenant"
+                    requiredModule="tenant_roles"
+                    requiredPermission="roles.assign"
+                  >
+                    <Suspense fallback={<ContextLoadingFallback />}>
+                      <TenantMemberOnboardingPage />
                     </Suspense>
                   </ProtectedRoute>
                 }

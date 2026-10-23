@@ -52,6 +52,8 @@ class TenantOnboardingCaseSerializer(serializers.ModelSerializer):
             "plan_name",
             "plan_price",
             "is_trial",
+            "selected_product_ids",
+            "feature_ceilings",
             "created_organization_id",
             "initial_admin_activation_url",
             "started_at",
@@ -117,3 +119,63 @@ class TenantOnboardingCaseViewSet(viewsets.GenericViewSet):
             raise exceptions.ValidationError({"detail": str(exc)})
 
         return Response(self.get_serializer(updated_case).data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="options")
+    def options(self, request, *args, **kwargs):
+        """Return available active products with catalog modules/features and tenant console modules/permissions."""
+        from apps.access_control.models import AccessPermission, ConsoleModule
+        from apps.product_registry.models import Product
+
+        products = []
+        for p in Product.objects.filter(status="active").order_by("name"):
+            modules = []
+            for m in p.modules.filter(status="active").order_by("display_order", "name"):
+                features = [
+                    {
+                        "id": str(f.id),
+                        "code": f.code,
+                        "name": f.name,
+                        "description": f.description,
+                        "display_order": f.display_order,
+                    }
+                    for f in m.features.filter(status="active").order_by("display_order", "name")
+                ]
+                modules.append({
+                    "id": str(m.id),
+                    "code": m.code,
+                    "name": m.name,
+                    "description": m.description,
+                    "display_order": m.display_order,
+                    "features": features,
+                })
+            products.append({
+                "id": str(p.id),
+                "code": p.code,
+                "name": p.name,
+                "description": p.description,
+                "modules": modules,
+            })
+
+        console_modules = []
+        for cm in ConsoleModule.objects.filter(target_context="tenant", is_active=True).order_by("sort_order", "key"):
+            permissions = [
+                {
+                    "key": perm.key,
+                    "display_name": perm.display_name,
+                    "description": perm.description,
+                }
+                for perm in cm.permissions.filter(is_active=True).order_by("key")
+            ]
+            console_modules.append({
+                "key": cm.key,
+                "display_name": cm.display_name,
+                "description": cm.description,
+                "is_core": cm.is_core,
+                "permissions": permissions,
+            })
+
+        return Response({
+            "products": products,
+            "console_modules": console_modules,
+        })
+

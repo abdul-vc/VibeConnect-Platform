@@ -66,6 +66,7 @@ from apps.assignments.services.seat_engine import (
     resolve_seat_pool,
 )
 from apps.auditlog.models import AuditOperationSource
+from apps.entitlements.models import EntitlementStatus, OrganizationProductEntitlement
 from apps.identity.authentication import EnforcedSessionAuthentication
 from apps.organizations.models import MembershipStatus, OrganizationMembership
 from apps.product_registry.models import CatalogStatus, Product, ProductModule, ProductStatus
@@ -452,40 +453,72 @@ class SelectorProductsView(BaseAssignmentView):
 
     def get(self, request, *args, **kwargs) -> Response:
         sub = get_temporally_eligible_subscription(request.organization.id)
-        if not sub:
+        
+        sub_prod_ids = set()
+        if sub:
+            sub_prod_ids = set(
+                sub.product_entitlements.values_list("product_id", flat=True)
+            )
+
+        direct_grants = OrganizationProductEntitlement.objects.filter(
+            organization=request.organization,
+            status=EntitlementStatus.ACTIVE,
+        )
+        direct_prod_ids = set(direct_grants.values_list("product_id", flat=True))
+
+        all_entitled_prod_ids = sub_prod_ids | direct_prod_ids
+        if not all_entitled_prod_ids:
             return Response([])
 
-        entitled_prod_ids = list(
-            sub.product_entitlements.values_list("product_id", flat=True)
-        )
         products = (
-            Product.objects.filter(id__in=entitled_prod_ids, status=ProductStatus.ACTIVE)
+            Product.objects.filter(id__in=all_entitled_prod_ids, status=ProductStatus.ACTIVE)
             .order_by("name", "code", "id")[:100]
         )
 
         items = []
         for p in products:
-            try:
-                res = resolve_seat_pool(
-                    organization_id=request.organization.id,
-                    product_id=p.id,
-                    subscription=sub,
-                )
-                items.append(
-                    {
-                        "id": str(p.id),
-                        "code": p.code,
-                        "name": p.name,
-                        "pool_scope": res.pool_scope,
-                        "quota_type": res.limit_type,
-                        "total_limit": res.total_limit,
-                        "consumed_seats": res.consumed_seats,
-                        "available_seats": res.available_seats,
-                        "is_capacity_available": res.is_capacity_available,
-                    }
-                )
-            except Exception:
-                continue
+            if sub and p.id in sub_prod_ids:
+                try:
+                    res = resolve_seat_pool(
+                        organization_id=request.organization.id,
+                        product_id=p.id,
+                        subscription=sub,
+                    )
+                    items.append(
+                        {
+                            "id": str(p.id),
+                            "code": p.code,
+                            "name": p.name,
+                            "pool_scope": res.pool_scope,
+                            "quota_type": res.limit_type,
+                            "total_limit": res.total_limit,
+                            "consumed_seats": res.consumed_seats,
+                            "available_seats": res.available_seats,
+                            "is_capacity_available": res.is_capacity_available,
+                        }
+                    )
+                    continue
+                except Exception:
+                    pass
+
+            consumed_seats = UserProductAssignment.objects.filter(
+                organization=request.organization,
+                product=p,
+                status__in=[AssignmentStatus.ACTIVE, AssignmentStatus.SUSPENDED],
+            ).count()
+            items.append(
+                {
+                    "id": str(p.id),
+                    "code": p.code,
+                    "name": p.name,
+                    "pool_scope": "direct_grant",
+                    "quota_type": "unlimited",
+                    "total_limit": None,
+                    "consumed_seats": consumed_seats,
+                    "available_seats": None,
+                    "is_capacity_available": True,
+                }
+            )
 
         return Response(items)
 
@@ -572,23 +605,37 @@ class SelectorModulesView(BaseAssignmentView):
             )
 
         sub = get_temporally_eligible_subscription(request.organization.id)
-        if not sub:
+        is_direct_granted = OrganizationProductEntitlement.objects.filter(
+            organization=request.organization,
+            product_id=product_uuid,
+            status=EntitlementStatus.ACTIVE,
+        ).exists()
+
+        if not sub and not is_direct_granted:
             return Response([])
 
-        entitled_module_ids = list(
-            sub.module_entitlements.filter(
-                module__product_id=product_uuid
-            ).values_list("module_id", flat=True)
-        )
-
-        modules = (
-            ProductModule.objects.filter(
-                id__in=entitled_module_ids,
-                product_id=product_uuid,
-                status=CatalogStatus.ACTIVE,
+        if sub and sub.product_entitlements.filter(product_id=product_uuid).exists():
+            entitled_module_ids = list(
+                sub.module_entitlements.filter(
+                    module__product_id=product_uuid
+                ).values_list("module_id", flat=True)
             )
-            .order_by("name", "code", "id")[:100]
-        )
+            modules = (
+                ProductModule.objects.filter(
+                    id__in=entitled_module_ids,
+                    product_id=product_uuid,
+                    status=CatalogStatus.ACTIVE,
+                )
+                .order_by("name", "code", "id")[:100]
+            )
+        else:
+            modules = (
+                ProductModule.objects.filter(
+                    product_id=product_uuid,
+                    status=CatalogStatus.ACTIVE,
+                )
+                .order_by("name", "code", "id")[:100]
+            )
 
         items = [
             {

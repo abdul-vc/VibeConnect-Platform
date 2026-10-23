@@ -23,6 +23,8 @@ class OnboardingStep(models.TextChoices):
     ORGANIZATION_PROFILE = "organization_profile", "Organization Profile"
     ADMIN_SETUP = "admin_setup", "Admin Setup"
     PLAN_SELECTION = "plan_selection", "Plan Selection"
+    PRODUCT_ENTITLEMENTS = "product_entitlements", "Product Entitlements"
+    FEATURE_CEILINGS = "feature_ceilings", "Console Feature Ceilings"
     REVIEW_CONFIRM = "review_confirm", "Review & Confirm"
     COMPLETED = "completed", "Completed"
 
@@ -47,10 +49,24 @@ VALID_STEP_TRANSITIONS: dict[str, set[str]] = {
     OnboardingStep.PLAN_SELECTION: {
         OnboardingStep.ADMIN_SETUP,
         OnboardingStep.PLAN_SELECTION,
+        OnboardingStep.PRODUCT_ENTITLEMENTS,
+        OnboardingStep.REVIEW_CONFIRM,  # Backward compatible transition
+    },
+    OnboardingStep.PRODUCT_ENTITLEMENTS: {
+        OnboardingStep.PLAN_SELECTION,
+        OnboardingStep.PRODUCT_ENTITLEMENTS,
+        OnboardingStep.FEATURE_CEILINGS,
+        OnboardingStep.REVIEW_CONFIRM,
+    },
+    OnboardingStep.FEATURE_CEILINGS: {
+        OnboardingStep.PRODUCT_ENTITLEMENTS,
+        OnboardingStep.FEATURE_CEILINGS,
         OnboardingStep.REVIEW_CONFIRM,
     },
     OnboardingStep.REVIEW_CONFIRM: {
         OnboardingStep.PLAN_SELECTION,
+        OnboardingStep.PRODUCT_ENTITLEMENTS,
+        OnboardingStep.FEATURE_CEILINGS,
         OnboardingStep.REVIEW_CONFIRM,
         OnboardingStep.COMPLETED,
     },
@@ -136,6 +152,17 @@ class TenantOnboardingCase(models.Model):
     is_trial = models.BooleanField(
         default=True,
         help_text="Whether to initialize as a 14-day trial subscription.",
+    )
+    # Product Entitlements and Console Feature Ceilings draft configuration
+    selected_product_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of product UUID strings selected for entitlement.",
+    )
+    feature_ceilings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Dict of product_code/module_key to ceiling settings (enabled modules, allowed permissions, etc.).",
     )
     # Provisioned organization reference
     created_organization = models.ForeignKey(

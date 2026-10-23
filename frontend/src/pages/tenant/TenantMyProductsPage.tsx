@@ -99,6 +99,13 @@ function getAccessStateBadge(state: string | undefined): AccessBadgeConfig {
         color: "var(--status-danger)",
         border: "var(--status-danger-border)",
       };
+    case "integration_pending":
+      return {
+        label: "Integration Pending",
+        bg: "rgba(234, 179, 8, 0.12)",
+        color: "rgb(234, 179, 8)",
+        border: "rgba(234, 179, 8, 0.25)",
+      };
     default:
       // Unknown future value fail-safe
       return {
@@ -170,19 +177,10 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
     }
   }, [fetchTenantHome, initialData]);
 
-  const isMember =
-    user?.active_context?.type === "tenant" &&
-    user?.active_context?.membership_type === "member";
-
-  const rawProducts: readonly TenantProductAccessItem[] =
+  const products: readonly TenantProductAccessItem[] =
     homeData?.products && homeData.products.length > 0
       ? homeData.products
       : homeData?.entitled_products ?? [];
-
-  // For tenant members, strictly display only effective authorized products
-  const products: readonly TenantProductAccessItem[] = isMember
-    ? rawProducts.filter((p) => p.access_state === "available")
-    : rawProducts;
 
   // Authoritative SSO capability status from backend per product and active tenant
   const [ssoPilotStatuses, setSsoPilotStatuses] = useState<Record<string, boolean>>({});
@@ -364,7 +362,6 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
 
             {products.map((product) => {
               const badge = getAccessStateBadge(product.access_state);
-              const isLaunchable = product.access_state === "available";
               const eligibleModules = product.eligible_modules ?? [];
 
               return (
@@ -500,59 +497,58 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
                   {/* Card Bottom: Launch Button */}
                   <div style={{ paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
                     {(() => {
-                      const isSsoEnabled = Boolean(ssoPilotStatuses[product.id]);
-                      const isPilotLaunchable = isLaunchable && (isSsoEnabled || product.code === "quiz");
+                      const isLaunchable = product.launchable ?? (product.access_state === "available" && (Boolean(ssoPilotStatuses[product.id]) || product.code === "quiz"));
+                      const disabledReason =
+                        product.access_state === "integration_pending"
+                          ? "Integration pending"
+                          : product.access_state === "not_assigned"
+                          ? "Access or assignment required"
+                          : product.access_state === "available" && !isLaunchable
+                          ? "Launch available after SSO integration"
+                          : badge.label;
 
                       return (
                         <>
                           <button
                             type="button"
                             id={`launch-btn-${product.id}`}
-                            disabled={!isPilotLaunchable}
-                            onClick={isPilotLaunchable ? () => handleLaunchProduct(product) : undefined}
+                            disabled={!isLaunchable}
+                            onClick={isLaunchable ? () => handleLaunchProduct(product) : undefined}
                             title={
-                              isPilotLaunchable
-                                ? product.code === "quiz"
-                                  ? "Launch Application"
-                                  : "Launch Application via SSO"
-                                : isLaunchable
-                                ? "Launch available after SSO integration"
-                                : `Launch unavailable: ${badge.label}`
+                              isLaunchable
+                                ? "Launch Application"
+                                : disabledReason
                             }
                             className="btn-primary"
                             style={{
                               width: "100%",
-                              opacity: isPilotLaunchable ? 1 : 0.6,
-                              cursor: isPilotLaunchable ? "pointer" : "not-allowed",
+                              opacity: isLaunchable ? 1 : 0.6,
+                              cursor: isLaunchable ? "pointer" : "not-allowed",
                               display: "flex",
                               justifyContent: "center",
                               alignItems: "center",
                               gap: "0.5rem",
                             }}
-                            aria-disabled={!isPilotLaunchable}
+                            aria-disabled={!isLaunchable}
                           >
                             <ShieldCheckIcon size={16} />
                             <span>
-                              {isPilotLaunchable
+                              {isLaunchable
                                 ? "Launch Product"
-                                : isLaunchable
-                                ? "Launch Product"
-                                : `Unavailable (${badge.label})`}
+                                : `Unavailable (${disabledReason})`}
                             </span>
                           </button>
                           <div
                             style={{
                               fontSize: "0.6875rem",
-                              color: isPilotLaunchable ? "var(--status-success)" : "var(--text-muted)",
+                              color: isLaunchable ? "var(--status-success)" : "var(--text-muted)",
                               textAlign: "center",
                               marginTop: "0.35rem",
                             }}
                           >
-                            {isPilotLaunchable
-                              ? product.code === "quiz"
-                                ? "Direct Launch — Ready to Launch"
-                                : "SSO Pilot Enabled — Ready to Launch"
-                              : "Launch available after SSO integration"}
+                            {isLaunchable
+                              ? "Ready to Launch"
+                              : disabledReason}
                           </div>
                         </>
                       );

@@ -12,12 +12,15 @@ class IssueInvitationSerializer(serializers.Serializer):
 
     organization_id = serializers.UUIDField(required=True)
     email = serializers.EmailField(required=True)
+    full_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
     membership_type = serializers.ChoiceField(
         choices=MembershipType.choices,
         default=MembershipType.MEMBER,
     )
     role_id = serializers.UUIDField(required=False, allow_null=True, default=None)
     product_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    product_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list)
+    module_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list)
 
     def validate(self, attrs):
         org_id = attrs["organization_id"]
@@ -34,6 +37,14 @@ class IssueInvitationSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"role_id": "Role does not exist."})
         else:
             attrs["role"] = None
+
+        # Normalize product_ids and module_ids as strings
+        p_ids = [str(pid) for pid in attrs.get("product_ids", [])]
+        single_pid = attrs.get("product_id")
+        if single_pid and str(single_pid) not in p_ids:
+            p_ids.append(str(single_pid))
+        attrs["product_ids"] = p_ids
+        attrs["module_ids"] = [str(mid) for mid in attrs.get("module_ids", [])]
 
         return attrs
 

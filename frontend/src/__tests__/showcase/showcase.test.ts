@@ -32,8 +32,8 @@ if (typeof globalThis.document === "undefined") {
     removeEventListener: () => {},
   };
 }
-if (typeof globalThis.localStorage === "undefined") {
-  (globalThis as unknown as { localStorage: unknown }).localStorage = {
+if (typeof globalThis.sessionStorage === "undefined") {
+  (globalThis as unknown as { sessionStorage: unknown }).sessionStorage = {
     getItem: () => null,
     setItem: () => {},
     removeItem: () => {},
@@ -46,6 +46,7 @@ import { showcaseApi } from "../../api/showcase.ts";
 import { ShowcasePortfolioPage } from "../../pages/showcase/ShowcasePortfolioPage.tsx";
 import { ShowcasePresentPage } from "../../pages/showcase/ShowcasePresentPage.tsx";
 import { ShowcaseEmbeddedDemo } from "../../pages/showcase/ShowcaseEmbeddedDemo.tsx";
+import { AppShell } from "../../components/AppShell.tsx";
 import type { ShowcaseProfile } from "../../api/types.ts";
 
 const mockProfiles: ShowcaseProfile[] = [
@@ -144,7 +145,7 @@ test("AC-4: Showcase nav item route is defined and owner-scoped", () => {
   assert.ok(knownOwnerPaths.includes("/showcase/present"), "/showcase/present must be in owner routes");
 });
 
-test("AC-5: ShowcaseEmbeddedDemo renders workspace iframe and reload controls", () => {
+test("AC-5: ShowcaseEmbeddedDemo renders workspace iframe cleanly without overlay controls", () => {
   const html = renderToStaticMarkup(
     React.createElement(ShowcaseEmbeddedDemo, {
       productName: "Sales Tracker",
@@ -155,7 +156,131 @@ test("AC-5: ShowcaseEmbeddedDemo renders workspace iframe and reload controls", 
     })
   );
   assert.ok(html.includes("Sales Tracker Live Demo Workspace"), "Must render iframe with product title");
-  assert.ok(html.includes("Reload"), "Must render reload button");
   assert.ok(html.includes("test-code-1"), "Must set initial iframe src");
+  assert.ok(!html.includes("showcase-demo-floating-controls"), "Must not render floating overlay controls");
 });
+
+test("AC-6: Showcase submodules hidden by default in Platform Owner sidebar", () => {
+  // When session storage is empty, submodules are not rendered
+  const html = renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      { initialEntries: ["/"] },
+      React.createElement(
+        ThemeProvider,
+        null,
+        React.createElement(
+          AuthContext.Provider,
+          {
+            value: {
+              user: {
+                id: "u-owner-1",
+                email: "owner@vibeconnect.io",
+                full_name: "Owner",
+                is_platform_owner: true,
+                active_context: { type: "platform_owner" },
+                available_contexts: [],
+              },
+              login: async () => {},
+              logout: async () => {},
+              selectContext: async () => {},
+              refreshUser: async () => null,
+              status: "authenticated",
+              error: null,
+            } as any,
+          },
+          React.createElement(AppShell, null, React.createElement("div", null, "Overview Page Content"))
+        )
+      )
+    )
+  );
+  assert.ok(html.includes("Product Showcase"), "Must show main Product Showcase nav item");
+  assert.ok(!html.includes('class="sidebar-submodules-container"'), "Must not render submodules container in HTML when unlaunched");
+  assert.ok(!html.includes("showcase-sub-"), "Must not render showcase subitems when unlaunched");
+});
+
+test("AC-7: Tenant Member product submodules hidden by default under My Products & App Launcher", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      { initialEntries: ["/tenant/dashboard"] },
+      React.createElement(
+        ThemeProvider,
+        null,
+        React.createElement(
+          AuthContext.Provider,
+          {
+            value: {
+              user: {
+                id: "u-member-1",
+                email: "member@vibeconnect.io",
+                full_name: "Tenant Member",
+                is_platform_owner: false,
+                active_context: {
+                  type: "tenant",
+                  membership_type: "member",
+                  organization: { id: "org-1", code: "alpha", name: "Alpha Org" },
+                },
+                available_contexts: [],
+              },
+              login: async () => {},
+              logout: async () => {},
+              selectContext: async () => {},
+              refreshUser: async () => null,
+              status: "authenticated",
+              error: null,
+            } as any,
+          },
+          React.createElement(AppShell, null, React.createElement("div", null, "Member Dashboard"))
+        )
+      )
+    )
+  );
+  assert.ok(html.includes("My Products &amp; App Launcher") || html.includes("My Products & App Launcher"), "Must show main My Products item");
+  assert.ok(!html.includes("member-sub-prod-"), "Must not render member product submodules when unlaunched");
+});
+
+test("AC-8: Tenant Admin product submodules hidden by default under My Products & Launcher", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      { initialEntries: ["/tenant"] },
+      React.createElement(
+        ThemeProvider,
+        null,
+        React.createElement(
+          AuthContext.Provider,
+          {
+            value: {
+              user: {
+                id: "u-admin-1",
+                email: "admin@vibeconnect.io",
+                full_name: "Tenant Admin",
+                is_platform_owner: false,
+                active_context: {
+                  type: "tenant",
+                  membership_type: "tenant_admin",
+                  organization: { id: "org-1", code: "alpha", name: "Alpha Org" },
+                  allowed_modules: ["tenant_my_products", "tenant_dashboard"],
+                  effective_permissions: ["products.view", "dashboard.view"],
+                },
+                available_contexts: [],
+              },
+              login: async () => {},
+              logout: async () => {},
+              selectContext: async () => {},
+              refreshUser: async () => null,
+              status: "authenticated",
+              error: null,
+            } as any,
+          },
+          React.createElement(AppShell, null, React.createElement("div", null, "Admin Dashboard"))
+        )
+      )
+    )
+  );
+  assert.ok(html.includes("My Products &amp; Launcher") || html.includes("My Products & Launcher"), "Must show main My Products & Launcher item");
+  assert.ok(!html.includes("tenant-admin-sub-prod-"), "Must not render tenant admin product submodules when unlaunched");
+});
+
 

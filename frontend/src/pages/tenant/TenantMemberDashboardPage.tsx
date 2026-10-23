@@ -74,10 +74,13 @@ export const TenantMemberDashboardPage: React.FC = () => {
 
   const organization = homeData?.organization ?? user?.active_context?.organization;
   const membership = homeData?.membership;
-  const entitledProducts: readonly TenantProductAccessItem[] =
-    homeData?.entitled_products && homeData.entitled_products.length > 0
-      ? homeData.entitled_products
-      : (homeData?.products ?? []).filter((p) => p.access_state === "available");
+  const products: readonly TenantProductAccessItem[] =
+    homeData?.products && homeData.products.length > 0
+      ? homeData.products
+      : homeData?.entitled_products ?? [];
+  const entitledProducts: readonly TenantProductAccessItem[] = products.filter(
+    (p) => p.access_state === "available" || p.launchable
+  );
 
   // Real aggregated metric: total eligible modules across assigned products
   const totalEligibleModules = entitledProducts.reduce(
@@ -396,7 +399,7 @@ export const TenantMemberDashboardPage: React.FC = () => {
             </div>
 
             {/* Product Cards Grid or Empty State */}
-            {entitledProducts.length === 0 ? (
+            {products.length === 0 ? (
               <div
                 style={{
                   padding: "3.5rem 1.5rem",
@@ -427,7 +430,7 @@ export const TenantMemberDashboardPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 style={{ margin: "0 0 0.5rem 0", color: "var(--text-primary)", fontSize: "1.125rem", fontWeight: 700 }}>
-                    No Applications Assigned Yet
+                    No Applications Available
                   </h3>
                   <p
                     style={{
@@ -439,8 +442,7 @@ export const TenantMemberDashboardPage: React.FC = () => {
                     }}
                   >
                     You are an active member of <strong>{organization?.name || "this organization"}</strong>,
-                    but no applications or modules have been provisioned to your profile yet. Please
-                    contact your organization administrator to assign product entitlements.
+                    but no applications are registered or available at this time.
                   </p>
                 </div>
               </div>
@@ -452,185 +454,213 @@ export const TenantMemberDashboardPage: React.FC = () => {
                   gap: "1.25rem",
                 }}
               >
-                {entitledProducts.map((prod) => (
-                  <div
-                    key={prod.id}
-                    style={{
-                      background: "var(--glass-surface-elevated)",
-                      border: "1px solid var(--border-glass)",
-                      borderRadius: "14px",
-                      padding: "1.5rem",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: "1.25rem",
-                      boxShadow: "var(--shadow-sm)",
-                      transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
-                    }}
-                  >
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-                      {/* Card Top: Code badge and status */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            padding: "0.15rem 0.5rem",
-                            borderRadius: "5px",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            background: "rgba(99, 102, 241, 0.12)",
-                            color: "rgb(99, 102, 241)",
-                            border: "1px solid rgba(99, 102, 241, 0.25)",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.03em",
-                          }}
-                        >
-                          {prod.code}
-                        </span>
+                {products.map((prod) => {
+                  const isLaunchable = Boolean(prod.launchable ?? (prod.access_state === "available"));
+                  const isAvailable = prod.access_state === "available";
+                  const disabledReason =
+                    prod.access_state === "integration_pending"
+                      ? "Integration pending"
+                      : prod.access_state === "not_assigned"
+                      ? "Access or assignment required"
+                      : !isLaunchable
+                      ? "Integration pending"
+                      : "Access unavailable";
 
-                        <span
+                  return (
+                    <div
+                      key={prod.id}
+                      style={{
+                        background: "var(--glass-surface-elevated)",
+                        border: "1px solid var(--border-glass)",
+                        borderRadius: "14px",
+                        padding: "1.5rem",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: "1.25rem",
+                        boxShadow: "var(--shadow-sm)",
+                        transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+                        {/* Card Top: Code badge and status */}
+                        <div
                           style={{
-                            display: "inline-flex",
+                            display: "flex",
                             alignItems: "center",
-                            gap: "0.3rem",
-                            padding: "0.2rem 0.55rem",
-                            borderRadius: "9999px",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            background: "var(--status-success-bg)",
-                            color: "var(--status-success)",
-                            border: "1px solid var(--status-success-border)",
+                            justifyContent: "space-between",
+                            gap: "0.5rem",
                           }}
                         >
                           <span
                             style={{
-                              width: "5px",
-                              height: "5px",
-                              borderRadius: "50%",
-                              background: "currentColor",
-                            }}
-                          />
-                          <span>Ready</span>
-                        </span>
-                      </div>
-
-                      {/* Title & Description */}
-                      <div>
-                        <h3
-                          style={{
-                            fontSize: "1.0625rem",
-                            fontWeight: 700,
-                            margin: "0 0 0.35rem 0",
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          {prod.name}
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: "0.8125rem",
-                            color: "var(--text-secondary)",
-                            margin: 0,
-                            lineHeight: 1.5,
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          {prod.description || "Enterprise workspace and application services."}
-                        </p>
-                      </div>
-
-                      {/* Eligible Modules chips */}
-                      {prod.eligible_modules && prod.eligible_modules.length > 0 && (
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
+                              display: "inline-flex",
                               alignItems: "center",
-                              gap: "0.35rem",
-                              fontSize: "0.6875rem",
+                              padding: "0.15rem 0.5rem",
+                              borderRadius: "5px",
+                              fontSize: "0.75rem",
                               fontWeight: 700,
-                              color: "var(--text-muted)",
+                              background: "rgba(99, 102, 241, 0.12)",
+                              color: "rgb(99, 102, 241)",
+                              border: "1px solid rgba(99, 102, 241, 0.25)",
                               textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                              marginBottom: "0.4rem",
+                              letterSpacing: "0.03em",
                             }}
                           >
-                            <LayersIcon size={12} />
-                            <span>Assigned Modules ({prod.eligible_modules.length})</span>
-                          </div>
+                            {prod.code}
+                          </span>
 
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                            {prod.eligible_modules.slice(0, 3).map((mod) => (
-                              <span
-                                key={mod.id}
-                                style={{
-                                  display: "inline-block",
-                                  padding: "0.15rem 0.45rem",
-                                  borderRadius: "4px",
-                                  fontSize: "0.6875rem",
-                                  fontWeight: 600,
-                                  background: "var(--glass-surface)",
-                                  border: "1px solid var(--border-subtle)",
-                                  color: "var(--text-secondary)",
-                                }}
-                              >
-                                {mod.name}
-                              </span>
-                            ))}
-                            {prod.eligible_modules.length > 3 && (
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  padding: "0.15rem 0.45rem",
-                                  borderRadius: "4px",
-                                  fontSize: "0.6875rem",
-                                  fontWeight: 600,
-                                  background: "var(--glass-surface)",
-                                  border: "1px solid var(--border-subtle)",
-                                  color: "var(--text-muted)",
-                                }}
-                              >
-                                +{prod.eligible_modules.length - 3} more
-                              </span>
-                            )}
-                          </div>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.3rem",
+                              padding: "0.2rem 0.55rem",
+                              borderRadius: "9999px",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              background: isAvailable
+                                ? "var(--status-success-bg)"
+                                : prod.access_state === "integration_pending"
+                                ? "rgba(234, 179, 8, 0.12)"
+                                : "var(--glass-surface)",
+                              color: isAvailable
+                                ? "var(--status-success)"
+                                : prod.access_state === "integration_pending"
+                                ? "rgb(234, 179, 8)"
+                                : "var(--text-muted)",
+                              border: isAvailable
+                                ? "1px solid var(--status-success-border)"
+                                : prod.access_state === "integration_pending"
+                                ? "1px solid rgba(234, 179, 8, 0.25)"
+                                : "1px solid var(--border-subtle)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: "5px",
+                                height: "5px",
+                                borderRadius: "50%",
+                                background: "currentColor",
+                              }}
+                            />
+                            <span>{isAvailable ? "Ready" : disabledReason}</span>
+                          </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Action button */}
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchProduct(prod)}
-                      className="btn-primary"
-                      style={{
-                        width: "100%",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.45rem",
-                        padding: "0.65rem 1rem",
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <span>Open Workspace</span>
-                      <ChevronRightIcon size={14} />
-                    </button>
-                  </div>
-                ))}
+                        {/* Title & Description */}
+                        <div>
+                          <h3
+                            style={{
+                              fontSize: "1.0625rem",
+                              fontWeight: 700,
+                              margin: "0 0 0.35rem 0",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            {prod.name}
+                          </h3>
+                          <p
+                            style={{
+                              fontSize: "0.8125rem",
+                              color: "var(--text-secondary)",
+                              margin: 0,
+                              lineHeight: 1.5,
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {prod.description || "Enterprise workspace and application services."}
+                          </p>
+                        </div>
+
+                        {/* Eligible Modules chips */}
+                        {prod.eligible_modules && prod.eligible_modules.length > 0 && (
+                          <div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.35rem",
+                                fontSize: "0.6875rem",
+                                fontWeight: 700,
+                                color: "var(--text-muted)",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.06em",
+                                marginBottom: "0.4rem",
+                              }}
+                            >
+                              <LayersIcon size={12} />
+                              <span>Assigned Modules ({prod.eligible_modules.length})</span>
+                            </div>
+
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                              {prod.eligible_modules.slice(0, 3).map((mod) => (
+                                <span
+                                  key={mod.id}
+                                  style={{
+                                    display: "inline-block",
+                                    padding: "0.15rem 0.45rem",
+                                    borderRadius: "4px",
+                                    fontSize: "0.6875rem",
+                                    fontWeight: 600,
+                                    background: "var(--glass-surface)",
+                                    border: "1px solid var(--border-subtle)",
+                                    color: "var(--text-secondary)",
+                                  }}
+                                >
+                                  {mod.name}
+                                </span>
+                              ))}
+                              {prod.eligible_modules.length > 3 && (
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    padding: "0.15rem 0.45rem",
+                                    borderRadius: "4px",
+                                    fontSize: "0.6875rem",
+                                    fontWeight: 600,
+                                    background: "var(--glass-surface)",
+                                    border: "1px solid var(--border-subtle)",
+                                    color: "var(--text-muted)",
+                                  }}
+                                >
+                                  +{prod.eligible_modules.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action button */}
+                      <button
+                        type="button"
+                        disabled={!isLaunchable}
+                        onClick={isLaunchable ? () => handleLaunchProduct(prod) : undefined}
+                        className="btn-primary"
+                        style={{
+                          width: "100%",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.45rem",
+                          padding: "0.65rem 1rem",
+                          fontSize: "0.875rem",
+                          fontWeight: 600,
+                          cursor: isLaunchable ? "pointer" : "not-allowed",
+                          opacity: isLaunchable ? 1 : 0.6,
+                        }}
+                        aria-disabled={!isLaunchable}
+                      >
+                        <span>{isLaunchable ? "Open Workspace" : disabledReason}</span>
+                        <ChevronRightIcon size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

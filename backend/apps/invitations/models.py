@@ -58,9 +58,25 @@ class UserInvitation(models.Model):
         on_delete=models.SET_NULL,
         related_name="user_invitations",
     )
+    product_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Product IDs pre-assigned to the user upon onboarding/activation.",
+    )
+    module_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Product module IDs pre-assigned to the user upon onboarding/activation.",
+    )
     email = models.EmailField(
         max_length=254,
         db_index=True,
+    )
+    full_name = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        help_text="Intended full name of the invited member.",
     )
     role = models.ForeignKey(
         "access_control.Role",
