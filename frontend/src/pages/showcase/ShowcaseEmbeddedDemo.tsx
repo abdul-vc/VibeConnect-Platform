@@ -292,7 +292,6 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
         title={`${productName} Live Demo Workspace`}
         src={activeUrl}
         onLoad={() => setIsIframeLoading(false)}
-        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads allow-modals allow-top-navigation-by-user-activation"
         referrerPolicy="strict-origin-when-cross-origin"
         style={{
           width: "100%",
