@@ -47,6 +47,12 @@ export const EmbeddedProductWorkspace: React.FC<EmbeddedProductWorkspaceProps> =
       if (!isMountedRef.current || currentGen !== launchGenRef.current) return;
 
       if (response && response.redirect_url) {
+        try {
+          sessionStorage.setItem("vc_tenant_products_revealed", "true");
+          window.dispatchEvent(new CustomEvent("vibeconnect:tenant-product-launched"));
+        } catch {
+          // Safe fallback
+        }
         setLaunchUrl(response.redirect_url);
       } else {
         setLaunchError("Launch service did not return a valid destination URL.");
@@ -94,64 +100,6 @@ export const EmbeddedProductWorkspace: React.FC<EmbeddedProductWorkspaceProps> =
         border: "1px solid var(--border-subtle)",
       }}
     >
-      {/* Subtle Floating Reload / Recovery Pill */}
-      {launchUrl && !launchError && (
-        <div
-          style={{
-            position: "absolute",
-            top: "12px",
-            right: "16px",
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "4px 8px",
-            borderRadius: "999px",
-            background: "var(--glass-surface-elevated)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid var(--border-glass)",
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.35)",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              color: "var(--brand-primary)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              background: "var(--brand-primary-light)",
-            }}
-          >
-            {product.code}
-          </span>
-          <button
-            type="button"
-            id="workspace-reload-btn"
-            onClick={handleRetryFullLaunch}
-            disabled={isLaunching}
-            title="Reload with fresh launch grant"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              padding: "4px 8px",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              cursor: isLaunching ? "not-allowed" : "pointer",
-              borderRadius: "6px",
-              border: "none",
-              background: "transparent",
-              color: "var(--text-secondary)",
-            }}
-          >
-            <RotateCcwIcon size={12} />
-            <span>{isLaunching ? "Reloading…" : "Reload"}</span>
-          </button>
-        </div>
-      )}
 
       {/* Loading Overlay */}
       {(isLaunching || isIframeLoading) && !launchError && (

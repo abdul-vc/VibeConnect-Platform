@@ -44,6 +44,7 @@ class EntitledProductItemSerializer(serializers.Serializer):
     assigned_at = serializers.DateTimeField(allow_null=True, required=False)
     access_state = serializers.CharField(default="available")
     denial_code = serializers.CharField(allow_null=True, required=False)
+    launchable = serializers.BooleanField(default=False)
     eligible_modules = ModuleItemSerializer(many=True, required=False)
     modules = ModuleItemSerializer(many=True)
 

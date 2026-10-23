@@ -124,6 +124,40 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
 
   const [tenantProducts, setTenantProducts] = useState<readonly TenantProductAccessItem[]>([]);
   const [showcaseProfiles, setShowcaseProfiles] = useState<readonly ShowcaseProfile[]>([]);
+  const [isShowcaseRevealed, setIsShowcaseRevealed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem("vc_showcase_submodules_revealed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [isTenantProductsRevealed, setIsTenantProductsRevealed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem("vc_tenant_products_revealed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleShowcaseLaunched = () => {
+      setIsShowcaseRevealed(true);
+    };
+    window.addEventListener("vibeconnect:showcase-launched", handleShowcaseLaunched);
+    return () => {
+      window.removeEventListener("vibeconnect:showcase-launched", handleShowcaseLaunched);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleTenantProductLaunched = () => {
+      setIsTenantProductsRevealed(true);
+    };
+    window.addEventListener("vibeconnect:tenant-product-launched", handleTenantProductLaunched);
+    return () => {
+      window.removeEventListener("vibeconnect:tenant-product-launched", handleTenantProductLaunched);
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -133,9 +167,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         .then((data) => {
           if (!isCancelled) {
             const prods =
-              data.entitled_products && data.entitled_products.length > 0
-                ? data.entitled_products
-                : (data.products ?? []).filter((p) => p.access_state === "available");
+              data.products && data.products.length > 0
+                ? data.products
+                : data.entitled_products ?? [];
             setTenantProducts(prods);
           }
         })
@@ -161,6 +195,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    try {
+      sessionStorage.removeItem("vc_showcase_submodules_revealed");
+      sessionStorage.removeItem("vc_tenant_products_revealed");
+    } catch {
+      // Safe fallback
+    }
+    setIsShowcaseRevealed(false);
+    setIsTenantProductsRevealed(false);
     try {
       await logout();
     } catch {
@@ -310,15 +352,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
               icon: <StarIcon size={18} />,
               path: "/showcase",
               active: location.pathname.startsWith("/showcase"),
-              subItems: showcaseProfiles.map((p) => ({
-                id: `showcase-sub-${p.product_code}`,
-                label: p.product_name,
-                code: p.product_code,
-                path: `/showcase?product=${encodeURIComponent(p.product_code)}&demo=true`,
-                active:
-                  location.pathname.startsWith("/showcase") &&
-                  location.search.toLowerCase().includes(`product=${encodeURIComponent(p.product_code).toLowerCase()}`),
-              })),
+              subItems: isShowcaseRevealed
+                ? showcaseProfiles.map((p) => ({
+                    id: `showcase-sub-${p.product_code}`,
+                    label: p.product_name,
+                    code: p.product_code,
+                    path: `/showcase?product=${encodeURIComponent(p.product_code)}&demo=true`,
+                    active:
+                      location.pathname.startsWith("/showcase") &&
+                      location.search.toLowerCase().includes(`product=${encodeURIComponent(p.product_code).toLowerCase()}`),
+                  }))
+                : undefined,
             },
             {
               id: "usage",
@@ -445,14 +489,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
               active:
                 location.pathname.startsWith("/tenant/products") ||
                 location.pathname.startsWith("/tenant/workspace"),
-              subItems: tenantProducts.map((p) => ({
-                id: `member-sub-prod-${p.id}`,
-                label: p.name,
-                code: p.code,
-                path: `/tenant/workspace/${p.id}`,
-                active: location.pathname === `/tenant/workspace/${p.id}`,
-                product: p,
-              })),
+              subItems: isTenantProductsRevealed
+                ? tenantProducts.map((p) => ({
+                    id: `member-sub-prod-${p.id}`,
+                    label: p.name,
+                    code: p.code,
+                    path: `/tenant/workspace/${p.id}`,
+                    active: location.pathname === `/tenant/workspace/${p.id}`,
+                    product: p,
+                  }))
+                : undefined,
             },
           ],
         },
@@ -478,8 +524,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         },
         {
           title: "CUSTOMER OPERATIONS",
-          items: [
-            ...TENANT_MODULES_REGISTRY.filter((mod) => {
+          items: (() => {
+            const registryItems: NavItem[] = TENANT_MODULES_REGISTRY.filter((mod) => {
               if (!mod.implemented) return false;
               if (!["roles-permissions", "product-assignments", "bulk-user-onboarding", "access-requests", "users-memberships", "org-profile", "branding"].includes(mod.id)) return false;
               if (mod.requiredModule && !user?.active_context?.allowed_modules?.includes(mod.requiredModule)) return false;
@@ -491,8 +537,31 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
               icon: renderTenantIcon(mod.icon),
               path: mod.path,
               active: location.pathname.startsWith(mod.path),
-            })),
-          ],
+            }));
+
+            const canOnboardMembers =
+              Boolean(user?.active_context?.allowed_modules?.includes("tenant_roles")) &&
+              Boolean(user?.active_context?.effective_permissions?.includes("roles.assign"));
+
+            if (canOnboardMembers) {
+              const memberOnboardingItem: NavItem = {
+                id: "member-onboarding",
+                label: "Member Onboarding",
+                icon: <UserIcon size={18} />,
+                path: "/tenant/member-onboarding",
+                active: location.pathname.startsWith("/tenant/member-onboarding"),
+              };
+
+              const bulkIdx = registryItems.findIndex((i) => i.id === "bulk-user-onboarding");
+              if (bulkIdx !== -1) {
+                registryItems.splice(bulkIdx, 0, memberOnboardingItem);
+              } else {
+                registryItems.push(memberOnboardingItem);
+              }
+            }
+
+            return registryItems;
+          })(),
         },
         {
           title: "PLATFORM",
@@ -513,7 +582,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
                   ? location.pathname.startsWith("/tenant/products") || location.pathname.startsWith("/tenant/workspace")
                   : location.pathname.startsWith(mod.path),
               subItems:
-                mod.path === "/tenant/products"
+                mod.path === "/tenant/products" && isTenantProductsRevealed
                   ? tenantProducts.map((p) => ({
                       id: `tenant-admin-sub-prod-${p.id}`,
                       label: p.name,

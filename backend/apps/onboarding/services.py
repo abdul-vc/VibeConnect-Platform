@@ -35,6 +35,14 @@ from apps.organizations.models import (
 )
 from apps.plans.models import PlanPrice, PlanVersion, PlanVersionStatus
 from apps.subscriptions.services import create_active_subscription, start_subscription_trial
+from apps.entitlements.services import create_or_activate_entitlement
+from apps.product_registry.models import Product, ProductStatus
+from apps.access_control.models import (
+    AccessPermission,
+    ConsoleModule,
+    OrganizationConsoleModulePolicy,
+    OrganizationPermissionCeiling,
+)
 
 
 class OnboardingError(Exception):
@@ -83,7 +91,14 @@ def transition_case_step(
     Emits an audit event for every valid step transition.
     """
     clean_id = uuid.UUID(str(case_id))
-    case = TenantOnboardingCase.objects.select_for_update().get(id=clean_id)
+    case = TenantOnboardingCase.objects.get(id=clean_id)
+
+    # If case has already completed and caller is requesting completion or review,
+    # return the completed case directly to guarantee idempotency.
+    if case.status == OnboardingCaseStatus.COMPLETED:
+        if target_step in (OnboardingStep.COMPLETED, OnboardingStep.REVIEW_CONFIRM):
+            return case
+        raise OnboardingValidationError(f"Cannot transition case in status '{case.status}'.")
 
     if case.status not in (OnboardingCaseStatus.IN_PROGRESS, OnboardingCaseStatus.PROVISIONING_FAILED):
         raise OnboardingValidationError(f"Cannot transition case in status '{case.status}'.")
@@ -125,7 +140,11 @@ def transition_case_step(
         if "admin_full_name" in step_data:
             case.admin_full_name = step_data["admin_full_name"].strip()
 
-    if current_step == OnboardingStep.PLAN_SELECTION or target_step == OnboardingStep.REVIEW_CONFIRM:
+    if current_step == OnboardingStep.PLAN_SELECTION or target_step in (
+        OnboardingStep.PRODUCT_ENTITLEMENTS,
+        OnboardingStep.FEATURE_CEILINGS,
+        OnboardingStep.REVIEW_CONFIRM,
+    ):
         if "plan_version_id" in step_data:
             p_ver_id = step_data["plan_version_id"]
             if p_ver_id:
@@ -134,6 +153,8 @@ def transition_case_step(
                     case.plan_version = ver_obj
                 except PlanVersion.DoesNotExist:
                     raise OnboardingValidationError("Selected plan version does not exist or is not active.")
+            else:
+                case.plan_version = None
 
         if "plan_price_id" in step_data:
             p_price_id = step_data["plan_price_id"]
@@ -143,9 +164,31 @@ def transition_case_step(
                     case.plan_price = price_obj
                 except PlanPrice.DoesNotExist:
                     raise OnboardingValidationError("Selected plan price does not exist.")
+            else:
+                case.plan_price = None
 
         if "is_trial" in step_data:
             case.is_trial = bool(step_data["is_trial"])
+
+    # Product Entitlements step data
+    if "selected_product_ids" in step_data:
+        raw_prod_ids = step_data["selected_product_ids"]
+        if not isinstance(raw_prod_ids, (list, tuple)):
+            raise OnboardingValidationError("selected_product_ids must be a list of product IDs.")
+        cleaned_ids = []
+        for pid in raw_prod_ids:
+            try:
+                cleaned_ids.append(str(uuid.UUID(str(pid))))
+            except (ValueError, TypeError):
+                raise OnboardingValidationError(f"Invalid product UUID: {pid}")
+        case.selected_product_ids = cleaned_ids
+
+    # Feature Ceilings step data
+    if "feature_ceilings" in step_data:
+        raw_ceilings = step_data["feature_ceilings"]
+        if not isinstance(raw_ceilings, dict):
+            raise OnboardingValidationError("feature_ceilings must be an object/dict.")
+        case.feature_ceilings = raw_ceilings
 
     # Final Step: Execution and Provisioning
     if target_step == OnboardingStep.COMPLETED:
@@ -157,7 +200,7 @@ def transition_case_step(
 
         # Check for duplicate organization code conflict
         if Organization.objects.filter(code=case.organization_code).exists():
-            raise OnboardingCaseConflictError(f"Organization code \x27{case.organization_code}\x27 is already in use.")
+            raise OnboardingCaseConflictError(f"Organization code '{case.organization_code}' is already in use.")
 
         try:
             with transaction.atomic():
@@ -174,6 +217,60 @@ def transition_case_step(
 
                 # 2. Provision default access control policies & ceilings
                 provision_organization_defaults(organization=org, actor=actor)
+
+                # 2a. Provision Direct Product Entitlements if selected
+                if case.selected_product_ids:
+                    products = Product.objects.filter(
+                        id__in=case.selected_product_ids,
+                        status=ProductStatus.ACTIVE,
+                    )
+                    for prod in products:
+                        try:
+                            create_or_activate_entitlement(
+                                organization=org,
+                                product=prod,
+                                actor=actor,
+                                source="tenant_onboarding_provision",
+                            )
+                        except Exception as ent_err:
+                            logger.warning(
+                                "Failed to activate entitlement for org %s product %s: %s",
+                                org.code,
+                                prod.code,
+                                ent_err,
+                            )
+
+                # 2b. Apply custom Console Module Policies and Permission Ceilings if provided
+                if case.feature_ceilings:
+                    # module_policies: { [module_key: string]: boolean }
+                    module_policies = case.feature_ceilings.get("modules") or case.feature_ceilings.get("module_policies")
+                    if isinstance(module_policies, dict):
+                        for mod_key, is_enabled in module_policies.items():
+                            mod = ConsoleModule.objects.filter(key=mod_key, is_active=True).first()
+                            if mod and not mod.is_core:
+                                OrganizationConsoleModulePolicy.objects.update_or_create(
+                                    organization=org,
+                                    console_module=mod,
+                                    defaults={
+                                        "is_enabled": bool(is_enabled),
+                                        "updated_by": actor,
+                                    },
+                                )
+
+                    # permission_ceilings: { [permission_key: string]: boolean }
+                    perm_ceilings = case.feature_ceilings.get("permissions") or case.feature_ceilings.get("permission_ceilings")
+                    if isinstance(perm_ceilings, dict):
+                        for perm_key, is_allowed in perm_ceilings.items():
+                            perm = AccessPermission.objects.filter(key=perm_key, is_active=True).first()
+                            if perm:
+                                OrganizationPermissionCeiling.objects.update_or_create(
+                                    organization=org,
+                                    permission=perm,
+                                    defaults={
+                                        "is_allowed": bool(is_allowed),
+                                        "updated_by": actor,
+                                    },
+                                )
 
                 # 3. Issue initial Tenant Admin Invitation (Phase 3C)
                 admin_role = Role.objects.filter(code="system_tenant_admin", is_system_role=True).first()

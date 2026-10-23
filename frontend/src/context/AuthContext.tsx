@@ -67,6 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await apiClient.auth.login(payload);
         // Authoritative state confirmation from /me
         const confirmedUser = await apiClient.auth.getCurrentUser();
+        try {
+          sessionStorage.removeItem("vc_showcase_submodules_revealed");
+          sessionStorage.removeItem("vc_tenant_products_revealed");
+        } catch {
+          // Safe fallback
+        }
         setUser(confirmedUser);
         setStatus("authenticated");
         return confirmedUser;
@@ -112,6 +118,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(async () => {
     try {
       await apiClient.auth.logout();
+      try {
+        sessionStorage.removeItem("vc_showcase_submodules_revealed");
+        sessionStorage.removeItem("vc_tenant_products_revealed");
+      } catch {
+        // Safe fallback
+      }
       setUser(null);
       setStatus("unauthenticated");
       setError(null);

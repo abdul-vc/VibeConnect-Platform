@@ -6,7 +6,10 @@ Endpoints:
 - GET  /api/v1/sso/pilot-status/
 """
 
+import logging
 import secrets
+
+logger = logging.getLogger(__name__)
 
 from rest_framework import exceptions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -33,6 +36,7 @@ from apps.integration_hub.lms_launch_grant_client import (
     LmsLaunchGrantAuthError,
     LmsLaunchGrantConflictError,
     LmsLaunchGrantError,
+    LmsLaunchGrantForbiddenError,
     LmsLaunchGrantNotFoundError,
     is_lms_launch_grant_configured,
     request_lms_launch_grant,
@@ -124,16 +128,31 @@ class SsoLaunchView(APIView):
                     {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
                 )
 
-            assignment = UserProductAssignment.objects.filter(
-                user=request.user,
+            membership = OrganizationMembership.objects.filter(
                 organization=organization,
-                product=product,
-                status=AssignmentStatus.ACTIVE,
+                user=request.user,
+                status="active",
             ).first()
-            if not assignment:
-                raise exceptions.PermissionDenied(
-                    {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+            is_tenant_admin = bool(
+                membership and (
+                    membership.membership_type == MembershipType.TENANT_ADMIN
+                    or (membership.role and getattr(membership.role, "is_admin_role", False))
+                    or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                    or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
                 )
+            )
+
+            if not is_tenant_admin:
+                assignment = UserProductAssignment.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                    product=product,
+                    status=AssignmentStatus.ACTIVE,
+                ).first()
+                if not assignment:
+                    raise exceptions.PermissionDenied(
+                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                    )
 
             from apps.integration_hub.quiz_sso_client import (
                 is_quiz_sso_configured,
@@ -152,7 +171,7 @@ class SsoLaunchView(APIView):
                         if full_name:
                             name_parts = full_name.strip().split(maxsplit=1)
                             first_name = name_parts[0]
-                            last_name = name_parts[1] if len(name_parts) > 1 else ""
+                    quiz_target_path = "/admin" if is_tenant_admin else "/dashboard"
 
                     grant = request_quiz_launch_grant(
                         user_id=str(request.user.id),
@@ -162,7 +181,7 @@ class SsoLaunchView(APIView):
                         last_name=last_name,
                         phone=getattr(request.user, "phone", "") or "",
                         context="standard",
-                        target_path="/dashboard",
+                        target_path=quiz_target_path,
                     )
                     return Response(
                         {
@@ -224,16 +243,31 @@ class SsoLaunchView(APIView):
                         {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
                     )
 
-                assignment = UserProductAssignment.objects.filter(
-                    user=request.user,
+                membership = OrganizationMembership.objects.filter(
                     organization=organization,
-                    product=product,
-                    status=AssignmentStatus.ACTIVE,
+                    user=request.user,
+                    status="active",
                 ).first()
-                if not assignment:
-                    raise exceptions.PermissionDenied(
-                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                is_tenant_admin = bool(
+                    membership and (
+                        membership.membership_type == MembershipType.TENANT_ADMIN
+                        or (membership.role and getattr(membership.role, "is_admin_role", False))
+                        or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                        or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
                     )
+                )
+
+                if not is_tenant_admin:
+                    assignment = UserProductAssignment.objects.filter(
+                        user=request.user,
+                        organization=organization,
+                        product=product,
+                        status=AssignmentStatus.ACTIVE,
+                    ).first()
+                    if not assignment:
+                        raise exceptions.PermissionDenied(
+                            {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                        )
 
                 from apps.integration_hub.models import (
                     ExternalTenantMapping,
@@ -257,14 +291,6 @@ class SsoLaunchView(APIView):
                         status=status.HTTP_409_CONFLICT,
                     )
 
-                membership = OrganizationMembership.objects.filter(
-                    organization=organization,
-                    user=request.user,
-                    status="active",
-                ).first()
-                is_tenant_admin = bool(
-                    membership and membership.membership_type == MembershipType.TENANT_ADMIN
-                )
                 target_route = "/org-admin" if is_tenant_admin else "/dashboard"
 
                 has_tenant_mapping = ExternalTenantMapping.objects.filter(
@@ -292,10 +318,19 @@ class SsoLaunchView(APIView):
                         )
 
                 try:
+                    target_user_id = str(request.user.id)
+                    user_mapping = ExternalUserMapping.objects.filter(
+                        organization=organization,
+                        user=request.user,
+                        status=ExternalUserMappingStatus.ACTIVE,
+                    ).first()
+                    if user_mapping and user_mapping.external_user_id and user_mapping.external_user_id.startswith("tenant_"):
+                        target_user_id = user_mapping.external_user_id
+
                     try:
                         grant = request_lms_launch_grant(
                             external_tenant_id=str(organization.id),
-                            external_user_id=str(request.user.id),
+                            external_user_id=target_user_id,
                             context="standard",
                             target_route=target_route,
                         )
@@ -305,7 +340,43 @@ class SsoLaunchView(APIView):
                         provision_user_to_lms(request.user, organization)
                         grant = request_lms_launch_grant(
                             external_tenant_id=str(organization.id),
-                            external_user_id=str(request.user.id),
+                            external_user_id=target_user_id,
+                            context="standard",
+                            target_route=target_route,
+                        )
+                    except LmsLaunchGrantForbiddenError as exc:
+                        if "Platform super administrators cannot be launched" not in str(exc):
+                            raise
+
+                        tenant_ext_uid = f"tenant_{organization.id}_{request.user.id}"
+                        clean_email = f"member.{str(request.user.id)[:8]}@{organization.code}.demo.internal"
+                        from apps.integration_hub.lms_connector import LmsConnectorClient
+                        client = LmsConnectorClient()
+                        first_name = getattr(request.user, "first_name", "") or ""
+                        last_name = getattr(request.user, "last_name", "") or ""
+                        full_name = getattr(request.user, "full_name", "") or ""
+                        if not first_name and full_name:
+                            parts = full_name.strip().split(" ", 1)
+                            first_name = parts[0]
+                            last_name = parts[1] if len(parts) > 1 else ""
+
+                        payload = {
+                            "external_tenant_id": str(organization.id),
+                            "external_user_id": tenant_ext_uid,
+                            "email": clean_email,
+                            "first_name": first_name or "Member",
+                            "last_name": last_name or "User",
+                            "role": "organization_admin" if is_tenant_admin else "member",
+                            "is_active": True,
+                        }
+                        client.provision_user(payload)
+                        if user_mapping:
+                            user_mapping.external_user_id = tenant_ext_uid
+                            user_mapping.save(update_fields=["external_user_id", "updated_at"])
+
+                        grant = request_lms_launch_grant(
+                            external_tenant_id=str(organization.id),
+                            external_user_id=tenant_ext_uid,
                             context="standard",
                             target_route=target_route,
                         )
@@ -335,6 +406,400 @@ class SsoLaunchView(APIView):
                         {"error": "LMS_SSO_FAILED", "detail": exc.message},
                         status=status.HTTP_502_BAD_GATEWAY,
                     )
+
+        if product.code in ("crm", "salestracker", "sales_tracker", "sales-tracker", "salestracker_crm"):
+            from datetime import timedelta
+            from django.utils import timezone
+            from apps.assignments.constants import AccessState
+            from apps.assignments.models import AssignmentStatus, UserProductAssignment
+            from apps.assignments.services.effective_access import compute_user_tenant_effective_access
+            from apps.showcase.models import ProductDemoEnvironment
+
+            effective_data = compute_user_tenant_effective_access(request.user, organization)
+            entitled_prod_ids = {
+                p.get("id")
+                for p in effective_data.get("entitled_products", [])
+                if p.get("access_state") == AccessState.AVAILABLE or p.get("is_entitled")
+            }
+            if str(product.id) not in entitled_prod_ids:
+                matching_prod = next(
+                    (p for p in effective_data.get("products", []) if p.get("id") == str(product.id)),
+                    None,
+                )
+                denial = matching_prod.get("denial_code") if matching_prod else "ACCESS_DENIED"
+                raise exceptions.PermissionDenied(
+                    {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
+                )
+
+            membership = OrganizationMembership.objects.filter(
+                organization=organization,
+                user=request.user,
+                status="active",
+            ).first()
+            is_tenant_admin = bool(
+                membership and (
+                    membership.membership_type == MembershipType.TENANT_ADMIN
+                    or (membership.role and getattr(membership.role, "is_admin_role", False))
+                    or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                    or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
+                )
+            )
+
+            if not is_tenant_admin:
+                assignment = UserProductAssignment.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                    product=product,
+                    status=AssignmentStatus.ACTIVE,
+                ).first()
+                if not assignment:
+                    raise exceptions.PermissionDenied(
+                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                    )
+
+            from apps.integration_hub.salestracker_sso_client import (
+                is_salestracker_sso_configured,
+                request_salestracker_launch_grant,
+                get_salestracker_superadmin_employee_id,
+                get_salestracker_frontend_url,
+                SalesTrackerSsoAuthError,
+                SalesTrackerSsoForbiddenError,
+                SalesTrackerSsoNotFoundError,
+                SalesTrackerSsoConflictError,
+                SalesTrackerSsoConnectionError,
+                SalesTrackerSsoError,
+            )
+
+            if is_salestracker_sso_configured():
+                try:
+                    emp_id = get_salestracker_superadmin_employee_id()
+                    target_route = "/dashboard"
+
+                    grant = request_salestracker_launch_grant(
+                        employee_id=emp_id,
+                        context="showcase",
+                        target_route=target_route,
+                    )
+                    expires_in = grant.get("expires_in", 60)
+                    return Response(
+                        {
+                            "redirect_url": grant["callback_url"],
+                            "expires_at": (timezone.now() + timedelta(seconds=expires_in)).isoformat(),
+                            "direct_launch": False,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except SalesTrackerSsoAuthError:
+                    return Response(
+                        {"error": "SALESTRACKER_SSO_UNAUTHORIZED", "detail": "Sales Tracker SSO M2M authentication failed."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                except SalesTrackerSsoForbiddenError as exc:
+                    return Response(
+                        {"error": "SALESTRACKER_ACCESS_DENIED", "detail": exc.detail or exc.message},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                except SalesTrackerSsoNotFoundError as exc:
+                    return Response(
+                        {"error": "SALESTRACKER_USER_NOT_FOUND", "detail": exc.detail or exc.message},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                except SalesTrackerSsoConflictError as exc:
+                    return Response(
+                        {"error": "SALESTRACKER_ACCOUNT_CONFLICT", "detail": exc.message},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                except SalesTrackerSsoConnectionError as exc:
+                    demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+                    fallback_url = demo_env.base_url if demo_env else (get_salestracker_frontend_url() or "http://localhost:5173")
+                    logger.warning("Sales Tracker server unreachable: falling back to demo URL %s (%s)", fallback_url, exc.message)
+                    return Response(
+                        {
+                            "redirect_url": fallback_url,
+                            "expires_at": (timezone.now() + timedelta(minutes=5)).isoformat(),
+                            "direct_launch": True,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except SalesTrackerSsoError as exc:
+                    return Response(
+                        {"error": "SALESTRACKER_SSO_FAILED", "detail": exc.message},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+
+            demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+            direct_url = demo_env.base_url if demo_env else (get_salestracker_frontend_url() or "http://localhost:5173")
+            return Response(
+                {
+                    "redirect_url": direct_url,
+                    "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+                    "direct_launch": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if product.code in ("divineconnect", "divine_connect", "divine-connect", "events", "event"):
+            from datetime import timedelta
+            from django.utils import timezone
+            from apps.assignments.constants import AccessState
+            from apps.assignments.models import AssignmentStatus, UserProductAssignment
+            from apps.assignments.services.effective_access import compute_user_tenant_effective_access
+            from apps.showcase.models import ProductDemoEnvironment
+
+            effective_data = compute_user_tenant_effective_access(request.user, organization)
+            entitled_prod_ids = {
+                p.get("id")
+                for p in effective_data.get("entitled_products", [])
+                if p.get("access_state") == AccessState.AVAILABLE or p.get("is_entitled")
+            }
+            if str(product.id) not in entitled_prod_ids:
+                matching_prod = next(
+                    (p for p in effective_data.get("products", []) if p.get("id") == str(product.id)),
+                    None,
+                )
+                denial = matching_prod.get("denial_code") if matching_prod else "ACCESS_DENIED"
+                raise exceptions.PermissionDenied(
+                    {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
+                )
+
+            membership = OrganizationMembership.objects.filter(
+                organization=organization,
+                user=request.user,
+                status="active",
+            ).first()
+            is_tenant_admin = bool(
+                membership and (
+                    membership.membership_type == MembershipType.TENANT_ADMIN
+                    or (membership.role and getattr(membership.role, "is_admin_role", False))
+                    or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                    or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
+                )
+            )
+
+            if not is_tenant_admin:
+                assignment = UserProductAssignment.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                    product=product,
+                    status=AssignmentStatus.ACTIVE,
+                ).first()
+                if not assignment:
+                    raise exceptions.PermissionDenied(
+                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                    )
+
+            from apps.integration_hub.divineconnect_sso_client import (
+                is_divineconnect_sso_configured,
+                request_divineconnect_launch_grant,
+                get_divineconnect_admin_username,
+                get_divineconnect_admin_email,
+                get_divineconnect_frontend_url,
+                DivineConnectSsoAuthError,
+                DivineConnectSsoForbiddenError,
+                DivineConnectSsoNotFoundError,
+                DivineConnectSsoConflictError,
+                DivineConnectSsoConnectionError,
+                DivineConnectSsoError,
+            )
+
+            if is_divineconnect_sso_configured():
+                try:
+                    admin_user = get_divineconnect_admin_username()
+                    admin_email = get_divineconnect_admin_email()
+
+                    grant = request_divineconnect_launch_grant(
+                        username=admin_user,
+                        email=admin_email,
+                        context="showcase",
+                        target_route="/admin",
+                    )
+                    expires_in = grant.get("expires_in", 60)
+                    return Response(
+                        {
+                            "redirect_url": grant["callback_url"],
+                            "expires_at": (timezone.now() + timedelta(seconds=expires_in)).isoformat(),
+                            "direct_launch": False,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except DivineConnectSsoAuthError:
+                    return Response(
+                        {"error": "DIVINECONNECT_SSO_UNAUTHORIZED", "detail": "Divine Connect SSO M2M authentication failed."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                except DivineConnectSsoForbiddenError as exc:
+                    return Response(
+                        {"error": "DIVINECONNECT_ACCESS_DENIED", "detail": exc.detail or exc.message},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                except DivineConnectSsoNotFoundError as exc:
+                    return Response(
+                        {"error": "DIVINECONNECT_USER_NOT_FOUND", "detail": exc.detail or exc.message},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                except DivineConnectSsoConflictError as exc:
+                    return Response(
+                        {"error": "DIVINECONNECT_ACCOUNT_CONFLICT", "detail": exc.message},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                except DivineConnectSsoConnectionError as exc:
+                    demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+                    fallback_url = demo_env.base_url if demo_env else (get_divineconnect_frontend_url() or "http://localhost:8080")
+                    logger.warning("Divine Connect server unreachable: falling back to demo URL %s (%s)", fallback_url, exc.message)
+                    return Response(
+                        {
+                            "redirect_url": fallback_url,
+                            "expires_at": (timezone.now() + timedelta(minutes=5)).isoformat(),
+                            "direct_launch": True,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except DivineConnectSsoError as exc:
+                    return Response(
+                        {"error": "DIVINECONNECT_SSO_FAILED", "detail": exc.message},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+
+            demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+            direct_url = demo_env.base_url if demo_env else (get_divineconnect_frontend_url() or "http://localhost:8080")
+            return Response(
+                {
+                    "redirect_url": direct_url,
+                    "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+                    "direct_launch": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if product.code in ("workhub", "work_hub", "work-hub"):
+            from datetime import timedelta
+            from django.utils import timezone
+            from apps.assignments.constants import AccessState
+            from apps.assignments.models import AssignmentStatus, UserProductAssignment
+            from apps.assignments.services.effective_access import compute_user_tenant_effective_access
+            from apps.showcase.models import ProductDemoEnvironment
+
+            effective_data = compute_user_tenant_effective_access(request.user, organization)
+            entitled_prod_ids = {
+                p.get("id")
+                for p in effective_data.get("entitled_products", [])
+                if p.get("access_state") == AccessState.AVAILABLE or p.get("is_entitled")
+            }
+            if str(product.id) not in entitled_prod_ids:
+                matching_prod = next(
+                    (p for p in effective_data.get("products", []) if p.get("id") == str(product.id)),
+                    None,
+                )
+                denial = matching_prod.get("denial_code") if matching_prod else "ACCESS_DENIED"
+                raise exceptions.PermissionDenied(
+                    {"error": "ACCESS_DENIED", "detail": f"User is not entitled to launch this product ({denial})."}
+                )
+
+            membership = OrganizationMembership.objects.filter(
+                organization=organization,
+                user=request.user,
+                status="active",
+            ).first()
+            is_tenant_admin = bool(
+                membership and (
+                    membership.membership_type == MembershipType.TENANT_ADMIN
+                    or (membership.role and getattr(membership.role, "is_admin_role", False))
+                    or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                    or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
+                )
+            )
+
+            if not is_tenant_admin:
+                assignment = UserProductAssignment.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                    product=product,
+                    status=AssignmentStatus.ACTIVE,
+                ).first()
+                if not assignment:
+                    raise exceptions.PermissionDenied(
+                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                    )
+
+            from apps.integration_hub.workhub_sso_client import (
+                is_workhub_sso_configured,
+                request_workhub_launch_grant,
+                get_workhub_admin_username,
+                get_workhub_frontend_url,
+                WorkHubSsoAuthError,
+                WorkHubSsoForbiddenError,
+                WorkHubSsoNotFoundError,
+                WorkHubSsoConflictError,
+                WorkHubSsoConnectionError,
+                WorkHubSsoError,
+            )
+
+            if is_workhub_sso_configured():
+                try:
+                    admin_user = get_workhub_admin_username()
+
+                    grant = request_workhub_launch_grant(
+                        username=admin_user,
+                        context="showcase",
+                        target_route="/admin",
+                    )
+                    expires_in = grant.get("expires_in", 60)
+                    return Response(
+                        {
+                            "redirect_url": grant["callback_url"],
+                            "expires_at": (timezone.now() + timedelta(seconds=expires_in)).isoformat(),
+                            "direct_launch": False,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except WorkHubSsoAuthError:
+                    return Response(
+                        {"error": "WORKHUB_SSO_UNAUTHORIZED", "detail": "WorkHub SSO M2M authentication failed."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                except WorkHubSsoForbiddenError as exc:
+                    return Response(
+                        {"error": "WORKHUB_ACCESS_DENIED", "detail": exc.detail or exc.message},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                except WorkHubSsoNotFoundError as exc:
+                    return Response(
+                        {"error": "WORKHUB_USER_NOT_FOUND", "detail": exc.detail or exc.message},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                except WorkHubSsoConflictError as exc:
+                    return Response(
+                        {"error": "WORKHUB_ACCOUNT_CONFLICT", "detail": exc.message},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                except WorkHubSsoConnectionError as exc:
+                    demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+                    fallback_url = demo_env.base_url if demo_env else (get_workhub_frontend_url() or "http://localhost:6395")
+                    logger.warning("WorkHub server unreachable: falling back to demo URL %s (%s)", fallback_url, exc.message)
+                    return Response(
+                        {
+                            "redirect_url": fallback_url,
+                            "expires_at": (timezone.now() + timedelta(minutes=5)).isoformat(),
+                            "direct_launch": True,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                except WorkHubSsoError as exc:
+                    return Response(
+                        {"error": "WORKHUB_SSO_FAILED", "detail": exc.message},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+
+            demo_env = ProductDemoEnvironment.objects.filter(product=product, is_active=True).first()
+            direct_url = demo_env.base_url if demo_env else (get_workhub_frontend_url() or "http://localhost:6395")
+            return Response(
+                {
+                    "redirect_url": direct_url,
+                    "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+                    "direct_launch": True,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         result = issue_sso_authorization_code(
             user=request.user,

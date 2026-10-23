@@ -30,6 +30,7 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
   ArrowRightIcon,
+  PlusIcon,
 } from "../../components/Icons.tsx";
 import {
   TelemetryTrendChart,
@@ -217,6 +218,16 @@ export const TenantDashboardPage: React.FC = () => {
                 <RotateCcwIcon size={14} />
                 <span>Switch Org</span>
               </button>
+            )}
+            {user?.active_context?.effective_permissions?.includes("roles.assign") && (
+              <Link
+                to="/tenant/member-onboarding"
+                className="btn btn-secondary btn-sm"
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", minHeight: "38px", textDecoration: "none" }}
+              >
+                <PlusIcon size={14} />
+                <span>Member Onboarding</span>
+              </Link>
             )}
             <Link
               to="/tenant/users"
@@ -690,8 +701,15 @@ export const TenantDashboardPage: React.FC = () => {
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
-                              onClick={() => navigate(`/tenant/workspace/${p.id}`, { state: { product: p } })}
-                              style={{ padding: "0.25rem 0.65rem", fontSize: "0.75rem" }}
+                              disabled={!p.launchable}
+                              onClick={p.launchable ? () => navigate(`/tenant/workspace/${p.id}`, { state: { product: p } }) : undefined}
+                              style={{
+                                padding: "0.25rem 0.65rem",
+                                fontSize: "0.75rem",
+                                opacity: p.launchable ? 1 : 0.6,
+                                cursor: p.launchable ? "pointer" : "not-allowed",
+                              }}
+                              title={p.launchable ? "Launch Workspace" : (p.access_state === "not_assigned" ? "Access or assignment required" : "Unavailable")}
                             >
                               Launch Workspace
                             </button>

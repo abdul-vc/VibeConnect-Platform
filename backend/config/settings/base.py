@@ -313,6 +313,7 @@ LMS_SHOWCASE_SUPERADMIN_EMAIL = os.environ.get(
 ).strip().lower()
 LMS_SHOWCASE_USER_EMAIL = LMS_SHOWCASE_SUPERADMIN_EMAIL
 LMS_SHOWCASE_ORG_CODE = os.environ.get("LMS_SHOWCASE_ORG_CODE", "boss-demo-org").strip()
+DEMO_TENANT_ORG_CODE = os.environ.get("DEMO_TENANT_ORG_CODE", "boss-demo-org").strip()
 
 # Sales Tracker Integration Configuration (Showcase SSO)
 SALESTRACKER_SHOWCASE_API_BASE_URL = os.environ.get("SALESTRACKER_SHOWCASE_API_BASE_URL", "http://localhost:8000").strip().rstrip("/")

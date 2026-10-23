@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
 import { apiClient } from "../../api/client.ts";
 import { ENDPOINTS } from "../../api/endpoints.ts";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
-import { UserIcon, SearchIcon, RotateCcwIcon } from "../../components/Icons.tsx";
+import { UserIcon, SearchIcon, RotateCcwIcon, PlusIcon } from "../../components/Icons.tsx";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { InviteUserDialog } from "../../components/users/InviteUserDialog.tsx";
 
@@ -82,14 +83,23 @@ export const TenantUsersPage: React.FC = () => {
             </p>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            {user?.active_context?.effective_permissions?.includes("roles.assign") && (
+              <Link
+                to="/tenant/member-onboarding"
+                className="btn btn-primary"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 0.9rem", fontSize: "0.82rem", textDecoration: "none" }}
+              >
+                <PlusIcon size={14} /> Member Onboarding Wizard
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setIsInviteOpen(true)}
-              className="btn btn-primary"
+              className="btn btn-secondary"
               disabled={!currentOrgId}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 0.9rem", fontSize: "0.82rem" }}
             >
-              <UserIcon size={14} /> Invite Member
+              <UserIcon size={14} /> Quick Invite
             </button>
             <button
               type="button"

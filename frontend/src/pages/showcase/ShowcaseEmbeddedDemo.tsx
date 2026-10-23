@@ -13,7 +13,6 @@ import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
 import {
   AlertCircleIcon,
   RotateCcwIcon,
-  ChevronLeftIcon,
 } from "../../components/Icons.tsx";
 
 export interface ShowcaseEmbeddedDemoProps {
@@ -27,7 +26,7 @@ export interface ShowcaseEmbeddedDemoProps {
 
 export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
   productName,
-  productCode,
+  productCode: _productCode,
   launchUrl,
   onBack,
   backLabel = "Return to Catalog",
@@ -93,111 +92,6 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
         overflow: "hidden",
       }}
     >
-      {/* Floating Unobtrusive Quick-Action Pill (Top-Right) */}
-      <div
-        style={{
-          position: "absolute",
-          top: "12px",
-          right: "16px",
-          zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "4px 8px",
-          borderRadius: "999px",
-          background: "var(--glass-surface-elevated, rgba(15, 23, 42, 0.88))",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.35)",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            color: "var(--brand-primary, #6366f1)",
-            padding: "2px 6px",
-            borderRadius: "4px",
-            background: "var(--brand-primary-light, rgba(99, 102, 241, 0.12))",
-          }}
-        >
-          {productCode}
-        </span>
-
-        <button
-          type="button"
-          id="showcase-demo-reload-btn"
-          onClick={handleReload}
-          disabled={isReloading}
-          title="Reload demo with fresh grant"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            padding: "4px 8px",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            cursor: isReloading ? "not-allowed" : "pointer",
-            borderRadius: "6px",
-            border: "none",
-            background: "transparent",
-            color: "var(--text-secondary, #94a3b8)",
-            transition: "color 0.15s ease",
-          }}
-        >
-          <RotateCcwIcon size={12} />
-          <span>{isReloading ? "Reloading…" : "Reload"}</span>
-        </button>
-
-        <a
-          id="showcase-demo-open-tab-btn"
-          href={activeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open demo in new tab"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            padding: "4px 6px",
-            fontSize: "0.75rem",
-            color: "var(--text-secondary, #94a3b8)",
-            textDecoration: "none",
-            borderRadius: "4px",
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
-        </a>
-
-        <button
-          type="button"
-          id="showcase-exit-demo-btn"
-          onClick={onBack}
-          title={backLabel}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "3px",
-            padding: "4px 8px",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            borderRadius: "6px",
-            border: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.1))",
-            background: "var(--glass-surface, rgba(255, 255, 255, 0.05))",
-            color: "var(--text-primary, #f8fafc)",
-          }}
-        >
-          <ChevronLeftIcon size={12} />
-          <span>Catalog</span>
-        </button>
-      </div>
-
       {/* Loading Overlay */}
       {isIframeLoading && !reloadError && (
         <div

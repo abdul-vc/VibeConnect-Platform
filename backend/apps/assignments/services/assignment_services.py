@@ -36,6 +36,7 @@ from apps.assignments.services.seat_engine import (
     get_temporally_eligible_subscription,
     resolve_governing_seat_pool,
 )
+from apps.entitlements.models import EntitlementStatus, OrganizationProductEntitlement
 from apps.organizations.models import MembershipStatus, Organization, OrganizationMembership, OrganizationStatus
 from apps.product_registry.models import CatalogStatus, Product, ProductModule, ProductStatus
 
@@ -129,13 +130,19 @@ def assign_user_to_product(
                 code="USER_INACTIVE",
             )
 
-        # 3. Lock OrganizationSubscription
+        # 3. Lock OrganizationSubscription or verify Direct Entitlement Grant
         subscription = get_temporally_eligible_subscription(
             organization_id=clean_org_id,
             at_time=effective_time,
             for_update=True,
         )
-        if not subscription:
+        is_direct_granted = OrganizationProductEntitlement.objects.filter(
+            organization_id=clean_org_id,
+            product_id=clean_product_id,
+            status=EntitlementStatus.ACTIVE,
+        ).exists()
+
+        if not subscription and not is_direct_granted:
             raise SubscriptionUnavailableError(
                 "No open, temporally eligible subscription exists for this organization.",
                 code="SUBSCRIPTION_UNAVAILABLE",
@@ -216,23 +223,28 @@ def assign_user_to_product(
                 code="PRODUCT_INACTIVE",
             )
 
-        if not subscription.product_entitlements.filter(product_id=clean_product_id).exists():
+        is_sub_entitled = bool(
+            subscription and subscription.product_entitlements.filter(product_id=clean_product_id).exists()
+        )
+        if not is_sub_entitled and not is_direct_granted:
             raise ProductNotEntitledError(
                 f"Product '{clean_product_id}' is not entitled under the subscription snapshot.",
                 code="PRODUCT_NOT_ENTITLED",
             )
 
         # 7. Resolve governing seat pool and check capacity
-        seat_pool = resolve_governing_seat_pool(
-            organization_id=clean_org_id,
-            product_id=clean_product_id,
-            subscription=subscription,
-        )
-        if seat_pool.limit_type == "numeric" and not seat_pool.is_capacity_available:
-            raise SeatLimitExceededError(
-                f"Seat limit exceeded for governing pool '{seat_pool.pool_key}'.",
-                code="SEAT_LIMIT_EXCEEDED",
+        seat_pool = None
+        if is_sub_entitled and subscription:
+            seat_pool = resolve_governing_seat_pool(
+                organization_id=clean_org_id,
+                product_id=clean_product_id,
+                subscription=subscription,
             )
+            if seat_pool.limit_type == "numeric" and not seat_pool.is_capacity_available:
+                raise SeatLimitExceededError(
+                    f"Seat limit exceeded for governing pool '{seat_pool.pool_key}'.",
+                    code="SEAT_LIMIT_EXCEEDED",
+                )
 
         # 8. Validate requested module IDs
         deduped_module_ids: list[uuid.UUID] = []
@@ -251,9 +263,12 @@ def assign_user_to_product(
             )
 
         if deduped_module_ids:
-            entitled_sub_module_ids = set(
-                subscription.module_entitlements.values_list("module_id", flat=True)
-            )
+            entitled_sub_module_ids = None
+            if is_sub_entitled and subscription:
+                entitled_sub_module_ids = set(
+                    subscription.module_entitlements.values_list("module_id", flat=True)
+                )
+
             catalog_modules = {
                 mod.id: mod
                 for mod in ProductModule.objects.filter(id__in=deduped_module_ids)
@@ -265,7 +280,7 @@ def assign_user_to_product(
                         f"Module '{mid}' is invalid, does not belong to product '{clean_product_id}', or is inactive.",
                         code="INVALID_MODULE_IDS",
                     )
-                if mid not in entitled_sub_module_ids:
+                if entitled_sub_module_ids is not None and mid not in entitled_sub_module_ids:
                     raise ModuleNotEntitledError(
                         f"Module '{mid}' is not entitled under the subscription snapshot.",
                         code="MODULE_NOT_ENTITLED",
@@ -298,8 +313,8 @@ def assign_user_to_product(
                 ProductModule.objects.filter(id__in=deduped_module_ids).values_list("code", flat=True)
             )
         )
-        consumed_after = seat_pool.consumed_seats + 1
-        available_after = None if seat_pool.total_limit is None else max(0, seat_pool.total_limit - consumed_after)
+        consumed_after = (seat_pool.consumed_seats + 1) if seat_pool else None
+        available_after = None if (not seat_pool or seat_pool.total_limit is None) else max(0, seat_pool.total_limit - consumed_after)
 
         record_audit_event(
             action=AuditAction.USER_PRODUCT_ASSIGNED,
@@ -316,13 +331,13 @@ def assign_user_to_product(
                 "user_email": user.email,
                 "product_id": str(product.id),
                 "product_code": product.code,
-                "subscription_id": str(subscription.id),
-                "pool_scope": seat_pool.pool_scope,
-                "pool_key": seat_pool.pool_key,
-                "governed_product_ids": [str(pid) for pid in sorted(seat_pool.governed_product_ids)],
-                "quota_entitlement_id": str(seat_pool.quota_entitlement_id),
-                "quota_key": seat_pool.quota_key,
-                "total_limit": seat_pool.total_limit,
+                "subscription_id": str(subscription.id) if subscription else None,
+                "pool_scope": seat_pool.pool_scope if seat_pool else None,
+                "pool_key": seat_pool.pool_key if seat_pool else None,
+                "governed_product_ids": [str(pid) for pid in sorted(seat_pool.governed_product_ids)] if seat_pool else [],
+                "quota_entitlement_id": str(seat_pool.quota_entitlement_id) if seat_pool else None,
+                "quota_key": seat_pool.quota_key if seat_pool else None,
+                "total_limit": seat_pool.total_limit if seat_pool else None,
                 "consumed_seats_after": consumed_after,
                 "available_seats_after": available_after,
                 "assigned_module_ids": [str(mid) for mid in sorted(deduped_module_ids)],

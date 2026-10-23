@@ -1803,10 +1803,11 @@ def _validate_metadata(action: str, metadata: dict[str, Any]) -> None:
         _validate_uuid_string(metadata["product_id"], "product_id")
         if not isinstance(metadata["product_code"], str) or not metadata["product_code"].strip():
             raise AuditEventError("Field 'product_code' must be a non-empty string.")
-        _validate_uuid_string(metadata["subscription_id"], "subscription_id")
-        if metadata["pool_scope"] not in ("product", "plan"):
-            raise AuditEventError("Field 'pool_scope' must be 'product' or 'plan'.")
-        if not isinstance(metadata["pool_key"], str) or not metadata["pool_key"].strip():
+        if metadata["subscription_id"] is not None:
+            _validate_uuid_string(metadata["subscription_id"], "subscription_id")
+        if metadata["pool_scope"] is not None and metadata["pool_scope"] not in ("product", "plan", "direct"):
+            raise AuditEventError("Field 'pool_scope' must be 'product', 'plan', or 'direct'.")
+        if metadata["pool_key"] is not None and (not isinstance(metadata["pool_key"], str) or not metadata["pool_key"].strip()):
             raise AuditEventError("Field 'pool_key' must be a non-empty string.")
         if not isinstance(metadata["governed_product_ids"], list):
             raise AuditEventError("Field 'governed_product_ids' must be a list.")
@@ -1814,13 +1815,14 @@ def _validate_metadata(action: str, metadata: dict[str, Any]) -> None:
             _validate_uuid_string(pid, "governed_product_ids item")
         if metadata["governed_product_ids"] != sorted(metadata["governed_product_ids"]):
             raise AuditEventError("Field 'governed_product_ids' must be deterministically sorted.")
-        _validate_uuid_string(metadata["quota_entitlement_id"], "quota_entitlement_id")
-        if metadata["quota_key"] not in ("seats", "max_seats"):
+        if metadata["quota_entitlement_id"] is not None:
+            _validate_uuid_string(metadata["quota_entitlement_id"], "quota_entitlement_id")
+        if metadata["quota_key"] is not None and metadata["quota_key"] not in ("seats", "max_seats"):
             raise AuditEventError("Field 'quota_key' must be 'seats' or 'max_seats'.")
         if metadata["total_limit"] is not None and (not isinstance(metadata["total_limit"], int) or metadata["total_limit"] < 0):
             raise AuditEventError("Field 'total_limit' must be a non-negative integer or None.")
-        if not isinstance(metadata["consumed_seats_after"], int) or metadata["consumed_seats_after"] < 0:
-            raise AuditEventError("Field 'consumed_seats_after' must be a non-negative integer.")
+        if metadata["consumed_seats_after"] is not None and (not isinstance(metadata["consumed_seats_after"], int) or metadata["consumed_seats_after"] < 0):
+            raise AuditEventError("Field 'consumed_seats_after' must be a non-negative integer or None.")
         if metadata["available_seats_after"] is not None and (not isinstance(metadata["available_seats_after"], int) or metadata["available_seats_after"] < 0):
             raise AuditEventError("Field 'available_seats_after' must be a non-negative integer or None.")
         if not isinstance(metadata["assigned_module_ids"], list):

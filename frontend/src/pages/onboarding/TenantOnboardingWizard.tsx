@@ -1,12 +1,14 @@
 /**
- * Tenant Onboarding Wizard Page (Phase 3B).
+ * Tenant Onboarding Wizard Page (Phase 3B / Phase 4 Extended).
  *
  * Platform Owner wizard for provisioning new tenant organizations end-to-end:
  * 1. Organization Profile (code, name, description)
  * 2. Admin Setup (email, full name)
  * 3. Commercial Plan Selection (active plans & prices, trial toggle)
- * 4. Review & Confirm (summary, idempotent provisioning, resume state)
- * 5. Completed confirmation with direct navigation
+ * 4. Product Entitlements (dynamic catalog list, multi-select toggles)
+ * 5. Console Feature Ceilings (product modules/features & tenant console ceilings)
+ * 6. Review & Confirm (summary of all 5 dimensions, atomic provisioning)
+ * 7. Completed confirmation with direct navigation
  */
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -14,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { onboardingApi } from "../../api/onboarding.ts";
 import { plansApi } from "../../api/plans.ts";
 import type {
+  OnboardingOptionsResponse,
   OnboardingStepName,
   PlanListItem,
   PlanPriceListItem,
@@ -33,6 +36,8 @@ const STEPS: { key: OnboardingStepName; label: string; icon: React.ReactNode }[]
   { key: "organization_profile", label: "Organization", icon: <BuildingIcon size={16} /> },
   { key: "admin_setup", label: "Administrator", icon: <UserIcon size={16} /> },
   { key: "plan_selection", label: "Plan & Pricing", icon: <LayersIcon size={16} /> },
+  { key: "product_entitlements", label: "Product Entitlements", icon: <ShieldCheckIcon size={16} /> },
+  { key: "feature_ceilings", label: "Console Feature Ceilings", icon: <LayersIcon size={16} /> },
   { key: "review_confirm", label: "Review & Provision", icon: <CheckCircleIcon size={16} /> },
 ];
 
@@ -48,6 +53,9 @@ export const TenantOnboardingWizard: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Dynamic Options (Products, Modules, Features, Console Modules)
+  const [options, setOptions] = useState<OnboardingOptionsResponse | null>(null);
 
   // Step 1: Organization State
   const [orgCode, setOrgCode] = useState<string>("");
@@ -65,6 +73,22 @@ export const TenantOnboardingWizard: React.FC = () => {
   const [selectedPriceId, setSelectedPriceId] = useState<string>("");
   const [isTrial, setIsTrial] = useState<boolean>(true);
 
+  // Step 4: Product Entitlements State
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  // Step 5: Console Feature Ceilings State
+  const [featureCeilings, setFeatureCeilings] = useState<{
+    module_policies: Record<string, boolean>;
+    permission_ceilings: Record<string, boolean>;
+    product_modules: Record<string, boolean>;
+    product_features: Record<string, boolean>;
+  }>({
+    module_policies: {},
+    permission_ceilings: {},
+    product_modules: {},
+    product_features: {},
+  });
+
   // Initialize or resume case
   const initializeCase = useCallback(async () => {
     setIsLoading(true);
@@ -78,6 +102,9 @@ export const TenantOnboardingWizard: React.FC = () => {
         setSearchParams({ case_id: caseData.id }, { replace: true });
       }
       setCurrentCase(caseData);
+      if (caseData.initial_admin_activation_url) {
+        setActivationUrl(caseData.initial_admin_activation_url);
+      }
       setOrgCode(caseData.organization_code || "");
       setOrgName(caseData.organization_name || "");
       setOrgDesc(caseData.organization_description || "");
@@ -87,9 +114,27 @@ export const TenantOnboardingWizard: React.FC = () => {
       setSelectedPriceId(caseData.plan_price || "");
       setIsTrial(caseData.is_trial);
 
-      // Load available plans for selection step
-      const plansRes = await plansApi.list({ has_active_version: "true" });
+      if (caseData.selected_product_ids && Array.isArray(caseData.selected_product_ids)) {
+        setSelectedProductIds(caseData.selected_product_ids as string[]);
+      }
+
+      if (caseData.feature_ceilings && typeof caseData.feature_ceilings === "object") {
+        const fc = caseData.feature_ceilings as Record<string, any>;
+        setFeatureCeilings({
+          module_policies: fc.module_policies || {},
+          permission_ceilings: fc.permission_ceilings || fc.permissions || {},
+          product_modules: fc.product_modules || {},
+          product_features: fc.product_features || {},
+        });
+      }
+
+      // Load available plans and options in parallel
+      const [plansRes, optionsRes] = await Promise.all([
+        plansApi.list({ has_active_version: "true" }),
+        onboardingApi.getOptions(),
+      ]);
       setPlans(plansRes.results);
+      setOptions(optionsRes);
     } catch {
       setGeneralError("Failed to initialize or resume onboarding workflow. Please try again.");
     } finally {
@@ -201,7 +246,7 @@ export const TenantOnboardingWizard: React.FC = () => {
     setGeneralError(null);
     try {
       const updated = await onboardingApi.transitionStep(currentCase.id, {
-        target_step: "review_confirm",
+        target_step: "product_entitlements",
         step_data: {
           plan_version_id: selectedPlanVersionId || null,
           plan_price_id: selectedPriceId || null,
@@ -216,8 +261,107 @@ export const TenantOnboardingWizard: React.FC = () => {
     }
   };
 
+  const handleToggleProduct = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const handleNextFromProducts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentCase) return;
+
+    if (selectedProductIds.length === 0) {
+      setGeneralError("Please select at least one product entitlement for this tenant.");
+      return;
+    }
+
+    setFieldErrors({});
+    setIsSubmitting(true);
+    setGeneralError(null);
+    try {
+      const updated = await onboardingApi.transitionStep(currentCase.id, {
+        target_step: "feature_ceilings",
+        step_data: {
+          selected_product_ids: selectedProductIds,
+        },
+      });
+      setCurrentCase(updated);
+    } catch {
+      setGeneralError("Failed to save product entitlements.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleProductModule = (moduleId: string) => {
+    setFeatureCeilings((prev) => ({
+      ...prev,
+      product_modules: {
+        ...prev.product_modules,
+        [moduleId]: prev.product_modules[moduleId] === false ? true : false,
+      },
+    }));
+  };
+
+  const handleToggleProductFeature = (featureId: string) => {
+    setFeatureCeilings((prev) => ({
+      ...prev,
+      product_features: {
+        ...prev.product_features,
+        [featureId]: prev.product_features[featureId] === false ? true : false,
+      },
+    }));
+  };
+
+  const handleToggleConsoleModule = (moduleKey: string, isCore: boolean) => {
+    if (isCore) return;
+    setFeatureCeilings((prev) => ({
+      ...prev,
+      module_policies: {
+        ...prev.module_policies,
+        [moduleKey]: prev.module_policies[moduleKey] === false ? true : false,
+      },
+    }));
+  };
+
+  const handleTogglePermissionCeiling = (permKey: string) => {
+    setFeatureCeilings((prev) => ({
+      ...prev,
+      permission_ceilings: {
+        ...prev.permission_ceilings,
+        [permKey]: prev.permission_ceilings[permKey] === false ? true : false,
+      },
+    }));
+  };
+
+  const handleNextFromCeilings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentCase) return;
+
+    setFieldErrors({});
+    setIsSubmitting(true);
+    setGeneralError(null);
+    try {
+      const updated = await onboardingApi.transitionStep(currentCase.id, {
+        target_step: "review_confirm",
+        step_data: {
+          feature_ceilings: featureCeilings,
+        },
+      });
+      setCurrentCase(updated);
+    } catch {
+      setGeneralError("Failed to save console feature ceilings.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleFinalProvision = async () => {
     if (!currentCase) return;
+    if (currentCase.status === "completed") {
+      return;
+    }
     setIsSubmitting(true);
     setGeneralError(null);
     try {
@@ -231,7 +375,21 @@ export const TenantOnboardingWizard: React.FC = () => {
       }
     } catch (err: unknown) {
       const errorObj = err as { data?: { detail?: string } };
-      setGeneralError(errorObj?.data?.detail || "Provisioning failed. Please check inputs and retry.");
+      const detailMsg = errorObj?.data?.detail;
+      // If the case was already completed in the background, reload and show completion
+      if (detailMsg && detailMsg.toLowerCase().includes("completed")) {
+        try {
+          const reloaded = await onboardingApi.getCase(currentCase.id);
+          setCurrentCase(reloaded);
+          if (reloaded.initial_admin_activation_url) {
+            setActivationUrl(reloaded.initial_admin_activation_url);
+          }
+          return;
+        } catch {
+          // ignore
+        }
+      }
+      setGeneralError(detailMsg || "Provisioning failed. Please check inputs and retry.");
     } finally {
       setIsSubmitting(false);
     }
@@ -240,31 +398,42 @@ export const TenantOnboardingWizard: React.FC = () => {
   const currentStep = currentCase?.current_step || "organization_profile";
   const isCompleted = currentCase?.status === "completed";
 
+  // Filter selected products details for display
+  const selectedProducts = (options?.products || []).filter((p) => selectedProductIds.includes(p.id));
+
   return (
     <AppShell>
-      <div style={{ maxWidth: "860px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
         {/* Wizard Header */}
         <div>
           <h1 className="heading-hero" style={{ margin: 0, fontSize: "1.75rem" }}>
             Tenant Onboarding Wizard
           </h1>
           <p className="text-body" style={{ marginTop: "0.5rem" }}>
-            Provision a new tenant organization with isolated workspace boundaries, administrator credentials, and packaging defaults.
+            Provision a new tenant organization with isolated boundaries, administrator credentials, commercial packaging, product entitlements, and console feature ceilings.
           </p>
         </div>
 
-        {/* Step Indicator */}
+        {/* Step Indicator (6 steps) */}
         <div
           role="navigation"
           aria-label="Onboarding Progress"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "0.75rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gap: "0.5rem",
           }}
         >
           {STEPS.map((step, idx) => {
-            const stepOrder = ["organization_profile", "admin_setup", "plan_selection", "review_confirm", "completed"];
+            const stepOrder = [
+              "organization_profile",
+              "admin_setup",
+              "plan_selection",
+              "product_entitlements",
+              "feature_ceilings",
+              "review_confirm",
+              "completed",
+            ];
             const currentIdx = stepOrder.indexOf(currentStep);
             const thisIdx = stepOrder.indexOf(step.key);
             const isDone = thisIdx < currentIdx || isCompleted;
@@ -275,10 +444,10 @@ export const TenantOnboardingWizard: React.FC = () => {
                 key={step.key}
                 className="glass-panel"
                 style={{
-                  padding: "0.875rem",
+                  padding: "0.75rem",
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.625rem",
+                  gap: "0.5rem",
                   borderLeft: isCurrent
                     ? "3px solid var(--brand-primary)"
                     : isDone
@@ -293,13 +462,13 @@ export const TenantOnboardingWizard: React.FC = () => {
                     display: "flex",
                   }}
                 >
-                  {isDone ? <CheckCircleIcon size={18} /> : step.icon}
+                  {isDone ? <CheckCircleIcon size={16} /> : step.icon}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Step {idx + 1}
                   </div>
-                  <div style={{ fontSize: "0.8125rem", fontWeight: isCurrent ? 700 : 500, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: "0.75rem", fontWeight: isCurrent ? 700 : 500, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {step.label}
                   </div>
                 </div>
@@ -322,7 +491,7 @@ export const TenantOnboardingWizard: React.FC = () => {
             Loading onboarding workspace…
           </div>
         ) : isCompleted ? (
-          /* Step 5: Completed Screen */
+          /* Step 7: Completed Screen */
           <div className="glass-panel-elevated" style={{ padding: "2.5rem", textAlign: "center" }}>
             <div style={{ color: "var(--status-success)", marginBottom: "1rem" }}>
               <CheckCircleIcon size={48} />
@@ -330,8 +499,8 @@ export const TenantOnboardingWizard: React.FC = () => {
             <h2 className="heading-title" style={{ fontSize: "1.5rem", margin: "0 0 0.5rem 0" }}>
               Organization Successfully Provisioned!
             </h2>
-            <p className="text-body" style={{ maxWidth: "540px", margin: "0 auto 1.5rem auto" }}>
-              <strong>{currentCase?.organization_name}</strong> (<code>{currentCase?.organization_code}</code>) is fully configured with administrator privileges assigned to <strong>{currentCase?.admin_email}</strong>.
+            <p className="text-body" style={{ maxWidth: "560px", margin: "0 auto 1.5rem auto" }}>
+              <strong>{currentCase?.organization_name}</strong> (<code>{currentCase?.organization_code}</code>) is fully configured with administrator credentials, commercial packaging, direct product entitlements, and console feature policies.
             </p>
 
             {activationUrl && (
@@ -377,6 +546,22 @@ export const TenantOnboardingWizard: React.FC = () => {
                     {copiedLink ? "Copied! ✓" : "Copy Link"}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {!activationUrl && (
+              <div
+                className="glass-panel"
+                style={{
+                  maxWidth: "580px",
+                  margin: "0 auto 1.75rem auto",
+                  padding: "1rem 1.25rem",
+                  textAlign: "center",
+                  fontSize: "0.875rem",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                An invitation email has been dispatched to <strong>{currentCase?.admin_email}</strong>. The administrator can also be managed directly from the Organization Registry.
               </div>
             )}
 
@@ -542,9 +727,9 @@ export const TenantOnboardingWizard: React.FC = () => {
           <form onSubmit={handleNextFromPlan} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             <div>
               <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 3: Initial Commercial Plan & Entitlements
+                Step 3: Initial Commercial Plan & Packaging
               </h2>
-              <p className="text-body">Select default packaging plan and trial entitlement boundaries.</p>
+              <p className="text-body">Select default commercial plan and billing tier boundaries.</p>
             </div>
 
             <div>
@@ -620,20 +805,450 @@ export const TenantOnboardingWizard: React.FC = () => {
                 ← Back
               </button>
               <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Review & Provision →"}
+                {isSubmitting ? "Saving..." : "Continue to Product Entitlements →"}
+              </button>
+            </div>
+          </form>
+        ) : currentStep === "product_entitlements" ? (
+          /* Step 4: Product Entitlements Form */
+          <form onSubmit={handleNextFromProducts} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
+                    Step 4: Product Entitlements
+                  </h2>
+                  <p className="text-body">
+                    Select which platform products the new tenant is entitled to use. Active products will be directly provisioned upon confirmation.
+                  </p>
+                </div>
+                {options && options.products.length > 0 && (
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
+                      onClick={() => setSelectedProductIds(options.products.map((p) => p.id))}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
+                      onClick={() => setSelectedProductIds([])}
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {(!options || options.products.length === 0) ? (
+              <div className="glass-panel" style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                No active products available in Product Registry.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
+                {options.products.map((prod) => {
+                  const isSelected = selectedProductIds.includes(prod.id);
+                  const moduleCount = prod.modules?.length || 0;
+
+                  return (
+                    <div
+                      key={prod.id}
+                      onClick={() => handleToggleProduct(prod.id)}
+                      className="glass-panel"
+                      style={{
+                        padding: "1rem 1.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        cursor: "pointer",
+                        border: isSelected
+                          ? "2px solid var(--brand-primary, #6366f1)"
+                          : "1px solid var(--border-color, rgba(255,255,255,0.1))",
+                        backgroundColor: isSelected
+                          ? "rgba(99, 102, 241, 0.08)"
+                          : "transparent",
+                        borderRadius: "8px",
+                        transition: "all 0.15s ease-in-out",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "0.875rem" }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleProduct(prod.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ marginTop: "0.25rem", cursor: "pointer", width: "16px", height: "16px" }}
+                        />
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                              {prod.name}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.7rem",
+                                padding: "0.15rem 0.45rem",
+                                borderRadius: "4px",
+                                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                                fontFamily: "var(--font-code)",
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              {prod.code}
+                            </span>
+                          </div>
+                          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                            {prod.description || "No description provided."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "right", whiteSpace: "nowrap", paddingLeft: "1rem" }}>
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            color: moduleCount > 0 ? "var(--text-muted)" : "var(--text-muted)",
+                          }}
+                        >
+                          {moduleCount} {moduleCount === 1 ? "module" : "modules"}
+                        </span>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            marginTop: "0.2rem",
+                            color: isSelected ? "var(--brand-primary, #6366f1)" : "var(--text-muted)",
+                          }}
+                        >
+                          {isSelected ? "Entitled ✓" : "Disabled"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (currentCase) {
+                    void onboardingApi
+                      .transitionStep(currentCase.id, { target_step: "plan_selection" })
+                      .then((res) => setCurrentCase(res));
+                  }
+                }}
+              >
+                ← Back
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Continue to Console Feature Ceilings →"}
+              </button>
+            </div>
+          </form>
+        ) : currentStep === "feature_ceilings" ? (
+          /* Step 5: Console Feature Ceilings Form */
+          <form onSubmit={handleNextFromCeilings} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            <div>
+              <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
+                Step 5: Console Feature Ceilings
+              </h2>
+              <p className="text-body">
+                Configure module policies and feature-level maximum ceilings for the entitled products and tenant workspace. Disabled features will be unavailable to tenant administrators and members.
+              </p>
+            </div>
+
+            {/* Selected Products Feature Configuration */}
+            <div>
+              <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 0.75rem 0", color: "var(--text-primary)" }}>
+                Product Feature Ceilings ({selectedProducts.length} Entitled {selectedProducts.length === 1 ? "Product" : "Products"})
+              </h3>
+
+              {selectedProducts.length === 0 ? (
+                <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                  No products selected in previous step. Return to Step 4 to select product entitlements.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                  {selectedProducts.map((prod) => {
+                    const hasModules = prod.modules && prod.modules.length > 0;
+
+                    return (
+                      <div
+                        key={prod.id}
+                        className="glass-panel-elevated"
+                        style={{
+                          padding: "1.25rem",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{prod.name}</span>
+                            <span style={{ fontSize: "0.7rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
+                              ({prod.code})
+                            </span>
+                          </div>
+                          <span style={{ fontSize: "0.75rem", color: "var(--status-success)" }}>
+                            Product Entitled
+                          </span>
+                        </div>
+
+                        {!hasModules ? (
+                          <div
+                            style={{
+                              fontSize: "0.8125rem",
+                              color: "var(--text-muted)",
+                              fontStyle: "italic",
+                              padding: "0.75rem",
+                              background: "rgba(255, 255, 255, 0.02)",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            No configurable modules or features defined in the catalog for this product.
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                            {prod.modules.map((mod) => {
+                              const isModEnabled = featureCeilings.product_modules[mod.id] !== false;
+                              const hasFeatures = mod.features && mod.features.length > 0;
+
+                              return (
+                                <div
+                                  key={mod.id}
+                                  style={{
+                                    padding: "0.75rem",
+                                    borderRadius: "6px",
+                                    backgroundColor: isModEnabled
+                                      ? "rgba(99, 102, 241, 0.04)"
+                                      : "rgba(0, 0, 0, 0.2)",
+                                    border: isModEnabled
+                                      ? "1px solid rgba(99, 102, 241, 0.2)"
+                                      : "1px solid rgba(255, 255, 255, 0.05)",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <div>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                        <span style={{ fontWeight: 600, fontSize: "0.85rem" }}>{mod.name}</span>
+                                        <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
+                                          {mod.code}
+                                        </span>
+                                      </div>
+                                      {mod.description && (
+                                        <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                                          {mod.description}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      className={`btn ${isModEnabled ? "btn-primary" : "btn-secondary"}`}
+                                      style={{ fontSize: "0.72rem", padding: "0.25rem 0.6rem" }}
+                                      onClick={() => handleToggleProductModule(mod.id)}
+                                    >
+                                      {isModEnabled ? "Module Enabled" : "Module Disabled"}
+                                    </button>
+                                  </div>
+
+                                  {/* Sub-features if present */}
+                                  {hasFeatures && isModEnabled && (
+                                    <div style={{ marginTop: "0.5rem", paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                                      {mod.features.map((feat) => {
+                                        const isFeatEnabled = featureCeilings.product_features[feat.id] !== false;
+
+                                        return (
+                                          <div
+                                            key={feat.id}
+                                            style={{
+                                              display: "flex",
+                                              justifyContent: "space-between",
+                                              alignItems: "center",
+                                              padding: "0.4rem 0.6rem",
+                                              borderRadius: "4px",
+                                              backgroundColor: "rgba(255,255,255,0.03)",
+                                            }}
+                                          >
+                                            <div>
+                                              <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>{feat.name}</span>
+                                              <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-code)", color: "var(--text-muted)", marginLeft: "0.4rem" }}>
+                                                {feat.code}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className={`btn ${isFeatEnabled ? "btn-primary" : "btn-secondary"}`}
+                                              style={{ fontSize: "0.68rem", padding: "0.15rem 0.5rem" }}
+                                              onClick={() => handleToggleProductFeature(feat.id)}
+                                            >
+                                              {isFeatEnabled ? "ON" : "OFF"}
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Tenant Console Modules & Permission Ceilings */}
+            {options?.console_modules && options.console_modules.length > 0 && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 0.75rem 0", color: "var(--text-primary)" }}>
+                  Tenant Console Module Policies & Permission Ceilings
+                </h3>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
+                  {options.console_modules.map((cm) => {
+                    const isModEnabled = cm.is_core || featureCeilings.module_policies[cm.key] !== false;
+
+                    return (
+                      <div
+                        key={cm.key}
+                        className="glass-panel-elevated"
+                        style={{
+                          padding: "1rem",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{cm.display_name}</span>
+                              <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
+                                {cm.key}
+                              </span>
+                              {cm.is_core && (
+                                <span
+                                  style={{
+                                    fontSize: "0.65rem",
+                                    padding: "0.1rem 0.4rem",
+                                    borderRadius: "3px",
+                                    backgroundColor: "rgba(99, 102, 241, 0.2)",
+                                    color: "var(--brand-primary, #6366f1)",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  Core (Locked)
+                                </span>
+                              )}
+                            </div>
+                            {cm.description && (
+                              <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                                {cm.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={cm.is_core}
+                            className={`btn ${isModEnabled ? "btn-primary" : "btn-secondary"}`}
+                            style={{
+                              fontSize: "0.72rem",
+                              padding: "0.25rem 0.6rem",
+                              opacity: cm.is_core ? 0.7 : 1,
+                              cursor: cm.is_core ? "not-allowed" : "pointer",
+                            }}
+                            onClick={() => handleToggleConsoleModule(cm.key, cm.is_core)}
+                          >
+                            {cm.is_core ? "Always Active" : isModEnabled ? "Enabled" : "Disabled"}
+                          </button>
+                        </div>
+
+                        {/* Permissions ceilings under console module */}
+                        {cm.permissions && cm.permissions.length > 0 && isModEnabled && (
+                          <div style={{ marginTop: "0.6rem", paddingLeft: "1rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                            {cm.permissions.map((perm) => {
+                              const isPermAllowed = featureCeilings.permission_ceilings[perm.key] !== false;
+
+                              return (
+                                <div
+                                  key={perm.key}
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    padding: "0.35rem 0.5rem",
+                                    borderRadius: "4px",
+                                    backgroundColor: "rgba(255,255,255,0.02)",
+                                  }}
+                                >
+                                  <div>
+                                    <span style={{ fontSize: "0.78rem" }}>{perm.display_name}</span>
+                                    <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-code)", color: "var(--text-muted)", marginLeft: "0.4rem" }}>
+                                      {perm.key}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className={`btn ${isPermAllowed ? "btn-primary" : "btn-secondary"}`}
+                                    style={{ fontSize: "0.65rem", padding: "0.15rem 0.45rem" }}
+                                    onClick={() => handleTogglePermissionCeiling(perm.key)}
+                                  >
+                                    {isPermAllowed ? "Allowed" : "Denied"}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (currentCase) {
+                    void onboardingApi
+                      .transitionStep(currentCase.id, { target_step: "product_entitlements" })
+                      .then((res) => setCurrentCase(res));
+                  }
+                }}
+              >
+                ← Back
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Continue to Review & Provision →"}
               </button>
             </div>
           </form>
         ) : (
-          /* Step 4: Review & Final Confirmation */
+          /* Step 6: Review & Final Confirmation */
           <div className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             <div>
               <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 4: Review & Provision Organization
+                Step 6: Review & Provision Organization
               </h2>
-              <p className="text-body">Confirm parameters before executing the provisioning transaction.</p>
+              <p className="text-body">Confirm all tenant configuration parameters before executing the provisioning transaction.</p>
             </div>
 
+            {/* Summary Grid */}
             <div className="glass-panel-elevated" style={{ padding: "1.5rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
               <div>
                 <span className="text-caption" style={{ textTransform: "uppercase" }}>Organization Code</span>
@@ -653,11 +1268,65 @@ export const TenantOnboardingWizard: React.FC = () => {
               </div>
               <div>
                 <span className="text-caption" style={{ textTransform: "uppercase" }}>Commercial Plan</span>
-                <div style={{ fontWeight: 600 }}>{currentCase?.plan_name ? `${currentCase.plan_name} (v${currentCase.plan_version_number})` : "None"}</div>
+                <div style={{ fontWeight: 600 }}>{currentCase?.plan_name ? `${currentCase.plan_name} (v${currentCase.plan_version_number})` : "Direct custom entitlements"}</div>
               </div>
               <div>
                 <span className="text-caption" style={{ textTransform: "uppercase" }}>Trial Period</span>
                 <div style={{ fontWeight: 600 }}>{currentCase?.is_trial ? "14-Day Trial" : "Direct Active"}</div>
+              </div>
+            </div>
+
+            {/* Product Entitlements Summary */}
+            <div className="glass-panel-elevated" style={{ padding: "1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <span className="text-caption" style={{ textTransform: "uppercase", fontWeight: 700 }}>
+                  Entitled Products ({selectedProducts.length})
+                </span>
+              </div>
+              {selectedProducts.length === 0 ? (
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>None selected</div>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {selectedProducts.map((p) => (
+                    <span
+                      key={p.id}
+                      style={{
+                        padding: "0.35rem 0.75rem",
+                        borderRadius: "6px",
+                        backgroundColor: "rgba(99, 102, 241, 0.12)",
+                        border: "1px solid rgba(99, 102, 241, 0.25)",
+                        fontSize: "0.8125rem",
+                        fontWeight: 600,
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {p.name} ({p.code})
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Feature Ceilings Summary */}
+            <div className="glass-panel-elevated" style={{ padding: "1.25rem" }}>
+              <span className="text-caption" style={{ textTransform: "uppercase", fontWeight: 700, display: "block", marginBottom: "0.75rem" }}>
+                Console Feature Ceilings & Policies
+              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.8125rem" }}>
+                {selectedProducts.map((p) => {
+                  const modCount = p.modules?.length || 0;
+                  const disabledModCount = p.modules?.filter((m) => featureCeilings.product_modules[m.id] === false).length || 0;
+                  const enabledModCount = modCount - disabledModCount;
+
+                  return (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span><strong>{p.name}:</strong></span>
+                      <span style={{ color: enabledModCount > 0 ? "var(--text-secondary)" : "var(--text-muted)" }}>
+                        {modCount === 0 ? "Standard package" : `${enabledModCount} of ${modCount} modules active`}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -668,7 +1337,7 @@ export const TenantOnboardingWizard: React.FC = () => {
                 onClick={() => {
                   if (currentCase) {
                     void onboardingApi
-                      .transitionStep(currentCase.id, { target_step: "plan_selection" })
+                      .transitionStep(currentCase.id, { target_step: "feature_ceilings" })
                       .then((res) => setCurrentCase(res));
                   }
                 }}

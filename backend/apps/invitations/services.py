@@ -81,9 +81,12 @@ def issue_invitation(
     *,
     organization: Organization,
     email: str,
+    full_name: str = "",
     role: Any = None,
     membership_type: str = MembershipType.MEMBER,
     product: Any = None,
+    product_ids: list[str] | None = None,
+    module_ids: list[str] | None = None,
     invited_by: Any = None,
     expiry_days: int = 7,
 ) -> tuple[UserInvitation, str]:
@@ -92,9 +95,12 @@ def issue_invitation(
     Args:
         organization: Target organization.
         email: Recipient email address.
+        full_name: Optional recipient full name.
         role: Optional administrative Role.
         membership_type: Functional membership type (member or tenant_admin).
         product: Optional product tie for direct entitlement.
+        product_ids: Optional list of product IDs to pre-assign upon onboarding/activation.
+        module_ids: Optional list of module IDs to pre-assign upon onboarding/activation.
         invited_by: PlatformUser actor issuing the invitation.
         expiry_days: Days before token expires (default: 7).
 
@@ -135,9 +141,16 @@ def issue_invitation(
     raw_token, token_hash = generate_invitation_token()
     expires_at = timezone.now() + timedelta(days=expiry_days)
 
+    if product is None and product_ids:
+        from apps.product_registry.models import Product
+        product = Product.objects.filter(id=product_ids[0]).first()
+
     invitation = UserInvitation.objects.create(
         organization=organization,
+        full_name=full_name.strip() if full_name else "",
         product=product,
+        product_ids=product_ids or [],
+        module_ids=module_ids or [],
         email=clean_email,
         role=role,
         membership_type=membership_type,
@@ -308,20 +321,21 @@ def accept_invitation(
         clean_email = invitation.email.strip().lower()
         user = PlatformUser.objects.filter(email__iexact=clean_email).first()
 
+        resolved_name = (full_name.strip() if full_name else "") or (invitation.full_name or "")
         if user:
             # Existing account in system (cross-tenant user or inactive stub)
             if not user.is_active or not user.has_usable_password():
                 user.set_password(password)
                 user.is_active = True
                 user.status = UserStatus.ACTIVE
-            if full_name.strip() and not user.full_name:
-                user.full_name = full_name.strip()
+            if resolved_name and not user.full_name:
+                user.full_name = resolved_name
             user.save()
         else:
             user = PlatformUser.objects.create_user(
                 email=clean_email,
                 password=password,
-                full_name=full_name.strip(),
+                full_name=resolved_name,
                 is_active=True,
                 status=UserStatus.ACTIVE,
             )
@@ -352,6 +366,36 @@ def accept_invitation(
         invitation.status = InvitationStatus.ACCEPTED
         invitation.accepted_at = timezone.now()
         invitation.save()
+
+        # Provision pre-assigned products and modules
+        p_ids = list(invitation.product_ids) if invitation.product_ids else []
+        if not p_ids and invitation.product_id:
+            p_ids = [str(invitation.product_id)]
+        m_ids = list(invitation.module_ids) if invitation.module_ids else []
+
+        if p_ids:
+            from apps.assignments.services.assignment_services import assign_user_to_product
+            from apps.product_registry.models import ProductModule
+            for pid in p_ids:
+                try:
+                    prod_mods = list(
+                        ProductModule.objects.filter(
+                            product_id=pid,
+                            id__in=m_ids,
+                            status="active",
+                        ).values_list("id", flat=True)
+                    ) if m_ids else None
+
+                    assign_user_to_product(
+                        organization_id=invitation.organization_id,
+                        user_id=user.id,
+                        product_id=pid,
+                        module_ids=prod_mods,
+                        membership_id=membership.id,
+                        actor=user,
+                    )
+                except Exception as exc:
+                    logger.warning("Auto-assignment for product %s on invitation accept: %s", pid, exc)
 
         # Void any duplicate pending invitations for the same email and organization
         UserInvitation.objects.filter(

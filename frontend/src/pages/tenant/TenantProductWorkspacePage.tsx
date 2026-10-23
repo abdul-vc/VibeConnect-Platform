@@ -51,14 +51,22 @@ export const TenantProductWorkspacePage: React.FC = () => {
     try {
       const homeData = await tenantHomeApi.getTenantHome();
       const allProducts: readonly TenantProductAccessItem[] =
-        homeData.entitled_products && homeData.entitled_products.length > 0
-          ? homeData.entitled_products
-          : (homeData.products ?? []).filter((p) => p.access_state === "available");
+        homeData.products && homeData.products.length > 0
+          ? homeData.products
+          : homeData.entitled_products ?? [];
 
       cachedProductsRef.current = allProducts;
       const found = allProducts.find((p) => p.id === productId || p.code === productId);
       if (found) {
-        setProduct(found);
+        if (found.launchable === false && found.access_state !== "available") {
+          const reason =
+            found.access_state === "integration_pending"
+              ? "Integration is pending for this product."
+              : "Product access or assignment required.";
+          setErrorMessage(reason);
+        } else {
+          setProduct(found);
+        }
       } else {
         setErrorMessage("The requested product is not assigned or available for your account.");
       }

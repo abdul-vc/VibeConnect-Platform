@@ -489,7 +489,7 @@ class TenantHomeApiTests(APITestCase):
         data = response.json()
         self.assertEqual(data["schema_version"], "1.0")
         self.assertEqual(data["entitled_products"], [])
-        self.assertEqual(data["products"], [])
+        self.assertTrue(all(not p.get("launchable", False) for p in data.get("products", [])))
         self.assertEqual(data["membership"]["membership_type"], "member")
         # Regular members have no admin console modules
         self.assertEqual(data["console_modules"], [])
@@ -689,7 +689,7 @@ class TenantHomeApiTests(APITestCase):
         self.assertEqual(prod_map["lms"]["eligible_modules"][0]["module_state"], ModuleState.AVAILABLE)
 
         # 2. State: not_assigned
-        # Direct grant HRMS to org_alpha, but do NOT assign admin_alpha
+        # Direct grant HRMS to org_alpha, but do NOT assign member_alpha
         OrganizationProductEntitlement.objects.create(
             organization=self.org_alpha,
             product=self.prod_hrms,
@@ -697,7 +697,7 @@ class TenantHomeApiTests(APITestCase):
             created_by=self.owner,
             updated_by=self.owner,
         )
-        res = compute_user_tenant_effective_access(self.admin_alpha, self.org_alpha)
+        res = compute_user_tenant_effective_access(self.member_alpha, self.org_alpha)
         prod_map = {p["code"]: p for p in res["products"]}
         self.assertEqual(prod_map["hrms"]["access_state"], AccessState.NOT_ASSIGNED)
         self.assertEqual(prod_map["hrms"]["denial_code"], DenialCode.NOT_ASSIGNED)

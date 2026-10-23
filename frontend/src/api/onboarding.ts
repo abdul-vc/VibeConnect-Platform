@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tenant Onboarding Domain API Client (Phase 3B).
  *
  * Exclusively consumes the centralized apiClient.
@@ -7,6 +7,7 @@
 import { apiClient } from "./client.ts";
 import { ENDPOINTS } from "./endpoints.ts";
 import type {
+  OnboardingOptionsResponse,
   TenantOnboardingCase,
   TransitionStepPayload,
 } from "./types.ts";
@@ -31,5 +32,12 @@ export const onboardingApi = {
    */
   async transitionStep(id: string, payload: TransitionStepPayload): Promise<TenantOnboardingCase> {
     return apiClient.patch<TenantOnboardingCase>(ENDPOINTS.ONBOARDING.STEP(id), payload);
+  },
+
+  /**
+   * Fetch available products, modules, features, and tenant console modules for onboarding configuration.
+   */
+  async getOptions(signal?: AbortSignal): Promise<OnboardingOptionsResponse> {
+    return apiClient.get<OnboardingOptionsResponse>(ENDPOINTS.ONBOARDING.OPTIONS, { signal });
   },
 };

@@ -1433,7 +1433,8 @@ export type AccessState =
   | "module_unavailable"
   | "membership_inactive"
   | "product_unavailable"
-  | "access_expired";
+  | "access_expired"
+  | "integration_pending";
 
 export type DenialCode =
   | "not_assigned"
@@ -1444,7 +1445,8 @@ export type DenialCode =
   | "module_unavailable"
   | "membership_inactive"
   | "product_unavailable"
-  | "access_expired";
+  | "access_expired"
+  | "integration_pending";
 
 export type ModuleState = "available" | "unavailable" | "excluded";
 
@@ -1468,6 +1470,7 @@ export interface TenantHomeEntitledProduct {
   readonly assigned_at: string | null;
   readonly access_state?: AccessState;
   readonly denial_code?: DenialCode | null;
+  readonly launchable?: boolean;
   readonly eligible_modules?: readonly TenantHomeModuleItem[];
   readonly modules: readonly TenantHomeModuleItem[];
 }
@@ -1545,10 +1548,12 @@ export type OnboardingStepName =
   | "organization_profile"
   | "admin_setup"
   | "plan_selection"
+  | "product_entitlements"
+  | "feature_ceilings"
   | "review_confirm"
   | "completed";
 
-export type OnboardingCaseStatus = "in_progress" | "completed" | "abandoned";
+export type OnboardingCaseStatus = "in_progress" | "completed" | "abandoned" | "provisioning_failed";
 
 export interface TenantOnboardingCase {
   readonly id: string;
@@ -1564,6 +1569,8 @@ export interface TenantOnboardingCase {
   readonly plan_name: string | null;
   readonly plan_price: string | null;
   readonly is_trial: boolean;
+  readonly selected_product_ids?: readonly string[];
+  readonly feature_ceilings?: Record<string, unknown>;
   readonly created_organization_id: string | null;
   readonly initial_admin_activation_url?: string | null;
   readonly started_at: string;
@@ -1574,6 +1581,50 @@ export interface TenantOnboardingCase {
 export interface TransitionStepPayload {
   readonly target_step: OnboardingStepName;
   readonly step_data?: Record<string, unknown>;
+}
+
+export interface OnboardingProductFeatureOption {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly description: string;
+  readonly display_order: number;
+}
+
+export interface OnboardingProductModuleOption {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly description: string;
+  readonly display_order: number;
+  readonly features: readonly OnboardingProductFeatureOption[];
+}
+
+export interface OnboardingProductOption {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly description: string;
+  readonly modules: readonly OnboardingProductModuleOption[];
+}
+
+export interface OnboardingConsolePermissionOption {
+  readonly key: string;
+  readonly display_name: string;
+  readonly description: string;
+}
+
+export interface OnboardingConsoleModuleOption {
+  readonly key: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly is_core: boolean;
+  readonly permissions: readonly OnboardingConsolePermissionOption[];
+}
+
+export interface OnboardingOptionsResponse {
+  readonly products: readonly OnboardingProductOption[];
+  readonly console_modules: readonly OnboardingConsoleModuleOption[];
 }
 
 // ============================================================================
@@ -1613,9 +1664,12 @@ export interface AcceptInvitationResponse {
 export interface IssueInvitationPayload {
   readonly organization_id: string;
   readonly email: string;
+  readonly full_name?: string;
   readonly membership_type?: string;
   readonly role_id?: string | null;
   readonly product_id?: string | null;
+  readonly product_ids?: readonly string[];
+  readonly module_ids?: readonly string[];
 }
 
 export interface IssueInvitationResponse {
