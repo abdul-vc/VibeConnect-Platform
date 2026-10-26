@@ -115,11 +115,11 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
         aria-labelledby={`${baseId}-title`}
         aria-describedby={`${baseId}-desc`}
         style={{
-          backgroundColor: "var(--bg-card, #1e293b)",
-          color: "var(--text-primary, #f8fafc)",
-          borderRadius: "0.75rem",
-          border: "1px solid var(--border-color, #334155)",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+          backgroundColor: "var(--glass-surface-elevated)",
+          color: "var(--text-primary)",
+          borderRadius: "16px",
+          border: "1px solid var(--border-glass)",
+          boxShadow: "var(--shadow-xl, 0 25px 50px -12px rgba(0, 0, 0, 0.4))",
           maxWidth: "32rem",
           width: "100%",
           overflow: "hidden",
@@ -131,17 +131,18 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
             alignItems: "center",
             justifyContent: "space-between",
             padding: "1.25rem 1.5rem",
-            borderBottom: "1px solid var(--border-color, #334155)",
+            borderBottom: "1px solid var(--border-glass)",
+            background: "var(--glass-surface-sunken)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <div
               style={{
-                width: "2rem",
-                height: "2rem",
-                borderRadius: "9999px",
+                width: "2.25rem",
+                height: "2.25rem",
+                borderRadius: "10px",
                 backgroundColor: "rgba(239, 68, 68, 0.15)",
-                color: "#ef4444",
+                color: "var(--status-danger, #ef4444)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -246,10 +247,10 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
               style={{
                 width: "100%",
                 padding: "0.625rem 0.75rem",
-                backgroundColor: "var(--bg-input, #0f172a)",
-                border: `1px solid ${fieldError ? "#ef4444" : "var(--border-color, #334155)"}`,
-                borderRadius: "0.375rem",
-                color: "var(--text-primary, #f8fafc)",
+                backgroundColor: "var(--glass-surface-sunken)",
+                border: `1px solid ${fieldError ? "var(--status-danger, #ef4444)" : "var(--border-glass)"}`,
+                borderRadius: "10px",
+                color: "var(--text-primary)",
                 fontSize: "0.875rem",
                 outline: "none",
                 resize: "vertical",
@@ -269,7 +270,7 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
                   id={errorId}
                   role="status"
                   aria-live="polite"
-                  style={{ color: "#ef4444", fontSize: "0.75rem" }}
+                  style={{ color: "var(--status-danger, #ef4444)", fontSize: "0.75rem" }}
                 >
                   {fieldError}
                 </div>
@@ -279,7 +280,7 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
               <span
                 style={{
                   fontSize: "0.75rem",
-                  color: reason.length > 450 ? "#f59e0b" : "var(--text-muted, #94a3b8)",
+                  color: reason.length > 450 ? "var(--status-warning, #f59e0b)" : "var(--text-muted)",
                 }}
               >
                 {reason.length}/500
@@ -300,12 +301,12 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
               disabled={isSubmitting}
               style={{
                 padding: "0.5rem 1rem",
-                borderRadius: "0.375rem",
-                border: "1px solid var(--border-color, #334155)",
-                backgroundColor: "transparent",
-                color: "var(--text-primary, #f8fafc)",
+                borderRadius: "8px",
+                border: "1px solid var(--border-glass)",
+                backgroundColor: "var(--glass-surface-sunken)",
+                color: "var(--text-secondary)",
                 fontSize: "0.875rem",
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: isSubmitting ? "not-allowed" : "pointer",
               }}
             >
@@ -315,15 +316,16 @@ export const DenyRequestModal: React.FC<DenyRequestModalProps> = ({
               type="submit"
               disabled={isSubmitting}
               style={{
-                padding: "0.5rem 1rem",
-                borderRadius: "0.375rem",
+                padding: "0.5rem 1.25rem",
+                borderRadius: "8px",
                 border: "none",
-                backgroundColor: "#ef4444",
+                background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                 color: "#ffffff",
                 fontSize: "0.875rem",
-                fontWeight: 500,
+                fontWeight: 700,
                 cursor: isSubmitting ? "not-allowed" : "pointer",
                 opacity: isSubmitting ? 0.7 : 1,
+                boxShadow: "0 2px 10px rgba(239, 68, 68, 0.3)",
               }}
             >
               {isSubmitting ? "Denying..." : "Confirm Denial"}

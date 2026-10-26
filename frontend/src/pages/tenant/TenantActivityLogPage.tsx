@@ -115,7 +115,7 @@ export const TenantActivityLogPage: React.FC = () => {
           >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem", textAlign: "left" }}>
               <thead>
-                <tr style={{ borderBottom: "1px solid var(--border-glass, rgba(255, 255, 255, 0.1))", background: "rgba(0, 0, 0, 0.2)" }}>
+                <tr style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--glass-surface-sunken)" }}>
                   <th style={{ padding: "0.85rem 1rem", color: "var(--text-muted)", fontWeight: 600 }}>Timestamp (UTC)</th>
                   <th style={{ padding: "0.85rem 1rem", color: "var(--text-muted)", fontWeight: 600 }}>Action</th>
                   <th style={{ padding: "0.85rem 1rem", color: "var(--text-muted)", fontWeight: 600 }}>Target</th>

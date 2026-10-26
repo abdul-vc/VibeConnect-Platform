@@ -243,7 +243,7 @@ export const OrganizationFormDialog: React.FC<OrganizationFormDialogProps> = ({
             </h2>
             <p id="dialog-description" className="dialog-desc">
               {mode === "create"
-                ? "Add a new customer organization to the VibeConnect control plane."
+                ? "Add a new customer organization to the Envisage control plane."
                 : `Update identity and lifecycle parameters for ${organization?.name}.`}
             </p>
           </div>

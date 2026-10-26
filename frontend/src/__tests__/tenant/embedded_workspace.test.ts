@@ -203,7 +203,7 @@ test("test_tenant_product_workspace_page_renders_within_console_shell", () => {
   );
 
   // AppShell elements must be present: header brand mark and sidebar
-  assert.ok(html.includes("VibeConnect"), "AppShell brand mark must be rendered");
+  assert.ok(html.includes("Envisage"), "AppShell brand mark must be rendered");
   assert.ok(html.includes("My Products &amp; Launcher") || html.includes("My Products & Launcher"), "Sidebar launcher must be present");
 
   // Workspace elements must be rendered

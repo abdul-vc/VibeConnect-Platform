@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.tsx";
 import { AppShell } from "../components/AppShell.tsx";
 import { LoadingSpinner } from "../components/LoadingSpinner.tsx";
 import {
@@ -59,6 +60,7 @@ const ADOPTION_COLORS = [
 ];
 
 export const MasterSetupPage: React.FC = () => {
+  const { user } = useAuth();
   const [summary, setSummary] = useState<OwnerReportsSummary | null>(null);
   const [analytics, setAnalytics] = useState<OwnerAnalyticsResponse | null>(null);
   const [orgsData, setOrgsData] = useState<OrganizationListResponse | null>(null);
@@ -180,7 +182,7 @@ export const MasterSetupPage: React.FC = () => {
     const url = URL.createObjectURL(exportBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `vibeconnect-mission-control-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `envisage-mission-control-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -215,30 +217,46 @@ export const MasterSetupPage: React.FC = () => {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "0.3rem",
+                  padding: "0.2rem 0.6rem",
+                  background: "var(--surface-soft-lavender)",
+                  borderRadius: "9999px",
                 }}
               >
-                PLATFORM OVERVIEW &bull; LIVE
+                ● Platform Overview · Live Telemetry
               </span>
             </div>
             <h1
               className="heading-hero"
-              style={{ fontSize: "1.75rem", fontWeight: 800, margin: 0, color: "var(--text-primary)" }}
+              style={{ fontSize: "1.875rem", fontWeight: 800, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.025em" }}
             >
-              Mission control
+              Good morning, {user?.full_name?.split(" ")[0] || "Alex"}! ☀️
             </h1>
             <p
               style={{
-                margin: "0.25rem 0 0 0",
-                fontSize: "0.875rem",
+                margin: "0.35rem 0 0 0",
+                fontSize: "0.9375rem",
                 color: "var(--text-secondary)",
                 maxWidth: "760px",
               }}
             >
-              Cross-client telemetry, platform subscriptions, module adoption and operational health in one console.
+              Here's what's happening across your Envisage enterprise platform today.
             </p>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: "var(--text-muted)",
+                background: "var(--glass-surface)",
+                padding: "0.45rem 0.85rem",
+                borderRadius: "8px",
+                border: "1px solid var(--border-subtle)",
+              }}
+            >
+              {new Date().toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+            </div>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -249,17 +267,25 @@ export const MasterSetupPage: React.FC = () => {
             </button>
             <Link
               to="/onboarding"
-              className="btn btn-primary btn-sm"
+              className="btn-gradient"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "0.4rem",
-                minHeight: "38px",
+                gap: "0.5rem",
+                padding: "0.6rem 1.25rem",
+                borderRadius: "10px",
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                background: "linear-gradient(135deg, #3867f5 0%, #2952cc 100%)",
+                color: "#ffffff",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(56, 103, 245, 0.3)",
                 textDecoration: "none",
               }}
             >
-              <PlusIcon size={14} />
-              <span>Provision client</span>
+              <PlusIcon size={16} />
+              <span>Onboard New Tenant</span>
             </Link>
           </div>
         </div>
@@ -343,7 +369,7 @@ export const MasterSetupPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(99, 102, 241, 0.12)",
+                      background: "var(--surface-soft-lavender)",
                       color: "var(--brand-primary)",
                       display: "flex",
                       alignItems: "center",
@@ -399,7 +425,7 @@ export const MasterSetupPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(16, 185, 129, 0.12)",
+                      background: "var(--surface-soft-mint)",
                       color: "var(--status-success)",
                       display: "flex",
                       alignItems: "center",
@@ -455,8 +481,8 @@ export const MasterSetupPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(14, 165, 233, 0.12)",
-                      color: "#0ea5e9",
+                      background: "var(--surface-soft-blue)",
+                      color: "var(--brand-sky)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -511,8 +537,8 @@ export const MasterSetupPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(99, 102, 241, 0.12)",
-                      color: "var(--brand-primary)",
+                      background: "var(--surface-soft-peach)",
+                      color: "var(--status-warning)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -667,7 +693,7 @@ export const MasterSetupPage: React.FC = () => {
                                   {org.name}
                                 </div>
                                 <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                  {org.code.toLowerCase()}.vibeconnect.app
+                                  {org.code.toLowerCase()}.envisage.app
                                 </div>
                               </div>
                             </div>
@@ -891,6 +917,198 @@ export const MasterSetupPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Row matching Design #2 Screen 2 */}
+            <div style={{ marginTop: "1rem" }}>
+              <div style={{ marginBottom: "1rem" }}>
+                <h2 style={{ fontSize: "1.0625rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Quick Actions
+                </h2>
+                <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", margin: "0.2rem 0 0 0" }}>
+                  Fast administrative pathways to configure and scale the platform
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                {/* 1. Onboard Tenant */}
+                <Link
+                  to="/tenants"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-lavender)",
+                      color: "var(--brand-primary)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <BuildingIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      Manage Tenants
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Provision organizations & plans
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
+
+                {/* 2. Assign Products */}
+                <Link
+                  to="/assignments"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-blue)",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <LayersIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      Assign Products
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Control entitlements & access
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
+
+                {/* 3. View Reports */}
+                <Link
+                  to="/audit-logs"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-mint)",
+                      color: "#059669",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ShieldCheckIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      View Audit & Reports
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Inspect compliance & logs
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
+
+                {/* 4. Explore Marketplace */}
+                <Link
+                  to="/showcase"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-peach)",
+                      color: "#d97706",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <PlusIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      Product Showcase
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Discover modules & catalog
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
               </div>
             </div>
           </>

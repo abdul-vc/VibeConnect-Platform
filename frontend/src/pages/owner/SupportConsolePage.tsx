@@ -423,27 +423,37 @@ export const SupportConsolePage: React.FC = () => {
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "1.5rem" }}>
         {/* Page Header */}
         <div style={{ marginBottom: "2rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+            <span>Platform Owner</span>
+            <span>/</span>
+            <span>Customer Operations</span>
+            <span>/</span>
+            <span style={{ color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>Support &amp; Operations Console</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <div
               style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
-                background: "rgba(59, 130, 246, 0.15)",
+                width: "48px",
+                height: "48px",
+                borderRadius: "14px",
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(138, 69, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#3b82f6",
+                color: "var(--brand-primary, #3867f5)",
+                flexShrink: 0,
               }}
             >
               <ShieldCheckIcon size={24} />
             </div>
             <div>
-              <h1 style={{ fontSize: "1.75rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                Support / Operations Console
+              <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                Support &amp; Operations Console
               </h1>
-              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                Platform-scoped diagnostic inspection and controlled operational remediation
+              <p style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.875rem", lineHeight: 1.5 }}>
+                Platform-scoped diagnostic inspection, reconciliation analysis, and controlled operational remediation.
               </p>
             </div>
           </div>

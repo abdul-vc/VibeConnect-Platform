@@ -257,17 +257,17 @@ class SsoLaunchView(APIView):
                     )
                 )
 
-                if not is_tenant_admin:
-                    assignment = UserProductAssignment.objects.filter(
-                        user=request.user,
-                        organization=organization,
-                        product=product,
-                        status=AssignmentStatus.ACTIVE,
-                    ).first()
-                    if not assignment:
-                        raise exceptions.PermissionDenied(
-                            {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
-                        )
+                assignment = UserProductAssignment.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                    product=product,
+                    status=AssignmentStatus.ACTIVE,
+                ).first()
+
+                if not is_tenant_admin and not assignment:
+                    raise exceptions.PermissionDenied(
+                        {"error": "ASSIGNMENT_MISSING", "detail": "User has no active product assignment for this organization."}
+                    )
 
                 from apps.integration_hub.models import (
                     ExternalTenantMapping,
@@ -291,7 +291,18 @@ class SsoLaunchView(APIView):
                         status=status.HTTP_409_CONFLICT,
                     )
 
-                target_route = "/org-admin" if is_tenant_admin else "/dashboard"
+                # Authoritative LMS console resolution based on persisted assignment configuration
+                chosen_console = assignment.launch_console if (assignment and assignment.launch_console) else None
+                if chosen_console == "tenant_console":
+                    if not is_tenant_admin:
+                        raise exceptions.PermissionDenied(
+                            {"error": "FORBIDDEN_CONSOLE", "detail": "Tenant Console requires administrative privileges."}
+                        )
+                    target_route = "/org-admin"
+                elif chosen_console == "normal_user_console":
+                    target_route = "/dashboard"
+                else:
+                    target_route = "/org-admin" if is_tenant_admin else "/dashboard"
 
                 has_tenant_mapping = ExternalTenantMapping.objects.filter(
                     organization=organization
@@ -366,7 +377,7 @@ class SsoLaunchView(APIView):
                             "email": clean_email,
                             "first_name": first_name or "Member",
                             "last_name": last_name or "User",
-                            "role": "organization_admin" if is_tenant_admin else "member",
+                            "role": "organization_admin" if (is_tenant_admin and target_route == "/org-admin") else "member",
                             "is_active": True,
                         }
                         client.provision_user(payload)

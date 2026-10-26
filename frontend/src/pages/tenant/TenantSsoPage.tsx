@@ -106,7 +106,7 @@ export const TenantSsoPage: React.FC = () => {
                 </div>
                 <div>
                   <span style={{ color: "var(--text-muted)", display: "block", fontSize: "0.78rem" }}>Session Lifecycle</span>
-                  <span>Synchronized with VibeConnect</span>
+                  <span>Synchronized with Envisage</span>
                 </div>
               </div>
             </div>

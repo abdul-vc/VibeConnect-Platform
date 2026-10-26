@@ -281,8 +281,9 @@ export const TenantRolesPage: React.FC = () => {
                   fontSize: "0.75rem",
                   padding: "0.1rem 0.45rem",
                   borderRadius: "9999px",
-                  background: "rgba(0, 0, 0, 0.2)",
-                  color: "var(--text-secondary)",
+                  background: "var(--surface-soft-lavender)",
+                  color: "var(--brand-primary)",
+                  fontWeight: 600,
                 }}
               >
                 {rolesCount}
@@ -320,8 +321,9 @@ export const TenantRolesPage: React.FC = () => {
                   fontSize: "0.75rem",
                   padding: "0.1rem 0.45rem",
                   borderRadius: "9999px",
-                  background: "rgba(0, 0, 0, 0.2)",
-                  color: "var(--text-secondary)",
+                  background: "var(--surface-soft-lavender)",
+                  color: "var(--brand-primary)",
+                  fontWeight: 600,
                 }}
               >
                 {assignmentsCount}
@@ -419,7 +421,7 @@ export const TenantRolesPage: React.FC = () => {
                     }}
                   >
                     <thead>
-                      <tr style={{ background: "rgba(0, 0, 0, 0.2)", textAlign: "left" }}>
+                      <tr style={{ background: "var(--glass-surface-sunken)", textAlign: "left" }}>
                         <th style={{ padding: "0.85rem 1rem", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase" }}>
                           Role
                         </th>
@@ -473,14 +475,14 @@ export const TenantRolesPage: React.FC = () => {
                                 padding: "0.15rem 0.5rem",
                                 borderRadius: "6px",
                                 background: r.is_system_role
-                                  ? "rgba(99, 102, 241, 0.12)"
+                                  ? "var(--surface-soft-lavender)"
                                   : "var(--glass-surface)",
                                 color: r.is_system_role
-                                  ? "rgb(99, 102, 241)"
+                                  ? "var(--brand-primary)"
                                   : "var(--text-secondary)",
                                 border: `1px solid ${
                                   r.is_system_role
-                                    ? "rgba(99, 102, 241, 0.25)"
+                                    ? "rgba(56, 103, 245, 0.25)"
                                     : "var(--border-subtle)"
                                 }`,
                               }}
@@ -532,7 +534,7 @@ export const TenantRolesPage: React.FC = () => {
                                       fontSize: "0.6875rem",
                                       padding: "0.1rem 0.4rem",
                                       borderRadius: "4px",
-                                      background: "rgba(0, 0, 0, 0.2)",
+                                      background: "var(--glass-surface-sunken)",
                                       color: "var(--text-secondary)",
                                       border: "1px solid var(--border-subtle)",
                                       fontFamily: "var(--font-code)",
@@ -554,7 +556,8 @@ export const TenantRolesPage: React.FC = () => {
                                 color: "var(--text-primary)",
                                 padding: "0.2rem 0.55rem",
                                 borderRadius: "6px",
-                                background: "rgba(0, 0, 0, 0.15)",
+                                background: "var(--glass-surface-sunken)",
+                                border: "1px solid var(--border-subtle)",
                               }}
                             >
                               {r.assigned_members_count}
@@ -681,7 +684,8 @@ export const TenantRolesPage: React.FC = () => {
                                 fontSize: "0.6875rem",
                                 padding: "0.1rem 0.35rem",
                                 borderRadius: "4px",
-                                background: "rgba(0, 0, 0, 0.2)",
+                                background: "var(--glass-surface-sunken)",
+                                border: "1px solid var(--border-subtle)",
                                 color: "var(--text-secondary)",
                                 fontFamily: "var(--font-code)",
                                 wordBreak: "break-all",
@@ -930,7 +934,7 @@ export const TenantRolesPage: React.FC = () => {
                     }}
                   >
                     <thead>
-                      <tr style={{ background: "rgba(0, 0, 0, 0.2)", textAlign: "left" }}>
+                      <tr style={{ background: "var(--glass-surface-sunken)", textAlign: "left" }}>
                         <th style={{ padding: "0.85rem 1rem", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase" }}>
                           Administrator
                         </th>
@@ -1157,7 +1161,7 @@ export const TenantRolesPage: React.FC = () => {
                           alignItems: "center",
                           padding: "0.6rem 0.75rem",
                           borderRadius: "8px",
-                          background: "rgba(0, 0, 0, 0.15)",
+                          background: "var(--glass-surface-sunken)",
                           border: "1px solid var(--border-subtle)",
                           flexWrap: "wrap",
                           gap: "0.35rem",

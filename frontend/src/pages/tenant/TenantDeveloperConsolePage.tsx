@@ -6,11 +6,24 @@
  * Strict tenant-isolated programmatic integration management.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
-import { GlassPanel } from "../../components/GlassPanel.tsx";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
-import { CodeIcon, ShieldCheckIcon } from "../../components/Icons.tsx";
+import {
+  CodeIcon,
+  ShieldCheckIcon,
+  KeyIcon,
+  RotateCcwIcon,
+  AlertCircleIcon,
+  CheckCircleIcon,
+  SearchIcon,
+  PlusIcon,
+  CalendarIcon,
+  GlobeIcon,
+  CopyIcon,
+  CloseIcon,
+} from "../../components/Icons.tsx";
 import {
   developerApi,
   type DeveloperApplication,
@@ -38,6 +51,7 @@ export const TenantDeveloperConsolePage: React.FC = () => {
   const [apps, setApps] = useState<DeveloperApplication[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -393,150 +407,557 @@ export const TenantDeveloperConsolePage: React.FC = () => {
     }
   };
 
+  const filteredApps = useMemo(() => {
+    return apps.filter((app) => {
+      if (statusFilter && app.status !== statusFilter) return false;
+      return true;
+    });
+  }, [apps, statusFilter]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <span className="badge badge-success">Active</span>;
+        return (
+          <span className="badge badge-success">
+            <span className="badge-dot" />
+            Active
+          </span>
+        );
       case "suspended":
-        return <span className="badge badge-warning">Suspended</span>;
+        return (
+          <span className="badge badge-warning">
+            <span className="badge-dot" />
+            Suspended
+          </span>
+        );
       case "revoked":
-        return <span className="badge badge-danger">Revoked</span>;
+        return (
+          <span className="badge badge-danger">
+            <span className="badge-dot" />
+            Revoked
+          </span>
+        );
       default:
-        return <span className="badge badge-neutral">{status}</span>;
+        return (
+          <span className="badge badge-neutral">
+            {status}
+          </span>
+        );
     }
   };
 
   return (
     <AppShell>
-      <div className="container" style={{ padding: "2rem 1.5rem" }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "10px",
-                  background: "var(--accent-primary-subtle)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--accent-primary)",
-                }}
-              >
-                <CodeIcon size={24} />
-              </div>
-              <h1 style={{ fontSize: "1.75rem", fontWeight: 700, margin: 0 }}>Developer Console</h1>
-            </div>
-            <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.9375rem" }}>
-              Manage tenant-scoped API applications, scoped credentials, and integration keys.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setShowCreateAppModal(true)}
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "2rem" }}>
+        {/* Breadcrumb Navigation */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            fontSize: "0.8125rem",
+            color: "var(--text-muted)",
+            marginBottom: "1.25rem",
+            fontWeight: 500,
+          }}
+        >
+          <Link
+            to="/tenant"
+            style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}
           >
-            <span>+ Register Application</span>
-          </button>
+            Dashboard
+          </Link>
+          <span>/</span>
+          <span>Infrastructure</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Developer Console</span>
+        </div>
+
+        {/* Hero Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: "2rem",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <CodeIcon size={24} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <h1
+                  className="heading-hero"
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 800,
+                    margin: 0,
+                    letterSpacing: "-0.02em",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Developer Console
+                </h1>
+                <span
+                  style={{
+                    background: "rgba(56, 103, 245, 0.1)",
+                    color: "var(--brand-primary)",
+                    padding: "0.2rem 0.65rem",
+                    borderRadius: 999,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    border: "1px solid rgba(56, 103, 245, 0.2)",
+                  }}
+                >
+                  {apps.length} {apps.length === 1 ? "App" : "Apps"}
+                </span>
+              </div>
+              <p style={{ color: "var(--text-secondary)", margin: "0.25rem 0 0 0", fontSize: "0.9375rem" }}>
+                Manage tenant-scoped API applications, scoped credentials, and integration keys.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => void fetchApps()}
+              disabled={isLoading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 0.875rem",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "8px",
+                color: "var(--text-primary)",
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                cursor: isLoading ? "not-allowed" : "pointer",
+                boxShadow: "var(--shadow-sm)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <RotateCcwIcon size={14} className={isLoading ? "spin-pulse" : ""} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setShowCreateAppModal(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 1rem",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+              }}
+            >
+              <PlusIcon size={16} />
+              <span>Register Application</span>
+            </button>
+          </div>
         </div>
 
         {/* Alerts */}
         {errorMessage && (
           <div
             style={{
-              padding: "1rem",
+              padding: "1rem 1.25rem",
               background: "var(--status-danger-bg)",
               border: "1px solid var(--status-danger-border)",
               borderRadius: "8px",
               color: "var(--status-danger)",
               marginBottom: "1.5rem",
+              fontSize: "0.875rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
             }}
           >
-            {errorMessage}
+            <AlertCircleIcon size={18} style={{ flexShrink: 0 }} />
+            <span>{errorMessage}</span>
           </div>
         )}
         {successMessage && (
           <div
             style={{
-              padding: "1rem",
+              padding: "1rem 1.25rem",
               background: "var(--status-success-bg)",
               border: "1px solid var(--status-success-border)",
               borderRadius: "8px",
               color: "var(--status-success)",
               marginBottom: "1.5rem",
+              fontSize: "0.875rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
             }}
           >
-            {successMessage}
+            <CheckCircleIcon size={18} style={{ flexShrink: 0 }} />
+            <span>{successMessage}</span>
           </div>
         )}
 
-        {/* Applications List */}
-        <GlassPanel padding="lg" style={{ marginBottom: "2rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.125rem", fontWeight: 600, margin: 0 }}>Registered Applications</h2>
-            <input
-              type="text"
-              placeholder="Search applications..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-text"
-              style={{ width: "240px", padding: "0.5rem 0.75rem", fontSize: "0.875rem" }}
-            />
+        {/* Applications List Table Card */}
+        <div className="table-card-container" style={{ marginBottom: "2rem" }}>
+          <div
+            style={{
+              padding: "1.25rem 1.5rem",
+              borderBottom: "1px solid var(--border-subtle)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "1rem",
+              background: "var(--glass-surface)",
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                Registered Applications
+              </h2>
+              <p style={{ margin: "0.2rem 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                Tenant-scoped client credentials and outbound webhook integrations.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              {/* Status Segmented Control */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  background: "var(--glass-surface-sunken)",
+                  padding: "3px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border-subtle)",
+                  gap: "2px",
+                }}
+              >
+                {(["", "active", "suspended", "revoked"] as const).map((s) => {
+                  const isActive = statusFilter === s;
+                  const label =
+                    s === ""
+                      ? "All Statuses"
+                      : s === "active"
+                      ? "Active"
+                      : s === "suspended"
+                      ? "Suspended"
+                      : "Revoked";
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setStatusFilter(s)}
+                      style={{
+                        padding: "0.35rem 0.75rem",
+                        borderRadius: "6px",
+                        fontSize: "0.75rem",
+                        fontWeight: isActive ? 600 : 500,
+                        border: "none",
+                        background: isActive ? "var(--glass-surface-elevated)" : "transparent",
+                        color: isActive ? "var(--brand-primary)" : "var(--text-secondary)",
+                        boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Bar */}
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <SearchIcon
+                  size={15}
+                  style={{
+                    position: "absolute",
+                    left: "0.75rem",
+                    color: "var(--text-muted)",
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search applications..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    padding: "0.45rem 0.75rem 0.45rem 2.25rem",
+                    borderRadius: "6px",
+                    fontSize: "0.8125rem",
+                    background: "var(--input-bg)",
+                    border: "1px solid var(--border-subtle)",
+                    color: "var(--text-primary)",
+                    width: "220px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {isLoading ? (
-            <LoadingSpinner label="Loading applications..." />
-          ) : apps.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem 1rem", color: "var(--text-secondary)" }}>
-              <CodeIcon size={48} style={{ opacity: 0.4, marginBottom: "1rem" }} />
-              <p style={{ fontSize: "1rem", fontWeight: 500 }}>No developer applications registered yet.</p>
-              <p style={{ fontSize: "0.875rem" }}>Click "Register Application" above to generate your first integration client.</p>
+            <div style={{ display: "flex", justifyContent: "center", padding: "4rem" }}>
+              <LoadingSpinner label="Loading applications..." />
+            </div>
+          ) : filteredApps.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3.5rem 1.5rem", color: "var(--text-secondary)" }}>
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: "var(--surface-soft-blue)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--brand-primary)",
+                  marginBottom: "1rem",
+                }}
+              >
+                <CodeIcon size={26} />
+              </div>
+              <p style={{ margin: 0, fontSize: "1rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                No developer applications registered yet
+              </p>
+              <p style={{ margin: "0.35rem 0 1.25rem", fontSize: "0.875rem" }}>
+                {searchTerm || statusFilter
+                  ? "No applications match your current search or status filter."
+                  : "Click \"Register Application\" to generate your first integration client."}
+              </p>
+              {!searchTerm && !statusFilter && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => setShowCreateAppModal(true)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}
+                >
+                  <PlusIcon size={14} />
+                  Register First Application
+                </button>
+              )}
             </div>
           ) : (
-            <div className="table-responsive">
-              <table className="table" style={{ width: "100%", textAlign: "left" }}>
+            <div className="table-card-scroll">
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                    <th style={{ padding: "0.75rem" }}>Application</th>
-                    <th style={{ padding: "0.75rem" }}>Status</th>
-                    <th style={{ padding: "0.75rem" }}>Active Keys</th>
-                    <th style={{ padding: "0.75rem" }}>Created</th>
-                    <th style={{ padding: "0.75rem", textAlign: "right" }}>Actions</th>
+                  <tr style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--glass-surface-sunken)" }}>
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      APPLICATION
+                    </th>
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      STATUS
+                    </th>
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      ACTIVE KEYS
+                    </th>
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      CREATED
+                    </th>
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                        textAlign: "right",
+                      }}
+                    >
+                      ACTIONS
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {apps.map((app) => (
-                    <tr key={app.id} style={{ borderBottom: "1px solid var(--border-glass-subtle)" }}>
-                      <td style={{ padding: "0.75rem" }}>
-                        <div style={{ fontWeight: 600 }}>{app.name}</div>
-                        {app.description && (
-                          <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>{app.description}</div>
-                        )}
+                  {filteredApps.map((app) => (
+                    <tr
+                      key={app.id}
+                      style={{
+                        borderBottom: "1px solid var(--border-subtle)",
+                        transition: "background-color 0.15s ease",
+                        background: selectedApp?.id === app.id ? "var(--glass-surface-hover)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedApp?.id !== app.id) {
+                          e.currentTarget.style.backgroundColor = "var(--glass-surface-hover)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedApp?.id !== app.id) {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }
+                      }}
+                    >
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: "var(--surface-soft-blue)",
+                              border: "1px solid rgba(56, 103, 245, 0.2)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "var(--brand-primary)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <CodeIcon size={18} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.9375rem" }}>
+                              {app.name}
+                            </div>
+                            {app.description && (
+                              <div
+                                style={{
+                                  fontSize: "0.8125rem",
+                                  color: "var(--text-secondary)",
+                                  marginTop: "0.2rem",
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {app.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      <td style={{ padding: "0.75rem" }}>{getStatusBadge(app.status)}</td>
-                      <td style={{ padding: "0.75rem" }}>{app.active_keys_count} active</td>
-                      <td style={{ padding: "0.75rem", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-                        {new Date(app.created_at).toLocaleDateString()}
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        {getStatusBadge(app.status)}
                       </td>
-                      <td style={{ padding: "0.75rem", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                            fontSize: "0.8125rem",
+                            padding: "0.2rem 0.65rem",
+                            borderRadius: "999px",
+                            background: "var(--surface-soft-blue)",
+                            border: "1px solid rgba(56, 103, 245, 0.2)",
+                            color: "var(--brand-primary)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <KeyIcon size={13} />
+                          {app.active_keys_count} active
+                        </span>
+                      </td>
+                      <td
+                        style={{
+                          padding: "1rem 1.25rem",
+                          verticalAlign: "middle",
+                          fontSize: "0.8125rem",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                          <CalendarIcon size={13} style={{ opacity: 0.6 }} />
+                          {new Date(app.created_at).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle", textAlign: "right" }}>
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            gap: "0.5rem",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                          }}
+                        >
                           <button
                             type="button"
-                            className="btn-secondary"
+                            className={selectedApp?.id === app.id ? "btn-primary" : "btn-secondary"}
                             onClick={() => void loadAppData(app)}
-                            style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
+                            style={{ padding: "0.35rem 0.75rem", fontSize: "0.8125rem", fontWeight: 600 }}
                           >
                             Manage App
                           </button>
                           {app.status === "active" && (
                             <button
                               type="button"
-                              className="btn-ghost"
                               onClick={() => void handleSuspendApp(app)}
-                              style={{ padding: "0.375rem 0.5rem", fontSize: "0.8125rem" }}
+                              style={{
+                                padding: "0.35rem 0.65rem",
+                                fontSize: "0.8125rem",
+                                fontWeight: 500,
+                                borderRadius: "6px",
+                                border: "1px solid var(--border-subtle)",
+                                background: "var(--glass-surface-sunken)",
+                                color: "var(--status-warning)",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
                             >
                               Suspend
                             </button>
@@ -544,9 +965,18 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                           {app.status === "suspended" && (
                             <button
                               type="button"
-                              className="btn-ghost"
                               onClick={() => void handleReactivateApp(app)}
-                              style={{ padding: "0.375rem 0.5rem", fontSize: "0.8125rem", color: "var(--status-success)" }}
+                              style={{
+                                padding: "0.35rem 0.65rem",
+                                fontSize: "0.8125rem",
+                                fontWeight: 500,
+                                borderRadius: "6px",
+                                border: "1px solid rgba(16, 185, 129, 0.3)",
+                                background: "rgba(16, 185, 129, 0.1)",
+                                color: "var(--status-success)",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
                             >
                               Reactivate
                             </button>
@@ -554,9 +984,18 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                           {app.status !== "revoked" && (
                             <button
                               type="button"
-                              className="btn-ghost"
                               onClick={() => void handleRevokeApp(app)}
-                              style={{ padding: "0.375rem 0.5rem", fontSize: "0.8125rem", color: "var(--status-danger)" }}
+                              style={{
+                                padding: "0.35rem 0.65rem",
+                                fontSize: "0.8125rem",
+                                fontWeight: 500,
+                                borderRadius: "6px",
+                                border: "1px solid rgba(239, 68, 68, 0.3)",
+                                background: "rgba(239, 68, 68, 0.08)",
+                                color: "var(--status-danger)",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
                             >
                               Revoke
                             </button>
@@ -569,33 +1008,65 @@ export const TenantDeveloperConsolePage: React.FC = () => {
               </table>
             </div>
           )}
-        </GlassPanel>
+        </div>
 
         {/* Selected App Resources Section */}
         {selectedApp && (
-          <GlassPanel padding="lg" style={{ marginTop: "2rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+          <div className="table-card-container" style={{ marginTop: "2rem" }}>
+            <div
+              style={{
+                padding: "1.25rem 1.5rem",
+                borderBottom: "1px solid var(--border-subtle)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "1rem",
+                background: "var(--glass-surface)",
+              }}
+            >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <CodeIcon size={20} />
-                  <h2 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: "var(--surface-soft-blue)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--brand-primary)",
+                    }}
+                  >
+                    <CodeIcon size={16} />
+                  </div>
+                  <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                     {selectedApp.name}
                   </h2>
                   {getStatusBadge(selectedApp.status)}
                 </div>
-                <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", margin: "0.25rem 0 0" }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.8125rem", margin: "0.25rem 0 0" }}>
                   Manage scoped API keys and outbound webhook subscriptions for this application.
                 </p>
               </div>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 {selectedApp.status === "active" && appTab === "keys" && (
                   <button
                     type="button"
                     className="btn-primary"
                     onClick={() => setShowCreateKeyModal(true)}
-                    style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      padding: "0.45rem 0.85rem",
+                      fontSize: "0.8125rem",
+                    }}
                   >
-                    <span>+ Generate New Key</span>
+                    <PlusIcon size={14} />
+                    Generate New Key
                   </button>
                 )}
                 {selectedApp.status === "active" && appTab === "webhooks" && (
@@ -603,42 +1074,88 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     type="button"
                     className="btn-primary"
                     onClick={() => setShowCreateWebhookModal(true)}
-                    style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      padding: "0.45rem 0.85rem",
+                      fontSize: "0.8125rem",
+                    }}
                   >
-                    <span>+ Add Webhook</span>
+                    <PlusIcon size={14} />
+                    Add Webhook
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedApp(null)}
+                  style={{
+                    padding: "0.45rem 0.75rem",
+                    background: "var(--glass-surface-sunken)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "6px",
+                    color: "var(--text-secondary)",
+                    fontSize: "0.8125rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Close Inspector
+                </button>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div style={{ display: "flex", gap: "1rem", borderBottom: "1px solid var(--border-glass)", marginBottom: "1.5rem" }}>
+            {/* Segmented Tab Controls */}
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                padding: "0.75rem 1.5rem",
+                background: "var(--glass-surface-sunken)",
+                borderBottom: "1px solid var(--border-subtle)",
+              }}
+            >
               <button
                 type="button"
-                className="btn-ghost"
-                style={{
-                  padding: "0.5rem 1rem",
-                  borderBottom: appTab === "keys" ? "2px solid var(--accent-primary)" : "2px solid transparent",
-                  fontWeight: appTab === "keys" ? 600 : 400,
-                  color: appTab === "keys" ? "var(--text-primary)" : "var(--text-secondary)",
-                  borderRadius: 0,
-                }}
                 onClick={() => setAppTab("keys")}
+                style={{
+                  padding: "0.4rem 0.85rem",
+                  borderRadius: "6px",
+                  fontSize: "0.8125rem",
+                  fontWeight: appTab === "keys" ? 600 : 500,
+                  border: "none",
+                  background: appTab === "keys" ? "var(--glass-surface-elevated)" : "transparent",
+                  color: appTab === "keys" ? "var(--brand-primary)" : "var(--text-secondary)",
+                  boxShadow: appTab === "keys" ? "var(--shadow-sm)" : "none",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  transition: "all 0.15s ease",
+                }}
               >
+                <KeyIcon size={14} />
                 API Keys ({keys.length})
               </button>
               <button
                 type="button"
-                className="btn-ghost"
-                style={{
-                  padding: "0.5rem 1rem",
-                  borderBottom: appTab === "webhooks" ? "2px solid var(--accent-primary)" : "2px solid transparent",
-                  fontWeight: appTab === "webhooks" ? 600 : 400,
-                  color: appTab === "webhooks" ? "var(--text-primary)" : "var(--text-secondary)",
-                  borderRadius: 0,
-                }}
                 onClick={() => setAppTab("webhooks")}
+                style={{
+                  padding: "0.4rem 0.85rem",
+                  borderRadius: "6px",
+                  fontSize: "0.8125rem",
+                  fontWeight: appTab === "webhooks" ? 600 : 500,
+                  border: "none",
+                  background: appTab === "webhooks" ? "var(--glass-surface-elevated)" : "transparent",
+                  color: appTab === "webhooks" ? "var(--brand-primary)" : "var(--text-secondary)",
+                  boxShadow: appTab === "webhooks" ? "var(--shadow-sm)" : "none",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  transition: "all 0.15s ease",
+                }}
               >
+                <GlobeIcon size={14} />
                 Webhooks ({webhooks.length})
               </button>
             </div>
@@ -647,66 +1164,214 @@ export const TenantDeveloperConsolePage: React.FC = () => {
             {appTab === "keys" && (
               <>
                 {isLoadingKeys ? (
-                  <LoadingSpinner label="Loading keys..." />
+                  <div style={{ display: "flex", justifyContent: "center", padding: "3rem" }}>
+                    <LoadingSpinner label="Loading keys..." />
+                  </div>
                 ) : keys.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-secondary)" }}>
-                    <p>No API keys generated for this application yet.</p>
+                  <div style={{ textAlign: "center", padding: "3rem 1.5rem", color: "var(--text-secondary)" }}>
+                    <KeyIcon size={32} style={{ opacity: 0.4, marginBottom: "0.5rem" }} />
+                    <p style={{ margin: 0, fontWeight: 600, color: "var(--text-primary)" }}>
+                      No API keys generated for this application yet.
+                    </p>
+                    <p style={{ margin: "0.25rem 0 0", fontSize: "0.8125rem" }}>
+                      Generate a scoped API key to enable secure programmatic integrations.
+                    </p>
                   </div>
                 ) : (
-                  <div className="table-responsive">
-                    <table className="table" style={{ width: "100%", textAlign: "left" }}>
+                  <div className="table-card-scroll">
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                       <thead>
-                        <tr style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                          <th style={{ padding: "0.75rem" }}>Key Name</th>
-                          <th style={{ padding: "0.75rem" }}>Key Prefix</th>
-                          <th style={{ padding: "0.75rem" }}>Granted Scopes</th>
-                          <th style={{ padding: "0.75rem" }}>Status</th>
-                          <th style={{ padding: "0.75rem" }}>Last Used</th>
-                          <th style={{ padding: "0.75rem" }}>Created</th>
-                          <th style={{ padding: "0.75rem", textAlign: "right" }}>Actions</th>
+                        <tr style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--glass-surface-sunken)" }}>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            KEY NAME
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            KEY PREFIX
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            GRANTED SCOPES
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            STATUS
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            LAST USED
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            CREATED
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                              textAlign: "right",
+                            }}
+                          >
+                            ACTIONS
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {keys.map((k) => (
-                          <tr key={k.id} style={{ borderBottom: "1px solid var(--border-glass-subtle)" }}>
-                            <td style={{ padding: "0.75rem", fontWeight: 600 }}>{k.name}</td>
-                            <td style={{ padding: "0.75rem" }}>
-                              <code style={{ fontSize: "0.8125rem", background: "var(--bg-card)", padding: "0.2rem 0.4rem", borderRadius: "4px" }}>
+                          <tr
+                            key={k.id}
+                            style={{
+                              borderBottom: "1px solid var(--border-subtle)",
+                              transition: "background-color 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--glass-surface-hover)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "transparent";
+                            }}
+                          >
+                            <td
+                              style={{
+                                padding: "0.875rem 1rem",
+                                fontWeight: 600,
+                                color: "var(--text-primary)",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {k.name}
+                            </td>
+                            <td style={{ padding: "0.875rem 1rem" }}>
+                              <code
+                                style={{
+                                  fontSize: "0.8125rem",
+                                  background: "var(--glass-surface-sunken)",
+                                  border: "1px solid var(--border-subtle)",
+                                  padding: "0.2rem 0.45rem",
+                                  borderRadius: "4px",
+                                  color: "var(--text-primary)",
+                                  fontFamily: "var(--font-code)",
+                                }}
+                              >
                                 {k.key_prefix}...
                               </code>
                             </td>
-                            <td style={{ padding: "0.75rem" }}>
+                            <td style={{ padding: "0.875rem 1rem" }}>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
                                 {k.scopes.map((s) => (
-                                  <span key={s} className="badge badge-neutral" style={{ fontSize: "0.75rem" }}>
+                                  <span
+                                    key={s}
+                                    className="badge badge-neutral"
+                                    style={{ fontSize: "0.72rem", fontFamily: "var(--font-code)" }}
+                                  >
                                     {s}
                                   </span>
                                 ))}
                               </div>
                             </td>
-                            <td style={{ padding: "0.75rem" }}>{getStatusBadge(k.status)}</td>
-                            <td style={{ padding: "0.75rem", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                            <td style={{ padding: "0.875rem 1rem" }}>{getStatusBadge(k.status)}</td>
+                            <td
+                              style={{
+                                padding: "0.875rem 1rem",
+                                fontSize: "0.8125rem",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
                               {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : "Never"}
                             </td>
-                            <td style={{ padding: "0.75rem", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                            <td
+                              style={{
+                                padding: "0.875rem 1rem",
+                                fontSize: "0.8125rem",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
                               {new Date(k.created_at).toLocaleDateString()}
                             </td>
-                            <td style={{ padding: "0.75rem", textAlign: "right" }}>
+                            <td style={{ padding: "0.875rem 1rem", textAlign: "right" }}>
                               {k.status === "active" && selectedApp.status === "active" && (
-                                <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+                                <div style={{ display: "inline-flex", gap: "0.4rem" }}>
                                   <button
                                     type="button"
                                     className="btn-secondary"
                                     onClick={() => void handleRotateKey(k)}
-                                    style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                                    style={{ padding: "0.25rem 0.55rem", fontSize: "0.75rem", fontWeight: 600 }}
                                   >
                                     Rotate
                                   </button>
                                   <button
                                     type="button"
-                                    className="btn-ghost"
                                     onClick={() => void handleRevokeKey(k)}
-                                    style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", color: "var(--status-danger)" }}
+                                    style={{
+                                      padding: "0.25rem 0.55rem",
+                                      fontSize: "0.75rem",
+                                      fontWeight: 500,
+                                      borderRadius: "6px",
+                                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                                      background: "rgba(239, 68, 68, 0.08)",
+                                      color: "var(--status-danger)",
+                                      cursor: "pointer",
+                                    }}
                                   >
                                     Revoke
                                   </button>
@@ -726,51 +1391,159 @@ export const TenantDeveloperConsolePage: React.FC = () => {
             {appTab === "webhooks" && (
               <>
                 {isLoadingWebhooks ? (
-                  <LoadingSpinner label="Loading webhooks..." />
+                  <div style={{ display: "flex", justifyContent: "center", padding: "3rem" }}>
+                    <LoadingSpinner label="Loading webhooks..." />
+                  </div>
                 ) : webhooks.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-secondary)" }}>
-                    <p>No webhook subscriptions configured for this application yet.</p>
+                  <div style={{ textAlign: "center", padding: "3rem 1.5rem", color: "var(--text-secondary)" }}>
+                    <GlobeIcon size={32} style={{ opacity: 0.4, marginBottom: "0.5rem" }} />
+                    <p style={{ margin: 0, fontWeight: 600, color: "var(--text-primary)" }}>
+                      No webhook subscriptions configured for this application yet.
+                    </p>
+                    <p style={{ margin: "0.25rem 0 0", fontSize: "0.8125rem" }}>
+                      Configure an HTTP payload endpoint to receive real-time signed webhook events.
+                    </p>
                   </div>
                 ) : (
-                  <div className="table-responsive">
-                    <table className="table" style={{ width: "100%", textAlign: "left" }}>
+                  <div className="table-card-scroll">
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                       <thead>
-                        <tr style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                          <th style={{ padding: "0.75rem" }}>Target URL</th>
-                          <th style={{ padding: "0.75rem" }}>Event Topics</th>
-                          <th style={{ padding: "0.75rem" }}>Status</th>
-                          <th style={{ padding: "0.75rem" }}>Created</th>
-                          <th style={{ padding: "0.75rem", textAlign: "right" }}>Actions</th>
+                        <tr style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--glass-surface-sunken)" }}>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            TARGET URL
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            EVENT TOPICS
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            STATUS
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            CREATED
+                          </th>
+                          <th
+                            scope="col"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              color: "var(--text-secondary)",
+                              textAlign: "right",
+                            }}
+                          >
+                            ACTIONS
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {webhooks.map((w) => (
-                          <tr key={w.id} style={{ borderBottom: "1px solid var(--border-glass-subtle)" }}>
-                            <td style={{ padding: "0.75rem", fontWeight: 500 }}>
-                              <code style={{ fontSize: "0.8125rem", background: "var(--bg-card)", padding: "0.2rem 0.4rem", borderRadius: "4px" }}>
+                          <tr
+                            key={w.id}
+                            style={{
+                              borderBottom: "1px solid var(--border-subtle)",
+                              transition: "background-color 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--glass-surface-hover)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "transparent";
+                            }}
+                          >
+                            <td style={{ padding: "0.875rem 1rem", fontWeight: 500 }}>
+                              <code
+                                style={{
+                                  fontSize: "0.8125rem",
+                                  background: "var(--glass-surface-sunken)",
+                                  border: "1px solid var(--border-subtle)",
+                                  padding: "0.2rem 0.45rem",
+                                  borderRadius: "4px",
+                                  color: "var(--text-primary)",
+                                  fontFamily: "var(--font-code)",
+                                }}
+                              >
                                 {w.target_url}
                               </code>
                             </td>
-                            <td style={{ padding: "0.75rem" }}>
+                            <td style={{ padding: "0.875rem 1rem" }}>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
                                 {w.event_topics.map((t) => (
-                                  <span key={t} className="badge badge-neutral" style={{ fontSize: "0.75rem" }}>
+                                  <span
+                                    key={t}
+                                    className="badge badge-neutral"
+                                    style={{ fontSize: "0.72rem", fontFamily: "var(--font-code)" }}
+                                  >
                                     {t}
                                   </span>
                                 ))}
                               </div>
                             </td>
-                            <td style={{ padding: "0.75rem" }}>{getStatusBadge(w.status)}</td>
-                            <td style={{ padding: "0.75rem", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                            <td style={{ padding: "0.875rem 1rem" }}>{getStatusBadge(w.status)}</td>
+                            <td
+                              style={{
+                                padding: "0.875rem 1rem",
+                                fontSize: "0.8125rem",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
                               {new Date(w.created_at).toLocaleDateString()}
                             </td>
-                            <td style={{ padding: "0.75rem", textAlign: "right" }}>
-                              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+                            <td style={{ padding: "0.875rem 1rem", textAlign: "right" }}>
+                              <div
+                                style={{
+                                  display: "inline-flex",
+                                  gap: "0.4rem",
+                                  alignItems: "center",
+                                  justifyContent: "flex-end",
+                                }}
+                              >
                                 <button
                                   type="button"
                                   className="btn-secondary"
                                   onClick={() => void handleViewDeliveries(w)}
-                                  style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                                  style={{ padding: "0.25rem 0.55rem", fontSize: "0.75rem", fontWeight: 600 }}
                                 >
                                   Deliveries
                                 </button>
@@ -780,15 +1553,23 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                                       type="button"
                                       className="btn-secondary"
                                       onClick={() => void handleRotateWebhookSecret(w)}
-                                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                                      style={{ padding: "0.25rem 0.55rem", fontSize: "0.75rem", fontWeight: 600 }}
                                     >
                                       Rotate Secret
                                     </button>
                                     <button
                                       type="button"
-                                      className="btn-ghost"
                                       onClick={() => void handleSuspendWebhook(w)}
-                                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                                      style={{
+                                        padding: "0.25rem 0.55rem",
+                                        fontSize: "0.75rem",
+                                        fontWeight: 500,
+                                        borderRadius: "6px",
+                                        border: "1px solid var(--border-subtle)",
+                                        background: "var(--glass-surface-sunken)",
+                                        color: "var(--status-warning)",
+                                        cursor: "pointer",
+                                      }}
                                     >
                                       Suspend
                                     </button>
@@ -797,9 +1578,17 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                                 {w.status === "suspended" && selectedApp.status === "active" && (
                                   <button
                                     type="button"
-                                    className="btn-ghost"
                                     onClick={() => void handleReactivateWebhook(w)}
-                                    style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", color: "var(--status-success)" }}
+                                    style={{
+                                      padding: "0.25rem 0.55rem",
+                                      fontSize: "0.75rem",
+                                      fontWeight: 500,
+                                      borderRadius: "6px",
+                                      border: "1px solid rgba(16, 185, 129, 0.3)",
+                                      background: "rgba(16, 185, 129, 0.1)",
+                                      color: "var(--status-success)",
+                                      cursor: "pointer",
+                                    }}
                                   >
                                     Reactivate
                                   </button>
@@ -807,9 +1596,17 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                                 {w.status !== "revoked" && (
                                   <button
                                     type="button"
-                                    className="btn-ghost"
                                     onClick={() => void handleRevokeWebhook(w)}
-                                    style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", color: "var(--status-danger)" }}
+                                    style={{
+                                      padding: "0.25rem 0.55rem",
+                                      fontSize: "0.75rem",
+                                      fontWeight: 500,
+                                      borderRadius: "6px",
+                                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                                      background: "rgba(239, 68, 68, 0.08)",
+                                      color: "var(--status-danger)",
+                                      cursor: "pointer",
+                                    }}
                                   >
                                     Revoke
                                   </button>
@@ -824,17 +1621,65 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                 )}
               </>
             )}
-          </GlassPanel>
+          </div>
         )}
 
         {/* Modal: Register Application */}
         {showCreateAppModal && (
-          <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <GlassPanel padding="xl" style={{ maxWidth: "480px", width: "100%", background: "var(--bg-modal, #1e2238)" }}>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>Register Developer Application</h2>
+          <div
+            className="modal-backdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "500px",
+                width: "100%",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "14px",
+                boxShadow: "var(--shadow-xl)",
+                padding: "1.75rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Register Developer Application
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAppModal(false)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
+                >
+                  <CloseIcon size={18} />
+                </button>
+              </div>
               <form onSubmit={handleCreateApp}>
                 <div style={{ marginBottom: "1rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.375rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      marginBottom: "0.375rem",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Application Name *
                   </label>
                   <input
@@ -844,11 +1689,27 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     onChange={(e) => setNewAppName(e.target.value)}
                     placeholder="e.g. ERP Integration Service"
                     className="input-text"
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "0.625rem 0.75rem",
+                      borderRadius: "6px",
+                      background: "var(--input-bg)",
+                      border: "1px solid var(--border-subtle)",
+                      color: "var(--text-primary)",
+                    }}
                   />
                 </div>
                 <div style={{ marginBottom: "1.5rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.375rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      marginBottom: "0.375rem",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Description
                   </label>
                   <textarea
@@ -857,35 +1718,100 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     onChange={(e) => setNewAppDesc(e.target.value)}
                     placeholder="Purpose of this application integration..."
                     className="input-text"
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "0.625rem 0.75rem",
+                      borderRadius: "6px",
+                      background: "var(--input-bg)",
+                      border: "1px solid var(--border-subtle)",
+                      color: "var(--text-primary)",
+                      fontFamily: "inherit",
+                    }}
                   />
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                  <button type="button" className="btn-ghost" onClick={() => setShowCreateAppModal(false)}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowCreateAppModal(false)}
+                    style={{ padding: "0.5rem 1rem", fontSize: "0.875rem" }}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-primary" disabled={isSubmittingApp || !newAppName.trim()}>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isSubmittingApp || !newAppName.trim()}
+                    style={{ padding: "0.5rem 1.25rem", fontSize: "0.875rem" }}
+                  >
                     {isSubmittingApp ? "Registering..." : "Register Application"}
                   </button>
                 </div>
               </form>
-            </GlassPanel>
+            </div>
           </div>
         )}
 
         {/* Modal: Generate New Key */}
         {showCreateKeyModal && selectedApp && (
-          <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <GlassPanel padding="xl" style={{ maxWidth: "520px", width: "100%", background: "var(--bg-modal, #1e2238)" }}>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-                Generate Key for {selectedApp.name}
-              </h2>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "1.25rem" }}>
+          <div
+            className="modal-backdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "520px",
+                width: "100%",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "14px",
+                boxShadow: "var(--shadow-xl)",
+                padding: "1.75rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Generate Key for {selectedApp.name}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateKeyModal(false)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
+                >
+                  <CloseIcon size={18} />
+                </button>
+              </div>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.8125rem", margin: "0 0 1.25rem" }}>
                 Select allowed scopes. Scopes cannot be expanded after generation.
               </p>
               <form onSubmit={handleCreateKey}>
                 <div style={{ marginBottom: "1rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.375rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      marginBottom: "0.375rem",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Key Label *
                   </label>
                   <input
@@ -895,12 +1821,28 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     onChange={(e) => setNewKeyName(e.target.value)}
                     placeholder="e.g. Production Catalog Sync"
                     className="input-text"
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "0.625rem 0.75rem",
+                      borderRadius: "6px",
+                      background: "var(--input-bg)",
+                      border: "1px solid var(--border-subtle)",
+                      color: "var(--text-primary)",
+                    }}
                   />
                 </div>
 
                 <div style={{ marginBottom: "1.25rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.5rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      marginBottom: "0.5rem",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Allowed Scopes (Read-Only) *
                   </label>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -911,9 +1853,10 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                           display: "flex",
                           alignItems: "flex-start",
                           gap: "0.75rem",
-                          padding: "0.5rem 0.75rem",
-                          borderRadius: "6px",
-                          background: "var(--bg-card)",
+                          padding: "0.6rem 0.75rem",
+                          borderRadius: "8px",
+                          background: "var(--glass-surface-sunken)",
+                          border: "1px solid var(--border-subtle)",
                           cursor: "pointer",
                         }}
                       >
@@ -930,8 +1873,13 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                           style={{ marginTop: "0.2rem" }}
                         />
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{scope.label} (<code>{scope.id}</code>)</div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{scope.desc}</div>
+                          <div style={{ fontWeight: 600, fontSize: "0.8125rem", color: "var(--text-primary)" }}>
+                            {scope.label}{" "}
+                            <code style={{ fontSize: "0.75rem", color: "var(--brand-primary)" }}>({scope.id})</code>
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.15rem" }}>
+                            {scope.desc}
+                          </div>
                         </div>
                       </label>
                     ))}
@@ -939,40 +1887,71 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                  <button type="button" className="btn-ghost" onClick={() => setShowCreateKeyModal(false)}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowCreateKeyModal(false)}
+                    style={{ padding: "0.5rem 1rem", fontSize: "0.875rem" }}
+                  >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     className="btn-primary"
                     disabled={isSubmittingKey || !newKeyName.trim() || selectedScopes.length === 0}
+                    style={{ padding: "0.5rem 1.25rem", fontSize: "0.875rem" }}
                   >
                     {isSubmittingKey ? "Generating..." : "Generate Key"}
                   </button>
                 </div>
               </form>
-            </GlassPanel>
+            </div>
           </div>
         )}
 
         {/* Modal: ONE-TIME Plaintext Secret Display */}
         {oneTimeKey && (
-          <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-            <GlassPanel padding="xl" style={{ maxWidth: "560px", width: "100%", background: "var(--bg-modal, #1e2238)" }}>
+          <div
+            className="modal-backdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.75)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 2000,
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "560px",
+                width: "100%",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "14px",
+                boxShadow: "var(--shadow-xl)",
+                padding: "1.75rem",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
                 <div style={{ color: "var(--status-warning)" }}>
                   <ShieldCheckIcon size={28} />
                 </div>
-                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>API Key Generated Successfully</h2>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  API Key Generated Successfully
+                </h2>
               </div>
 
               <div
                 style={{
                   padding: "0.875rem 1rem",
-                  background: "var(--status-warning-bg, rgba(234, 179, 8, 0.1))",
-                  border: "1px solid var(--status-warning-border, rgba(234, 179, 8, 0.3))",
+                  background: "var(--status-warning-bg)",
+                  border: "1px solid var(--status-warning-border)",
                   borderRadius: "8px",
-                  color: "var(--status-warning, #eab308)",
+                  color: "var(--status-warning)",
                   fontSize: "0.875rem",
                   lineHeight: 1.5,
                   marginBottom: "1.25rem",
@@ -982,7 +1961,15 @@ export const TenantDeveloperConsolePage: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: "1.5rem" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "0.375rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    color: "var(--text-secondary)",
+                    marginBottom: "0.375rem",
+                  }}
+                >
                   Full API Key ({oneTimeKey.name})
                 </label>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -991,14 +1978,15 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     readOnly
                     value={oneTimeKey.key}
                     style={{
-                      fontFamily: "monospace",
+                      fontFamily: "var(--font-code)",
                       fontSize: "0.875rem",
                       width: "100%",
                       padding: "0.625rem 0.75rem",
-                      background: "var(--bg-card, #0f1225)",
+                      background: "var(--glass-surface-sunken)",
                       border: "1px solid var(--border-glass)",
                       borderRadius: "6px",
                       color: "var(--text-primary)",
+                      boxSizing: "border-box",
                     }}
                   />
                   <button
@@ -1009,8 +1997,15 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                       setCopiedKey(true);
                       setTimeout(() => setCopiedKey(false), 2000);
                     }}
-                    style={{ whiteSpace: "nowrap" }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      whiteSpace: "nowrap",
+                      padding: "0.5rem 0.85rem",
+                    }}
                   >
+                    <CopyIcon size={14} />
                     {copiedKey ? "Copied!" : "Copy Key"}
                   </button>
                 </div>
@@ -1024,27 +2019,74 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     setOneTimeKey(null);
                     setCopiedKey(false);
                   }}
+                  style={{ padding: "0.5rem 1.25rem" }}
                 >
                   I Have Saved My Key
                 </button>
               </div>
-            </GlassPanel>
+            </div>
           </div>
         )}
 
         {/* Modal: Create Webhook Subscription */}
         {showCreateWebhookModal && selectedApp && (
-          <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <GlassPanel padding="xl" style={{ maxWidth: "520px", width: "100%", background: "var(--bg-modal, #1e2238)" }}>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-                Add Webhook Subscription
-              </h2>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "1.25rem" }}>
+          <div
+            className="modal-backdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "520px",
+                width: "100%",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "14px",
+                boxShadow: "var(--shadow-xl)",
+                padding: "1.75rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Add Webhook Subscription
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateWebhookModal(false)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
+                >
+                  <CloseIcon size={18} />
+                </button>
+              </div>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.8125rem", margin: "0 0 1.25rem" }}>
                 Configure HTTP endpoint to receive real-time signed event notifications.
               </p>
               <form onSubmit={handleCreateWebhook}>
                 <div style={{ marginBottom: "1rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.375rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      marginBottom: "0.375rem",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Payload URL (HTTP/HTTPS) *
                   </label>
                   <input
@@ -1052,14 +2094,30 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     required
                     value={newWebhookUrl}
                     onChange={(e) => setNewWebhookUrl(e.target.value)}
-                    placeholder="https://api.yourdomain.com/webhooks/vibeconnect"
+                    placeholder="https://api.yourdomain.com/webhooks/envisage"
                     className="input-text"
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "0.625rem 0.75rem",
+                      borderRadius: "6px",
+                      background: "var(--input-bg)",
+                      border: "1px solid var(--border-subtle)",
+                      color: "var(--text-primary)",
+                    }}
                   />
                 </div>
 
                 <div style={{ marginBottom: "1.25rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.5rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      marginBottom: "0.5rem",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Subscribed Event Topics *
                   </label>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -1070,9 +2128,10 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                           display: "flex",
                           alignItems: "flex-start",
                           gap: "0.75rem",
-                          padding: "0.5rem 0.75rem",
-                          borderRadius: "6px",
-                          background: "var(--bg-card)",
+                          padding: "0.6rem 0.75rem",
+                          borderRadius: "8px",
+                          background: "var(--glass-surface-sunken)",
+                          border: "1px solid var(--border-subtle)",
                           cursor: "pointer",
                         }}
                       >
@@ -1086,10 +2145,15 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                               setNewWebhookTopics(newWebhookTopics.filter((t) => t !== topic.id));
                             }
                           }}
+                          style={{ marginTop: "0.2rem" }}
                         />
                         <div>
-                          <div style={{ fontSize: "0.875rem", fontWeight: 600 }}>{topic.label}</div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{topic.desc}</div>
+                          <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                            {topic.label}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.15rem" }}>
+                            {topic.desc}
+                          </div>
                         </div>
                       </label>
                     ))}
@@ -1097,45 +2161,109 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                  <button type="button" className="btn-ghost" onClick={() => setShowCreateWebhookModal(false)}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowCreateWebhookModal(false)}
+                    style={{ padding: "0.5rem 1rem", fontSize: "0.875rem" }}
+                  >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     className="btn-primary"
                     disabled={isSubmittingWebhook || !newWebhookUrl.trim() || newWebhookTopics.length === 0}
+                    style={{ padding: "0.5rem 1.25rem", fontSize: "0.875rem" }}
                   >
                     {isSubmittingWebhook ? "Creating..." : "Create Subscription"}
                   </button>
                 </div>
               </form>
-            </GlassPanel>
+            </div>
           </div>
         )}
 
         {/* Modal: One-time Webhook Secret Display */}
         {oneTimeSecret && (
-          <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <GlassPanel padding="xl" style={{ maxWidth: "560px", width: "100%", background: "var(--bg-modal, #1e2238)" }}>
+          <div
+            className="modal-backdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.75)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 2000,
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "560px",
+                width: "100%",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "14px",
+                boxShadow: "var(--shadow-xl)",
+                padding: "1.75rem",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <ShieldCheckIcon size={24} color="var(--status-warning)" />
-                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>
+                <ShieldCheckIcon size={24} style={{ color: "var(--status-warning)" }} />
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                   Save Your Webhook Signing Secret
                 </h2>
               </div>
-              <p style={{ color: "var(--status-warning)", fontSize: "0.875rem", marginBottom: "1rem", lineHeight: 1.5 }}>
+              <p
+                style={{
+                  color: "var(--status-warning)",
+                  fontSize: "0.875rem",
+                  marginBottom: "1rem",
+                  lineHeight: 1.5,
+                  padding: "0.75rem 1rem",
+                  background: "var(--status-warning-bg)",
+                  border: "1px solid var(--status-warning-border)",
+                  borderRadius: "8px",
+                }}
+              >
                 This signing secret will <strong>never be shown again</strong>. Store it safely to verify the HMAC-SHA256 signature in incoming requests.
               </p>
 
               <div style={{ marginBottom: "1.25rem" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-secondary)", marginBottom: "0.25rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    color: "var(--text-secondary)",
+                    marginBottom: "0.25rem",
+                  }}
+                >
                   Target Endpoint
                 </label>
-                <div style={{ fontSize: "0.875rem", fontFamily: "monospace", color: "var(--text-primary)", marginBottom: "0.75rem" }}>
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    fontFamily: "var(--font-code)",
+                    color: "var(--text-primary)",
+                    marginBottom: "0.75rem",
+                    wordBreak: "break-all",
+                  }}
+                >
                   {oneTimeSecret.url}
                 </div>
 
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-secondary)", marginBottom: "0.25rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    color: "var(--text-secondary)",
+                    marginBottom: "0.25rem",
+                  }}
+                >
                   Signing Secret
                 </label>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -1145,13 +2273,14 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     value={oneTimeSecret.secret}
                     style={{
                       flex: 1,
-                      fontFamily: "monospace",
+                      fontFamily: "var(--font-code)",
                       fontSize: "0.8125rem",
                       padding: "0.5rem 0.75rem",
-                      background: "var(--bg-card)",
+                      background: "var(--glass-surface-sunken)",
                       border: "1px solid var(--border-glass)",
                       borderRadius: "6px",
                       color: "var(--text-primary)",
+                      boxSizing: "border-box",
                     }}
                   />
                   <button
@@ -1162,8 +2291,15 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                       setCopiedSecret(true);
                       setTimeout(() => setCopiedSecret(false), 2000);
                     }}
-                    style={{ whiteSpace: "nowrap" }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      whiteSpace: "nowrap",
+                      padding: "0.5rem 0.85rem",
+                    }}
                   >
+                    <CopyIcon size={14} />
                     {copiedSecret ? "Copied!" : "Copy Secret"}
                   </button>
                 </div>
@@ -1177,72 +2313,144 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                     setOneTimeSecret(null);
                     setCopiedSecret(false);
                   }}
+                  style={{ padding: "0.5rem 1.25rem" }}
                 >
                   I Have Saved My Secret
                 </button>
               </div>
-            </GlassPanel>
+            </div>
           </div>
         )}
 
         {/* Modal: Deliveries History & Replay */}
         {deliveriesWebhook && (
-          <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <GlassPanel padding="xl" style={{ maxWidth: "760px", width: "100%", maxHeight: "85vh", overflowY: "auto", background: "var(--bg-modal, #1e2238)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <div
+            className="modal-backdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "780px",
+                width: "100%",
+                maxHeight: "85vh",
+                overflowY: "auto",
+                background: "var(--glass-surface-elevated)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "14px",
+                boxShadow: "var(--shadow-xl)",
+                padding: "1.75rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
                 <div>
-                  <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>
+                  <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                     Webhook Delivery History
                   </h2>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.8125rem", margin: "0.25rem 0 0" }}>
+                  <p
+                    style={{
+                      color: "var(--text-secondary)",
+                      fontSize: "0.8125rem",
+                      margin: "0.25rem 0 0",
+                      wordBreak: "break-all",
+                    }}
+                  >
                     {deliveriesWebhook.target_url}
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="btn-ghost"
                   onClick={() => setDeliveriesWebhook(null)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
                 >
-                  ✕
+                  <CloseIcon size={20} />
                 </button>
               </div>
 
               {isLoadingDeliveries ? (
-                <LoadingSpinner label="Loading delivery traces..." />
+                <div style={{ display: "flex", justifyContent: "center", padding: "3rem" }}>
+                  <LoadingSpinner label="Loading delivery traces..." />
+                </div>
               ) : deliveries.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>
-                  <p>No delivery attempts recorded for this webhook subscription yet.</p>
+                <div style={{ textAlign: "center", padding: "3rem 1.5rem", color: "var(--text-secondary)" }}>
+                  <p style={{ margin: 0, fontWeight: 600, color: "var(--text-primary)" }}>
+                    No delivery attempts recorded yet
+                  </p>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.8125rem" }}>
+                    Events dispatched to this endpoint will be logged here for observability and debugging.
+                  </p>
                 </div>
               ) : (
-                <div className="table-responsive">
-                  <table className="table" style={{ width: "100%", textAlign: "left", fontSize: "0.8125rem" }}>
+                <div className="table-card-scroll">
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.8125rem" }}>
                     <thead>
-                      <tr style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                        <th style={{ padding: "0.5rem" }}>Event Type</th>
-                        <th style={{ padding: "0.5rem" }}>Status</th>
-                        <th style={{ padding: "0.5rem" }}>HTTP Code</th>
-                        <th style={{ padding: "0.5rem" }}>Attempt</th>
-                        <th style={{ padding: "0.5rem" }}>Timestamp</th>
-                        <th style={{ padding: "0.5rem", textAlign: "right" }}>Actions</th>
+                      <tr style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--glass-surface-sunken)" }}>
+                        <th scope="col" style={{ padding: "0.75rem 1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>EVENT TYPE</th>
+                        <th scope="col" style={{ padding: "0.75rem 1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>STATUS</th>
+                        <th scope="col" style={{ padding: "0.75rem 1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>HTTP CODE</th>
+                        <th scope="col" style={{ padding: "0.75rem 1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>ATTEMPT</th>
+                        <th scope="col" style={{ padding: "0.75rem 1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>TIMESTAMP</th>
+                        <th scope="col" style={{ padding: "0.75rem 1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)", textAlign: "right" }}>ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
                       {deliveries.map((d) => (
-                        <tr key={d.id} style={{ borderBottom: "1px solid var(--border-glass-subtle)" }}>
-                          <td style={{ padding: "0.5rem", fontFamily: "monospace" }}>{d.event_type}</td>
-                          <td style={{ padding: "0.5rem" }}>{getStatusBadge(d.status)}</td>
-                          <td style={{ padding: "0.5rem" }}>{d.status_code ?? "—"}</td>
-                          <td style={{ padding: "0.5rem" }}>{d.attempt_count} / {d.max_attempts}</td>
-                          <td style={{ padding: "0.5rem", color: "var(--text-secondary)" }}>
+                        <tr
+                          key={d.id}
+                          style={{ borderBottom: "1px solid var(--border-subtle)", transition: "background-color 0.15s ease" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--glass-surface-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }}
+                        >
+                          <td style={{ padding: "0.75rem 1rem", fontFamily: "var(--font-code)", color: "var(--text-primary)" }}>
+                            {d.event_type}
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem" }}>{getStatusBadge(d.status)}</td>
+                          <td style={{ padding: "0.75rem 1rem" }}>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-code)",
+                                fontWeight: 600,
+                                color:
+                                  d.status_code && d.status_code >= 200 && d.status_code < 300
+                                    ? "var(--status-success)"
+                                    : "var(--status-danger)",
+                              }}
+                            >
+                              {d.status_code ?? "—"}
+                            </span>
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--text-secondary)" }}>
+                            {d.attempt_count} / {d.max_attempts}
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--text-secondary)" }}>
                             {new Date(d.created_at).toLocaleTimeString()}
                           </td>
-                          <td style={{ padding: "0.5rem", textAlign: "right" }}>
+                          <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
                             {d.status !== "delivered" && (
                               <button
                                 type="button"
                                 className="btn-secondary"
                                 onClick={() => void handleReplayDelivery(d.id)}
-                                style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }}
+                                style={{ padding: "0.25rem 0.55rem", fontSize: "0.75rem", fontWeight: 600 }}
                               >
                                 Replay
                               </button>
@@ -1254,7 +2462,7 @@ export const TenantDeveloperConsolePage: React.FC = () => {
                   </table>
                 </div>
               )}
-            </GlassPanel>
+            </div>
           </div>
         )}
       </div>

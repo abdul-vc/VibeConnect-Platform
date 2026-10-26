@@ -88,7 +88,7 @@ export const UserLifecycleModal: React.FC<UserLifecycleModalProps> = ({
       case "anonymize":
         return {
           title: "Anonymize Platform User (Phase 6F Privacy)",
-          description: `Irreversibly scrubs personal attributes for "${user.email}". Direct identifiers are replaced with pseudonymous values (anonymized-<uuid>@redacted.vibeconnect.local), account is permanently disabled, and credentials revoked. Immutable historical audit logs remain intact as forensic fact.`,
+          description: `Irreversibly scrubs personal attributes for "${user.email}". Direct identifiers are replaced with pseudonymous values (anonymized-<uuid>@redacted.envisage.local), account is permanently disabled, and credentials revoked. Immutable historical audit logs remain intact as forensic fact.`,
           buttonText: "Anonymize & Deactivate User",
           buttonClass: "btn btn-danger",
           showReason: true,

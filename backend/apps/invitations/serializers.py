@@ -21,6 +21,7 @@ class IssueInvitationSerializer(serializers.Serializer):
     product_id = serializers.UUIDField(required=False, allow_null=True, default=None)
     product_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list)
     module_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list)
+    lms_console = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
 
     def validate(self, attrs):
         org_id = attrs["organization_id"]
@@ -37,6 +38,22 @@ class IssueInvitationSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"role_id": "Role does not exist."})
         else:
             attrs["role"] = None
+
+        # RBAC validation: Tenant Console requires administrative role/privileges
+        lms_console = (attrs.get("lms_console") or "").strip()
+        if lms_console == "tenant_console":
+            role = attrs.get("role")
+            is_admin = (
+                attrs.get("membership_type") == MembershipType.TENANT_ADMIN
+                or (role and getattr(role, "is_admin_role", False))
+                or (role and getattr(role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                or (role and getattr(role, "name", "") == "Tenant Administrator")
+            )
+            if not is_admin:
+                raise serializers.ValidationError(
+                    {"lms_console": "Tenant Console requires Tenant Administrator privileges."}
+                )
+        attrs["lms_console"] = lms_console
 
         # Normalize product_ids and module_ids as strings
         p_ids = [str(pid) for pid in attrs.get("product_ids", [])]

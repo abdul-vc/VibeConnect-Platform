@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import { Link } from "react-router-dom";
 import type { OrganizationListItem } from "../../api/types.ts";
 import { EditIcon } from "../Icons.tsx";
 import { OrganizationStatusBadge } from "./OrganizationStatusBadge.tsx";
@@ -93,15 +94,23 @@ export const OrganizationListTable: React.FC<OrganizationListTableProps> = ({
                     </span>
                   </td>
                   <td style={{ textAlign: "right" }}>
-                    <div style={{ display: "inline-flex", gap: "0.4rem", justifyContent: "flex-end" }}>
-                      <a
-                        href={`/organizations/${org.id}`}
-                        className="btn btn-primary btn-sm"
-                        style={{ padding: "0.35rem 0.65rem", textDecoration: "none" }}
+                    <div style={{ display: "inline-flex", gap: "0.5rem", justifyContent: "flex-end", alignItems: "center" }}>
+                      <Link
+                        to={`/organizations/${org.id}`}
+                        className="btn-gradient"
+                        style={{
+                          padding: "0.35rem 0.85rem",
+                          fontSize: "0.75rem",
+                          borderRadius: "8px",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                        }}
                         aria-label={`View ${org.name}`}
                       >
-                        <span>View</span>
-                      </a>
+                        View
+                      </Link>
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -110,12 +119,14 @@ export const OrganizationListTable: React.FC<OrganizationListTableProps> = ({
                         title={isRetired ? "Retired organizations are permanently closed and cannot be modified." : "Edit organization"}
                         aria-label={isRetired ? `Edit disabled: ${org.name} is retired` : `Edit ${org.name}`}
                         style={{
-                          padding: "0.35rem 0.65rem",
+                          padding: "0.35rem 0.75rem",
+                          fontSize: "0.75rem",
+                          borderRadius: "8px",
                           opacity: isRetired ? 0.45 : 1,
                           cursor: isRetired ? "not-allowed" : "pointer",
                         }}
                       >
-                        <EditIcon size={14} />
+                        <EditIcon size={13} />
                         <span>Edit</span>
                       </button>
                     </div>
@@ -164,15 +175,21 @@ export const OrganizationListTable: React.FC<OrganizationListTableProps> = ({
                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                   Registered {formatDate(org.created_at)}
                 </span>
-                <div style={{ display: "flex", gap: "0.4rem" }}>
-                  <a
-                    href={`/organizations/${org.id}`}
-                    className="btn btn-primary btn-sm"
-                    style={{ textDecoration: "none" }}
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Link
+                    to={`/organizations/${org.id}`}
+                    className="btn-gradient"
+                    style={{
+                      padding: "0.35rem 0.75rem",
+                      fontSize: "0.75rem",
+                      borderRadius: "8px",
+                      textDecoration: "none",
+                      fontWeight: 700,
+                    }}
                     aria-label={`View ${org.name}`}
                   >
-                    <span>View</span>
-                  </a>
+                    View
+                  </Link>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -180,9 +197,9 @@ export const OrganizationListTable: React.FC<OrganizationListTableProps> = ({
                     disabled={isRetired}
                     title={isRetired ? "Retired organizations cannot be modified." : "Edit organization"}
                     aria-label={isRetired ? `Edit disabled: ${org.name} is retired` : `Edit ${org.name}`}
-                    style={{ opacity: isRetired ? 0.45 : 1 }}
+                    style={{ opacity: isRetired ? 0.45 : 1, borderRadius: "8px", fontSize: "0.75rem" }}
                   >
-                    <EditIcon size={14} />
+                    <EditIcon size={13} />
                     <span>Edit</span>
                   </button>
                 </div>

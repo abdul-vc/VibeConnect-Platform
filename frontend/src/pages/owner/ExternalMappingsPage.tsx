@@ -7,7 +7,9 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
+import { LayersIcon } from "../../components/Icons.tsx";
 import {
   integrationApi,
   ConnectorInstance,
@@ -164,7 +166,16 @@ export const ExternalMappingsPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", minWidth: 0, padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "0.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Infrastructure</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>External Identity Mappings</span>
+        </div>
+
         {/* Header */}
         <div
           style={{
@@ -177,67 +188,84 @@ export const ExternalMappingsPage: React.FC = () => {
             alignItems: "flex-start",
             flexWrap: "wrap",
             gap: "1rem",
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.35rem" }}>
-              <span
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "1.25rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <LayersIcon size={24} />
+            </div>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.35rem" }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    backgroundColor: "var(--brand-primary)",
+                    boxShadow: "0 0 10px var(--brand-primary)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "var(--brand-primary)",
+                  }}
+                >
+                  Control Plane • Identity Federation
+                </span>
+              </div>
+              <h1
+                className="heading-hero"
                 style={{
-                  display: "inline-block",
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: "var(--brand-primary, #6366f1)",
-                  boxShadow: "0 0 10px var(--brand-primary, #6366f1)",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  color: "var(--brand-primary, #6366f1)",
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                  letterSpacing: "-0.02em",
+                  color: "var(--text-primary)",
+                  margin: "0 0 0.35rem 0",
                 }}
               >
-                Control Plane • Identity Federation
-              </span>
+                External Identity Mappings
+              </h1>
+              <p
+                style={{
+                  fontSize: "0.9375rem",
+                  color: "var(--text-secondary)",
+                  margin: 0,
+                  maxWidth: "680px",
+                  lineHeight: 1.5,
+                }}
+              >
+                Map Envisage tenant organizations and users to external LMS identities. Enforces strict identity isolation without assuming UUID equality.
+              </p>
             </div>
-            <h1
-              style={{
-                fontSize: "1.75rem",
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                margin: "0 0 0.4rem 0",
-              }}
-            >
-              External Identity Mappings
-            </h1>
-            <p
-              style={{
-                fontSize: "0.9375rem",
-                color: "var(--text-secondary)",
-                margin: 0,
-                maxWidth: "680px",
-                lineHeight: 1.5,
-              }}
-            >
-              Map VibeConnect tenant organizations and users to external LMS identities. Enforces strict identity isolation without assuming UUID equality.
-            </p>
           </div>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
             <button
               type="button"
               onClick={() => handleOpenCreateModal("tenant")}
               disabled={!selectedInstance}
-              className="btn-secondary"
-              style={{
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                fontSize: "0.875rem",
-                cursor: selectedInstance ? "pointer" : "not-allowed",
-              }}
+              className="btn btn-secondary"
             >
               + Add Tenant Mapping
             </button>
@@ -245,13 +273,7 @@ export const ExternalMappingsPage: React.FC = () => {
               type="button"
               onClick={() => handleOpenCreateModal("user")}
               disabled={!selectedInstance}
-              className="btn-primary"
-              style={{
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                fontSize: "0.875rem",
-                cursor: selectedInstance ? "pointer" : "not-allowed",
-              }}
+              className="btn btn-gradient"
             >
               + Add User Mapping
             </button>
@@ -477,7 +499,7 @@ export const ExternalMappingsPage: React.FC = () => {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid var(--border-subtle)", textAlign: "left" }}>
-                          <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>VibeConnect Organization</th>
+                          <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>Envisage Organization</th>
                           <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>External Tenant ID</th>
                           <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>Instance</th>
                           <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>Configured</th>
@@ -541,7 +563,7 @@ export const ExternalMappingsPage: React.FC = () => {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid var(--border-subtle)", textAlign: "left" }}>
-                          <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>VibeConnect User</th>
+                          <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>Envisage User</th>
                           <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>Organization</th>
                           <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>External User ID</th>
                           <th style={{ padding: "0.75rem", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
@@ -780,7 +802,7 @@ export const ExternalMappingsPage: React.FC = () => {
 
                 <div>
                   <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-                    VibeConnect Organization ID *
+                    Envisage Organization ID *
                   </label>
                   <input
                     type="text"
@@ -803,7 +825,7 @@ export const ExternalMappingsPage: React.FC = () => {
                 {modalType === "user" && (
                   <div>
                     <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-                      VibeConnect User ID *
+                      Envisage User ID *
                     </label>
                     <input
                       type="text"

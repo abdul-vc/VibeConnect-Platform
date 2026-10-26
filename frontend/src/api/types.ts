@@ -1670,6 +1670,7 @@ export interface IssueInvitationPayload {
   readonly product_id?: string | null;
   readonly product_ids?: readonly string[];
   readonly module_ids?: readonly string[];
+  readonly lms_console?: string;
 }
 
 export interface IssueInvitationResponse {

@@ -327,7 +327,7 @@ export const TenantDashboardPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(99, 102, 241, 0.12)",
+                      background: "var(--surface-soft-lavender)",
                       color: "var(--brand-primary)",
                       display: "flex",
                       alignItems: "center",
@@ -377,7 +377,7 @@ export const TenantDashboardPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(16, 185, 129, 0.12)",
+                      background: "var(--surface-soft-mint)",
                       color: "var(--status-success)",
                       display: "flex",
                       alignItems: "center",
@@ -427,8 +427,8 @@ export const TenantDashboardPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(14, 165, 233, 0.12)",
-                      color: "#0ea5e9",
+                      background: "var(--surface-soft-blue)",
+                      color: "var(--brand-sky)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -477,8 +477,8 @@ export const TenantDashboardPage: React.FC = () => {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      background: "rgba(99, 102, 241, 0.12)",
-                      color: "var(--brand-primary)",
+                      background: "var(--surface-soft-peach)",
+                      color: "var(--status-warning)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -884,6 +884,198 @@ export const TenantDashboardPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Row matching Design #2 Screen 3 */}
+            <div style={{ marginTop: "1rem" }}>
+              <div style={{ marginBottom: "1rem" }}>
+                <h2 style={{ fontSize: "1.0625rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Quick Actions
+                </h2>
+                <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", margin: "0.2rem 0 0 0" }}>
+                  Fast administrative operations for user seats, roles, and product access
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                {/* 1. Add Member */}
+                <Link
+                  to="/tenant-users"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-lavender)",
+                      color: "var(--brand-primary)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <UserIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      Invite Members
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Onboard colleagues to organization
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
+
+                {/* 2. Manage Access */}
+                <Link
+                  to="/assignments"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-blue)",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <LayersIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      Manage Access
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Assign products & user roles
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
+
+                {/* 3. View Reports */}
+                <Link
+                  to="/audit-logs"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-mint)",
+                      color: "#059669",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ShieldCheckIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      View Reports
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Activity logs & security events
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
+
+                {/* 4. Request Product */}
+                <Link
+                  to="/showcase"
+                  className="quick-action-card"
+                  style={{
+                    background: "var(--glass-surface-elevated)",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "14px",
+                    padding: "1.125rem 1.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    textDecoration: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-soft-peach)",
+                      color: "#d97706",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <PlusIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      Explore Products
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      Discover modules & solutions
+                    </div>
+                  </div>
+                  <ArrowRightIcon size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                </Link>
               </div>
             </div>
           </>

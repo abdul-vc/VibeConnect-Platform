@@ -147,9 +147,9 @@ export const TenantSettingsPage: React.FC = () => {
                       width: "100%",
                       padding: "0.65rem 0.85rem",
                       borderRadius: 8,
-                      border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                      background: "rgba(0, 0, 0, 0.2)",
-                      color: "var(--text-primary, #fff)",
+                      border: "1px solid var(--input-border)",
+                      background: "var(--input-bg)",
+                      color: "var(--text-primary)",
                       fontSize: "0.9rem",
                     }}
                   />
@@ -168,9 +168,9 @@ export const TenantSettingsPage: React.FC = () => {
                       width: "100%",
                       padding: "0.65rem 0.85rem",
                       borderRadius: 8,
-                      border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                      background: "rgba(0, 0, 0, 0.2)",
-                      color: "var(--text-primary, #fff)",
+                      border: "1px solid var(--input-border)",
+                      background: "var(--input-bg)",
+                      color: "var(--text-primary)",
                       fontSize: "0.9rem",
                       resize: "vertical",
                     }}

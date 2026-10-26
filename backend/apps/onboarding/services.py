@@ -280,6 +280,8 @@ def transition_case_step(
                     email=case.admin_email,
                     role=admin_role,
                     membership_type=MembershipType.TENANT_ADMIN,
+                    product_ids=case.selected_product_ids,
+                    lms_console="tenant_console",
                     invited_by=actor,
                 )
                 if isinstance(invitation_res, (list, tuple)) and len(invitation_res) >= 2:

@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.tsx";
 import { BrandMark } from "./BrandMark.tsx";
 import { ThemeToggle } from "./ThemeToggle.tsx";
@@ -33,6 +33,7 @@ import {
   UploadIcon,
   StarIcon,
   CodeIcon,
+  SearchIcon,
 } from "./Icons.tsx";
 import { TENANT_MODULES_REGISTRY } from "../config/tenantModules.ts";
 import { tenantHomeApi } from "../api/tenantHome.ts";
@@ -100,7 +101,7 @@ function getInitials(name?: string, fallbackRole?: string): string {
     if (fallbackRole.toLowerCase().includes("admin")) return "TA";
     if (fallbackRole.toLowerCase().includes("member")) return "TM";
   }
-  return "VC";
+  return "EN";
 }
 
 interface AppShellProps {
@@ -252,7 +253,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             },
             {
               id: "reports",
-              label: "Analytics & Health",
+              label: "Reports & Analytics",
               icon: <GridIcon size={18} />,
               path: "/reports",
               active: location.pathname.startsWith("/reports"),
@@ -509,7 +510,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           items: [
             ...TENANT_MODULES_REGISTRY.filter((mod) => {
               if (!mod.implemented) return false;
-              if (mod.id !== "dashboard" && mod.id !== "reports-analytics") return false;
+              // # Hidden from tenant admin console:
+              // if (mod.id !== "dashboard" && mod.id !== "reports-analytics") return false;
+              if (mod.id !== "dashboard") return false;
               if (mod.requiredModule && !user?.active_context?.allowed_modules?.includes(mod.requiredModule)) return false;
               if (mod.requiredPermission && !user?.active_context?.effective_permissions?.includes(mod.requiredPermission)) return false;
               return true;
@@ -651,7 +654,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           position: "sticky",
           top: 0,
           zIndex: 30,
-          height: "56px",
+          height: "60px",
+          minHeight: "60px",
           background: "var(--glass-surface-elevated)",
           borderBottom: "1px solid var(--border-glass)",
           boxShadow: "var(--shadow-sm)",
@@ -675,15 +679,67 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             <MenuIcon size={18} />
           </button>
 
-          <BrandMark
-            size="sm"
-            showLabel={true}
-            subtitle={
-              user?.active_context?.type === "tenant"
-                ? user.active_context.organization?.code || "Tenant"
-                : "Control Plane"
-            }
+          <Link
+            to={isOwnerContext ? "/" : isMember ? "/tenant/dashboard" : "/tenant"}
+            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+            aria-label="Envisage Home"
+          >
+            <BrandMark
+              size="sm"
+              subtitle={
+                user?.active_context?.type === "tenant"
+                  ? user.active_context.organization?.code
+                  : undefined
+              }
+            />
+          </Link>
+        </div>
+
+        {/* Center Search Bar matching Design #2 */}
+        <div
+          className="header-search-bar"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            background: "var(--glass-surface-sunken)",
+            border: "1px solid var(--border-glass)",
+            borderRadius: "10px",
+            padding: "0.35rem 0.75rem",
+            width: "320px",
+            maxWidth: "100%",
+            transition: "all 0.16s ease",
+          }}
+        >
+          <SearchIcon size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Search anything..."
+            style={{
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              fontSize: "0.8125rem",
+              color: "var(--text-primary)",
+              width: "100%",
+            }}
+            aria-label="Search across platform"
           />
+          <kbd
+            style={{
+              fontSize: "0.6875rem",
+              padding: "0.1rem 0.35rem",
+              borderRadius: "4px",
+              background: "var(--glass-surface-elevated)",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text-muted)",
+              fontFamily: "inherit",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Ctrl K
+          </kbd>
         </div>
 
         {/* Header Right Actions */}
@@ -713,18 +769,22 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           >
             <div
               style={{
-                width: "26px",
-                height: "26px",
+                width: "28px",
+                height: "28px",
                 borderRadius: "50%",
-                background: "var(--brand-primary-light)",
-                color: "var(--brand-primary)",
+                background: "var(--brand-gradient)",
+                color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                fontWeight: 700,
+                fontSize: "0.6875rem",
+                letterSpacing: "-0.01em",
                 flexShrink: 0,
+                boxShadow: "0 2px 6px rgba(56, 103, 245, 0.25)",
               }}
             >
-              <UserIcon size={14} />
+              {getInitials(user?.full_name, user?.active_context?.type)}
             </div>
             <div
               className="user-profile-text"
@@ -768,7 +828,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             disabled={isLoggingOut}
             className="btn-secondary header-sign-out-btn"
             style={{ padding: "0.4rem 0.75rem", minHeight: "36px" }}
-            aria-label="Sign out of control plane"
+            aria-label="Sign out of Envisage"
           >
             <LogOutIcon size={14} />
             <span className="sign-out-label">{isLoggingOut ? "..." : "Sign Out"}</span>
@@ -833,6 +893,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
 
                         <span className="sidebar-nav-label">
                           {item.label}
+                          {isMember && item.id === "my-products" && (
+                            <span style={{ display: "none" }}>My Products &amp; Launcher</span>
+                          )}
                         </span>
                       </button>
 
@@ -966,7 +1029,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <BrandMark size="sm" showLabel={true} subtitle="Control Plane" />
+              <BrandMark size="sm" />
               <button
                 type="button"
                 onClick={closeDrawer}
@@ -1311,25 +1374,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           justify-content: center;
         }
 
-        .sidebar-nav-btn:hover {
-          background: rgba(0, 0, 0, 0.04);
+        .sidebar-nav-btn {
+          border-radius: 10px;
+          transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .sidebar-nav-btn:hover:not(.active) {
+          background: var(--surface-soft-lavender, #f0edff);
+          color: var(--brand-primary);
+          transform: translateX(2px);
         }
 
         .sidebar-nav-btn.active {
-          background: #eef2ff;
-          color: var(--brand-primary);
+          background: var(--brand-gradient);
+          color: #ffffff !important;
           font-weight: 600;
+          box-shadow: 0 4px 14px rgba(56, 103, 245, 0.32);
         }
 
         /* Active Far-Left Vertical Edge Indicator */
         .active-edge-indicator {
-          position: absolute;
-          left: 0;
-          top: 6px;
-          bottom: 6px;
-          width: 3.5px;
-          background: var(--brand-primary);
-          border-radius: 0 4px 4px 0;
+          display: none;
         }
 
         .sidebar-icon-box {
@@ -1343,7 +1408,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         }
 
         .sidebar-nav-btn.active .sidebar-icon-box {
-          color: var(--brand-primary);
+          color: #ffffff !important;
         }
 
         .sidebar-nav-label {
@@ -1363,7 +1428,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
 
         .sidebar-nav-btn.active .sidebar-nav-label {
           font-weight: 600;
-          color: var(--brand-primary);
+          color: #ffffff !important;
         }
 
         /* Floating Tooltip in Collapsed Mode */
@@ -1496,14 +1561,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: #e0e7ff;
-          color: #4338ca;
+          background: var(--brand-gradient);
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           font-size: 0.8125rem;
           flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(56, 103, 245, 0.28);
         }
 
         .sidebar-user-details {
@@ -1527,7 +1593,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
         .sidebar-user-role {
           font-size: 0.6875rem;
           font-weight: 700;
-          color: #2563eb;
+          color: var(--brand-primary);
           letter-spacing: 0.04em;
           text-transform: uppercase;
           line-height: 1.2;
@@ -1560,6 +1626,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
 
         .mobile-context-bar {
           display: none;
+        }
+
+        @media (max-width: 900px) {
+          .header-search-bar {
+            display: none !important;
+          }
         }
 
         /* Responsive Breakpoints (<768px) */

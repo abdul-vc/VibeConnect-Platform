@@ -6,9 +6,11 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
 import { usageApi, type OwnerUsageBucket } from "../../api/usage.ts";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
+import { GridIcon, RefreshIcon } from "../../components/Icons.tsx";
 
 export const UsagePage: React.FC = () => {
   const [buckets, setBuckets] = useState<OwnerUsageBucket[]>([]);
@@ -44,17 +46,71 @@ export const UsagePage: React.FC = () => {
   return (
     <AppShell>
       <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Platform</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Usage & Metering</span>
+        </div>
+
         {/* Header */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h1
-            className="heading-hero"
-            style={{ fontSize: "1.75rem", margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+              }}
+            >
+              <GridIcon size={24} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <h1
+                  className="heading-hero"
+                  style={{ fontSize: "1.75rem", margin: 0, color: "var(--text-primary)", fontWeight: 800, letterSpacing: "-0.02em" }}
+                >
+                  Usage & Metering
+                </h1>
+                <span
+                  style={{
+                    background: "rgba(56, 103, 245, 0.1)",
+                    color: "var(--brand-primary)",
+                    padding: "0.2rem 0.65rem",
+                    borderRadius: 999,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    border: "1px solid rgba(56, 103, 245, 0.2)",
+                  }}
+                >
+                  {totalCount} Active Meters
+                </span>
+              </div>
+              <p style={{ margin: "0.25rem 0 0", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Cross-tenant aggregated usage buckets, consumption volume, and quota compliance status.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void fetchUsageData(page)}
+            disabled={isLoading}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
           >
-            Usage & Metering
-          </h1>
-          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
-            Cross-tenant aggregated usage buckets, consumption volume, and quota compliance status.
-          </p>
+            <RefreshIcon size={14} />
+            Refresh
+          </button>
         </div>
 
         {/* Error State */}

@@ -294,17 +294,12 @@ test("AC-3: Navigation visibility for Owner and Tenant reports", () => {
   );
 
   assert.ok(
-    tenantHtml.includes("Advanced Analytics, Adoption &amp; Tenant Health") ||
-    tenantHtml.includes("Advanced Analytics, Adoption & Tenant Health") ||
-    tenantHtml.includes("Reports &amp; Analytics") ||
-    tenantHtml.includes("Reports & Analytics"),
-    "Tenant nav must render Reports & Analytics when permitted"
+    !tenantHtml.includes("Advanced Analytics, Adoption &amp; Tenant Health") &&
+    !tenantHtml.includes("Advanced Analytics, Adoption & Tenant Health"),
+    "Tenant nav must not render Reports & Analytics when hidden from tenant console"
   );
 
-  // 3. Verify tenant registry entry
+  // 3. Verify tenant registry entry is commented out / hidden from tenant console
   const reportsModule = TENANT_MODULES_REGISTRY.find((m) => m.id === "reports-analytics");
-  assert.ok(reportsModule, "TENANT_MODULES_REGISTRY must contain reports-analytics module");
-  assert.strictEqual(reportsModule?.requiredModule, "tenant_reports");
-  assert.strictEqual(reportsModule?.requiredPermission, "reports.view");
-  assert.strictEqual(reportsModule?.implemented, true);
+  assert.strictEqual(reportsModule, undefined, "reports-analytics module must be hidden from tenant registry");
 });

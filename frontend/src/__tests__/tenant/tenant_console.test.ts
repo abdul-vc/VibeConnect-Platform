@@ -139,7 +139,7 @@ function createMockAuthContext(
 // Test 1: TENANT_MODULES_REGISTRY completeness
 // ----------------------------------------------------------------------------
 test("test_tenant_modules_registry_contains_all_17_modules", () => {
-  assert.equal(TENANT_MODULES_REGISTRY.length, 18, "Registry must contain exactly 18 modules");
+  assert.equal(TENANT_MODULES_REGISTRY.length, 17, "Registry must contain exactly 17 modules");
 
   const expectedIds = [
     "dashboard",
@@ -158,7 +158,7 @@ test("test_tenant_modules_registry_contains_all_17_modules", () => {
     "security-policies",
     "audit-log",
     "notifications",
-    "reports-analytics",
+    // reports-analytics is hidden from tenant admin console
     "tenant-settings",
   ];
 
@@ -169,9 +169,9 @@ test("test_tenant_modules_registry_contains_all_17_modules", () => {
     assert.ok(found.path, `Module ${expectedId} must have a route path`);
   }
 
-  // Verify implemented count: all 18 modules implemented
+  // Verify implemented count: all 17 active modules implemented
   const implemented = TENANT_MODULES_REGISTRY.filter((m) => m.implemented);
-  assert.equal(implemented.length, 18, "All 18 modules should be marked implemented: true");
+  assert.equal(implemented.length, 17, "All 17 modules should be marked implemented: true");
 
   const implementedIds = implemented.map((m) => m.id).sort();
   const expectedImplementedIds = [...expectedIds].sort();

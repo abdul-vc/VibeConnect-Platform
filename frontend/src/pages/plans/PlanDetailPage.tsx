@@ -245,13 +245,31 @@ export const PlanDetailPage: React.FC = () => {
               </div>
             )}
 
-            <div className="plan-summary-header">
-              <div>
+            <div className="plan-summary-header" style={{ display: "flex", alignItems: "flex-start", gap: "1.25rem" }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                  border: "1px solid rgba(56, 103, 245, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--brand-primary)",
+                  boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                  flexShrink: 0,
+                }}
+              >
+                <LayersIcon size={24} />
+              </div>
+
+              <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
                   <span className="product-code-pill" style={{ fontSize: "0.9375rem" }}>
                     {plan.code}
                   </span>
-                  <h1 className="heading-hero" style={{ fontSize: "1.5rem", margin: 0 }}>
+                  <h1 className="heading-hero" style={{ fontSize: "1.625rem", margin: 0, fontWeight: 800, letterSpacing: "-0.02em" }}>
                     {plan.name}
                   </h1>
                   <CatalogHealthBadge health={plan.catalog_health} />
@@ -275,7 +293,7 @@ export const PlanDetailPage: React.FC = () => {
                   )}
                 </div>
                 {plan.description && (
-                  <p className="text-body" style={{ marginTop: "0.5rem", fontSize: "0.875rem", maxWidth: "760px" }}>
+                  <p className="text-body" style={{ marginTop: "0.5rem", fontSize: "0.875rem", maxWidth: "760px", color: "var(--text-secondary)" }}>
                     {plan.description}
                   </p>
                 )}
@@ -285,7 +303,7 @@ export const PlanDetailPage: React.FC = () => {
                 {/* Public Visibility Controlled Action Button */}
                 <button
                   type="button"
-                  className={`btn ${plan.is_public ? "btn-secondary" : "btn-primary"} btn-sm`}
+                  className={`btn ${plan.is_public ? "btn-secondary" : "btn-gradient"} btn-sm`}
                   onClick={handleTogglePublic}
                   disabled={isTogglingPublic}
                   title={
@@ -392,7 +410,7 @@ export const PlanDetailPage: React.FC = () => {
             {plan && (
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-gradient btn-sm"
                 onClick={(e) => {
                   triggerRef.current = e.currentTarget;
                   setIsCreateVersionOpen(true);

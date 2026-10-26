@@ -163,21 +163,41 @@ export const OrganizationDetailPage: React.FC = () => {
         {/* Organization Header Card */}
         {!isOrgLoading && organization && (
           <div className="org-header-card">
-            <div className="org-header-main">
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                <span className="product-code-pill" style={{ fontSize: "0.9375rem" }}>
-                  {organization.code}
-                </span>
-                <h1 className="heading-hero" style={{ fontSize: "1.5rem", margin: 0 }}>
-                  {organization.name}
-                </h1>
-                <OrganizationStatusBadge status={organization.status} />
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "1.25rem" }}>
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                  border: "1px solid rgba(56, 103, 245, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--brand-primary)",
+                  boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                  flexShrink: 0,
+                }}
+              >
+                <BuildingIcon size={26} />
               </div>
-              {organization.description && (
-                <p className="text-body" style={{ marginTop: "0.5rem", fontSize: "0.875rem", maxWidth: "760px" }}>
-                  {organization.description}
-                </p>
-              )}
+
+              <div className="org-header-main" style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <span className="product-code-pill" style={{ fontSize: "0.9375rem" }}>
+                    {organization.code}
+                  </span>
+                  <h1 className="heading-hero" style={{ fontSize: "1.625rem", margin: 0, fontWeight: 800, letterSpacing: "-0.02em" }}>
+                    {organization.name}
+                  </h1>
+                  <OrganizationStatusBadge status={organization.status} />
+                </div>
+                {organization.description && (
+                  <p className="text-body" style={{ marginTop: "0.5rem", fontSize: "0.875rem", maxWidth: "760px" }}>
+                    {organization.description}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="org-meta-strip">
@@ -334,7 +354,7 @@ export const OrganizationDetailPage: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          className="btn btn-primary"
+                          className="btn btn-gradient"
                           onClick={(e) => {
                             triggerRef.current = e.currentTarget;
                             setIsCreateSubOpen(true);
@@ -505,10 +525,11 @@ export const OrganizationDetailPage: React.FC = () => {
         }
 
         .org-tab-btn.active {
-          background: var(--brand-primary-light);
-          color: var(--brand-primary);
-          border-color: var(--border-glass);
+          background: linear-gradient(135deg, #3867f5 0%, #2952cc 100%);
+          color: #ffffff;
+          border-color: transparent;
           font-weight: 600;
+          box-shadow: 0 4px 12px rgba(56, 103, 245, 0.25);
         }
 
         @media (max-width: 640px) {

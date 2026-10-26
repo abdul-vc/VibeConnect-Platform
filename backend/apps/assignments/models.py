@@ -146,6 +146,12 @@ class UserProductAssignment(models.Model):
         default="",
         help_text="Reason for termination.",
     )
+    launch_console = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Selected launch console destination for product ('tenant_console', 'normal_user_console').",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

@@ -68,6 +68,12 @@ class UserInvitation(models.Model):
         blank=True,
         help_text="Product module IDs pre-assigned to the user upon onboarding/activation.",
     )
+    lms_console = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Selected console for LMS product ('tenant_console' or 'normal_user_console').",
+    )
     email = models.EmailField(
         max_length=254,
         db_index=True,

@@ -87,6 +87,7 @@ def issue_invitation(
     product: Any = None,
     product_ids: list[str] | None = None,
     module_ids: list[str] | None = None,
+    lms_console: str = "",
     invited_by: Any = None,
     expiry_days: int = 7,
 ) -> tuple[UserInvitation, str]:
@@ -151,6 +152,7 @@ def issue_invitation(
         product=product,
         product_ids=product_ids or [],
         module_ids=module_ids or [],
+        lms_console=lms_console or "",
         email=clean_email,
         role=role,
         membership_type=membership_type,
@@ -376,6 +378,8 @@ def accept_invitation(
         if p_ids:
             from apps.assignments.services.assignment_services import assign_user_to_product
             from apps.product_registry.models import ProductModule
+            from apps.integration_hub.lifecycle_service import is_lms_product
+            from apps.product_registry.models import Product, ProductModule
             for pid in p_ids:
                 try:
                     prod_mods = list(
@@ -386,13 +390,17 @@ def accept_invitation(
                         ).values_list("id", flat=True)
                     ) if m_ids else None
 
+                    target_prod = Product.objects.filter(id=pid).first()
+                    launch_console = invitation.lms_console if (target_prod and is_lms_product(target_prod)) else ""
+
                     assign_user_to_product(
                         organization_id=invitation.organization_id,
                         user_id=user.id,
                         product_id=pid,
                         module_ids=prod_mods,
                         membership_id=membership.id,
-                        actor=user,
+                        actor=invitation.invited_by or user,
+                        launch_console=launch_console,
                     )
                 except Exception as exc:
                     logger.warning("Auto-assignment for product %s on invitation accept: %s", pid, exc)

@@ -12,8 +12,8 @@ export default defineConfig(({ mode }) => {
   const cspHeader = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    "font-src 'self' data:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: https:",
     "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*",
     `frame-src 'self' ${allowedFrameOrigins}`,

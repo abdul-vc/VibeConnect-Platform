@@ -8,6 +8,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { entitlementsApi } from "../api/entitlements.ts";
 import { organizationsApi } from "../api/organizations.ts";
 import { productsApi } from "../api/products.ts";
@@ -283,24 +284,66 @@ export const OrganizationProductAccessPage: React.FC = () => {
         {liveAnnouncement}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", minWidth: 0, padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "0.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Customer Operations</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Organization Product Access</span>
+        </div>
+
         {/* Page Header */}
-        <div className="registry-page-header">
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h1 className="registry-page-title">Organization Product Access</h1>
-              <span className="registry-count-badge" aria-label={`${totalCount} total product access records`}>
-                {totalCount} {totalCount === 1 ? "access record" : "access records"}
-              </span>
+        <div className="registry-page-header" style={{ marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheckIcon size={24} />
             </div>
-            <p className="registry-page-desc">
-              Manage product authorization grants for registered customer organizations.
-            </p>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <h1 className="heading-hero" style={{ margin: 0, fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
+                  Organization Product Access
+                </h1>
+                <span
+                  style={{
+                    background: "rgba(56, 103, 245, 0.1)",
+                    color: "var(--brand-primary)",
+                    padding: "0.2rem 0.65rem",
+                    borderRadius: 999,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    border: "1px solid rgba(56, 103, 245, 0.2)",
+                  }}
+                  aria-label={`${totalCount} total product access records`}
+                >
+                  {totalCount} {totalCount === 1 ? "access record" : "access records"}
+                </span>
+              </div>
+              <p className="registry-page-desc" style={{ marginTop: "0.25rem", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Manage product authorization grants for registered customer organizations.
+              </p>
+            </div>
           </div>
 
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-gradient"
             onClick={(e) => handleOpenCreate(e.currentTarget)}
             style={{ flexShrink: 0 }}
           >
