@@ -91,10 +91,13 @@ export const CentralUsersListPage: React.FC = () => {
         setTotalCount(response.count);
         setIsLoading(false);
       }
-    } catch {
+    } catch (err: unknown) {
       if (currentSeq === requestSeqRef.current) {
         setIsLoading(false);
-        setError("Unable to load central users. Please check your connection and try again.");
+        const msg = err instanceof Error && err.message
+          ? err.message
+          : "Unable to load central users. Please check your connection and try again.";
+        setError(msg);
       }
     }
   }, [page, debouncedSearch, statusFilter, ordering]);

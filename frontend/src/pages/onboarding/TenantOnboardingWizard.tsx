@@ -342,11 +342,59 @@ export const TenantOnboardingWizard: React.FC = () => {
     setFieldErrors({});
     setIsSubmitting(true);
     setGeneralError(null);
+
+    const effectiveModulePolicies: Record<string, boolean> = { ...featureCeilings.module_policies };
+    const effectivePermissionCeilings: Record<string, boolean> = { ...featureCeilings.permission_ceilings };
+    const effectiveProductModules: Record<string, boolean> = { ...featureCeilings.product_modules };
+    const effectiveProductFeatures: Record<string, boolean> = { ...featureCeilings.product_features };
+
+    if (options?.console_modules) {
+      for (const cm of options.console_modules) {
+        if (!cm.is_core && effectiveModulePolicies[cm.key] === undefined) {
+          effectiveModulePolicies[cm.key] = true;
+        }
+        if (cm.permissions) {
+          for (const perm of cm.permissions) {
+            if (effectivePermissionCeilings[perm.key] === undefined) {
+              effectivePermissionCeilings[perm.key] = true;
+            }
+          }
+        }
+      }
+    }
+
+    if (options?.products) {
+      for (const prod of options.products) {
+        if (selectedProductIds.includes(prod.id) && prod.modules) {
+          for (const mod of prod.modules) {
+            if (effectiveProductModules[mod.id] === undefined) {
+              effectiveProductModules[mod.id] = true;
+            }
+            if (mod.features) {
+              for (const feat of mod.features) {
+                if (effectiveProductFeatures[feat.id] === undefined) {
+                  effectiveProductFeatures[feat.id] = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const payloadCeilings = {
+      module_policies: effectiveModulePolicies,
+      permission_ceilings: effectivePermissionCeilings,
+      product_modules: effectiveProductModules,
+      product_features: effectiveProductFeatures,
+    };
+    setFeatureCeilings(payloadCeilings);
+
     try {
       const updated = await onboardingApi.transitionStep(currentCase.id, {
         target_step: "review_confirm",
         step_data: {
-          feature_ceilings: featureCeilings,
+          feature_ceilings: payloadCeilings,
         },
       });
       setCurrentCase(updated);

@@ -422,7 +422,12 @@ export function ShowcasePortfolioPage() {
     try {
       const res = await showcaseApi.launchDemo(selected.id);
       if (res?.redirect_url) {
-        setDemoLaunchUrl(res.redirect_url);
+        if (res.open_mode === "new_tab" || res.open_mode === "window") {
+          window.open(res.redirect_url, "_blank", "noopener,noreferrer");
+          setActionMsg(`Opened ${selected.product_name} demo in a new tab.`);
+        } else {
+          setDemoLaunchUrl(res.redirect_url);
+        }
       } else {
         setActionMsg(`Demo launch failed: no redirect URL returned (Profile: ${selected.id}).`);
       }

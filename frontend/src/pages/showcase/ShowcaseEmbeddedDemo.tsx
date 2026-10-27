@@ -13,6 +13,7 @@ import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
 import {
   AlertCircleIcon,
   RotateCcwIcon,
+  ExternalLinkIcon,
 } from "../../components/Icons.tsx";
 
 export interface ShowcaseEmbeddedDemoProps {
@@ -178,6 +179,94 @@ export const ShowcaseEmbeddedDemo: React.FC<ShowcaseEmbeddedDemoProps> = ({
           </div>
         </div>
       )}
+
+      {/* Floating Unobtrusive Demo Controls Bar */}
+      <div
+        id="showcase-demo-floating-controls"
+        style={{
+          position: "absolute",
+          top: "12px",
+          right: "16px",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "rgba(15, 23, 42, 0.85)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(51, 65, 85, 0.7)",
+          borderRadius: "8px",
+          padding: "4px 8px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => window.open(activeUrl, "_blank", "noopener,noreferrer")}
+          title="Open Demo in New Tab"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#94a3b8",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            padding: "4px 6px",
+            borderRadius: "4px",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#38bdf8")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
+        >
+          <ExternalLinkIcon size={13} />
+          <span>Open in Tab</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleReload}
+          title="Reload Demo Session"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#94a3b8",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            padding: "4px 6px",
+            borderRadius: "4px",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#38bdf8")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
+        >
+          <RotateCcwIcon size={13} />
+          <span>Reload</span>
+        </button>
+        <button
+          type="button"
+          onClick={onBack}
+          title="Exit to Showcase"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#94a3b8",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            padding: "4px 6px",
+            borderRadius: "4px",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#f87171")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
+        >
+          <span>✕ Exit</span>
+        </button>
+      </div>
 
       {/* Central Edge-to-Edge Iframe */}
       <iframe

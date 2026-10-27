@@ -80,7 +80,9 @@ export const OrganizationRegistryPage: React.FC = () => {
     } catch (err: unknown) {
       if (currentSeq === requestSeqRef.current) {
         setIsLoading(false);
-        const msg = "Unable to load organizations. Please check your connection and try again.";
+        const msg = err instanceof Error && err.message
+          ? err.message
+          : "Unable to load organizations. Please check your connection and try again.";
         setError(msg);
         setLiveAnnouncement(msg);
       }

@@ -30,9 +30,7 @@ export const TenantProductWorkspacePage: React.FC = () => {
   // Resolve product either from navigation state or fetch from tenant home
   const stateProduct = (location.state as { product?: TenantProductAccessItem } | null)?.product;
   const [product, setProduct] = useState<TenantProductAccessItem | null>(
-    stateProduct && (stateProduct.id === productId || stateProduct.code === productId)
-      ? stateProduct
-      : null
+    stateProduct ?? null
   );
   const [isLoading, setIsLoading] = useState<boolean>(!product);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

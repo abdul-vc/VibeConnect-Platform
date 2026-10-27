@@ -100,6 +100,74 @@ export const EmbeddedProductWorkspace: React.FC<EmbeddedProductWorkspaceProps> =
         border: "1px solid var(--border-subtle)",
       }}
     >
+      {/* Workspace Controls Header */}
+      <div
+        id="workspace-top-bar"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0.6rem 1rem",
+          background: "var(--glass-surface)",
+          borderBottom: "1px solid var(--border-subtle)",
+          zIndex: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.875rem", color: "var(--text-primary)", fontWeight: 700 }}>
+            {product.name}
+          </span>
+          <span
+            style={{
+              fontSize: "0.75rem",
+              color: "var(--text-secondary)",
+              background: "var(--glass-surface-elevated)",
+              padding: "0.15rem 0.5rem",
+              borderRadius: "4px",
+              border: "1px solid var(--border-subtle)",
+              fontWeight: 600,
+            }}
+          >
+            {product.code}
+          </span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {launchUrl && (
+            <button
+              type="button"
+              id="workspace-open-new-window-btn"
+              onClick={() => window.open(launchUrl, "_blank", "noopener,noreferrer")}
+              className="btn-primary"
+              style={{
+                padding: "0.35rem 0.75rem",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+              title="Open product workspace in a new browser window"
+            >
+              <span>Open in New Window ↗</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onBackToProducts}
+            className="btn-secondary"
+            style={{
+              padding: "0.35rem 0.75rem",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Return to My Products
+          </button>
+        </div>
+      </div>
 
       {/* Loading Overlay */}
       {(isLaunching || isIframeLoading) && !launchError && (
@@ -124,8 +192,8 @@ export const EmbeddedProductWorkspace: React.FC<EmbeddedProductWorkspaceProps> =
             fullScreen={false}
             label={
               isLaunching
-                ? `Validating entitlements for ${product.name}…`
-                : `Loading ${product.name} workspace…`
+                ? `Validating entitlements for ${product.name} (${product.code})…`
+                : `Loading ${product.name} (${product.code}) workspace…`
             }
           />
         </div>

@@ -483,7 +483,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           items: [
             {
               id: "my-products",
-              label: "My Products & App Launcher",
+              label: "My Products & Launcher",
               icon: <BoxIcon size={18} />,
               path: "/tenant/products",
               active:

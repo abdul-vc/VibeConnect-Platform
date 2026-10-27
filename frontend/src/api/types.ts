@@ -1948,6 +1948,7 @@ export interface ShowcaseDemoLaunchResponse {
   readonly demo_organization: string;
   readonly product_name: string;
   readonly target_name: string;
+  readonly open_mode?: string;
 }
 
 export interface ShowcaseLaunchConfig {
