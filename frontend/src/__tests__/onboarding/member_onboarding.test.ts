@@ -98,3 +98,25 @@ test("TenantMemberOnboardingPage renders 5-step wizard and initial member detail
   assert.ok(html.includes("Email Address"), "Should include email address input label");
   assert.ok(html.includes("Continue to Role Configuration"), "Should include advance step button");
 });
+
+test("IssueInvitationPayload and Member Onboarding state support LMS Console selection", () => {
+  const payload: import("../../api/types.ts").IssueInvitationPayload = {
+    organization_id: "org-1",
+    email: "learner@acme.com",
+    membership_type: "member",
+    product_ids: ["lms-prod-id"],
+    lms_console: "normal_user_console",
+  };
+
+  assert.equal(payload.lms_console, "normal_user_console");
+
+  const adminPayload: import("../../api/types.ts").IssueInvitationPayload = {
+    organization_id: "org-1",
+    email: "admin@acme.com",
+    membership_type: "tenant_admin",
+    product_ids: ["lms-prod-id"],
+    lms_console: "tenant_console",
+  };
+
+  assert.equal(adminPayload.lms_console, "tenant_console");
+});

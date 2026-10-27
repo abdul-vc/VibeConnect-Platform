@@ -30,7 +30,7 @@ export const NotFoundPage: FC = () => {
           margin: "0 auto",
         }}
       >
-        <BrandMark size="sm" showLabel={true} subtitle="Control Plane" />
+        <BrandMark size="sm" showLabel={true} />
         <ThemeToggle />
       </header>
 

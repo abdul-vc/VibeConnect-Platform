@@ -523,33 +523,71 @@ export function ShowcasePortfolioPage() {
       ) : (
         <div className="showcase-layout-container">
           {/* Executive Page Header */}
-          <div className="showcase-page-header">
-            <div>
-              <div className="showcase-header-eyebrow">
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    background: "var(--brand-primary)",
-                  }}
-                />
-                Enterprise Product Showcase
+          {/* Breadcrumb Navigation */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1.25rem", fontWeight: 500 }}>
+            <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+            <span>/</span>
+            <span>Platform</span>
+            <span>/</span>
+            <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Enterprise Product Showcase</span>
+          </div>
+
+          <div className="showcase-page-header" style={{ marginBottom: "2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                  border: "1px solid rgba(56, 103, 245, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--brand-primary)",
+                  boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                  flexShrink: 0,
+                }}
+              >
+                <BoxIcon size={24} />
               </div>
-              <h1 className="showcase-header-title">
-                Platform Product Portfolio
-              </h1>
-              <p className="showcase-header-subtitle">
-                Interactive live demos, enterprise product profiles, and presentation mode.
-              </p>
+
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <h1 className="heading-hero" style={{ fontSize: "1.75rem", margin: 0, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
+                    Platform Product Portfolio
+                  </h1>
+                  <span
+                    style={{
+                      background: "rgba(56, 103, 245, 0.1)",
+                      color: "var(--brand-primary)",
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: 999,
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      border: "1px solid rgba(56, 103, 245, 0.2)",
+                    }}
+                  >
+                    {publishedCount} Active Profiles
+                  </span>
+                </div>
+                <p className="showcase-header-subtitle" style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                  Interactive live demos, enterprise product profiles, and presentation mode.
+                </p>
+              </div>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
               <Link
                 to={presentUrl}
                 id="showcase-present-mode-link"
-                className="showcase-present-btn"
+                className="btn btn-gradient"
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
               >
                 <LayersIcon size={16} />
                 <span>Present Mode</span>

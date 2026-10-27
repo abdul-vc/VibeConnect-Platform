@@ -718,7 +718,7 @@ export const TenantAssignmentsPage: React.FC = () => {
                 }}
               >
                 <thead>
-                  <tr style={{ background: "rgba(0, 0, 0, 0.2)", textAlign: "left" }}>
+                  <tr style={{ background: "var(--glass-surface-sunken)", textAlign: "left" }}>
                     <th style={{ padding: "0.85rem 1rem", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase" }}>
                       Member
                     </th>

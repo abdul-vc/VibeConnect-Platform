@@ -12,7 +12,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { onboardingApi } from "../../api/onboarding.ts";
 import { plansApi } from "../../api/plans.ts";
 import type {
@@ -28,13 +28,116 @@ import {
   BuildingIcon,
   CheckCircleIcon,
   LayersIcon,
+  LockIcon,
   ShieldCheckIcon,
   UserIcon,
 } from "../../components/Icons.tsx";
 
+interface ToggleSwitchProps {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+  label?: string;
+  sublabel?: string;
+  activeColor?: string;
+  size?: "sm" | "md";
+  id?: string;
+}
+
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
+  checked,
+  disabled = false,
+  onChange,
+  label,
+  sublabel,
+  activeColor = "var(--brand-primary, #3867f5)",
+  size = "md",
+  id,
+}) => {
+  const isSm = size === "sm";
+  const width = isSm ? 38 : 46;
+  const height = isSm ? 22 : 26;
+  const thumbSize = isSm ? 16 : 20;
+  const translate = isSm ? (checked ? 19 : 3) : (checked ? 23 : 3);
+
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled) onChange();
+      }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.6rem",
+        background: "transparent",
+        border: "none",
+        padding: "0.2rem 0.25rem",
+        borderRadius: "9999px",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.65 : 1,
+        transition: "opacity 0.2s ease",
+      }}
+    >
+      <span
+        style={{
+          position: "relative",
+          width: `${width}px`,
+          height: `${height}px`,
+          borderRadius: "9999px",
+          backgroundColor: checked ? activeColor : "var(--glass-surface-sunken, rgba(148, 163, 184, 0.2))",
+          border: `1.5px solid ${checked ? activeColor : "var(--border-subtle, rgba(148, 163, 184, 0.35))"}`,
+          transition: "background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, box-shadow 0.2s ease",
+          display: "inline-block",
+          flexShrink: 0,
+          boxShadow: checked ? `0 2px 8px ${activeColor}40` : "none",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: `${(height - thumbSize - 3) / 2}px`,
+            left: `${translate}px`,
+            width: `${thumbSize}px`,
+            height: `${thumbSize}px`,
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.2)",
+            transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        />
+      </span>
+      {label && (
+        <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left" }}>
+          <span
+            style={{
+              fontSize: isSm ? "0.75rem" : "0.8125rem",
+              fontWeight: 700,
+              color: checked ? "var(--text-primary)" : "var(--text-muted)",
+              letterSpacing: "-0.01em",
+              userSelect: "none",
+            }}
+          >
+            {label}
+          </span>
+          {sublabel && (
+            <span style={{ fontSize: "0.6875rem", color: "var(--text-muted)", userSelect: "none" }}>{sublabel}</span>
+          )}
+        </span>
+      )}
+    </button>
+  );
+};
+
 const STEPS: { key: OnboardingStepName; label: string; icon: React.ReactNode }[] = [
-  { key: "organization_profile", label: "Organization", icon: <BuildingIcon size={16} /> },
-  { key: "admin_setup", label: "Administrator", icon: <UserIcon size={16} /> },
+  { key: "organization_profile", label: "Organization Details", icon: <BuildingIcon size={16} /> },
+  { key: "admin_setup", label: "Administrator Setup", icon: <UserIcon size={16} /> },
   { key: "plan_selection", label: "Plan & Pricing", icon: <LayersIcon size={16} /> },
   { key: "product_entitlements", label: "Product Entitlements", icon: <ShieldCheckIcon size={16} /> },
   { key: "feature_ceilings", label: "Console Feature Ceilings", icon: <LayersIcon size={16} /> },
@@ -335,6 +438,42 @@ export const TenantOnboardingWizard: React.FC = () => {
     }));
   };
 
+  const handleGrantAllConsolePermissions = () => {
+    if (!options?.console_modules) return;
+    const newPerms: Record<string, boolean> = {};
+    options.console_modules.forEach((cm) => {
+      cm.permissions?.forEach((p) => {
+        newPerms[p.key] = true;
+      });
+    });
+    setFeatureCeilings((prev) => ({
+      ...prev,
+      permission_ceilings: {
+        ...prev.permission_ceilings,
+        ...newPerms,
+      },
+    }));
+  };
+
+  const handleRevokeAllNonCorePermissions = () => {
+    if (!options?.console_modules) return;
+    const newPerms: Record<string, boolean> = {};
+    options.console_modules.forEach((cm) => {
+      cm.permissions?.forEach((p) => {
+        if (!cm.is_core) {
+          newPerms[p.key] = false;
+        }
+      });
+    });
+    setFeatureCeilings((prev) => ({
+      ...prev,
+      permission_ceilings: {
+        ...prev.permission_ceilings,
+        ...newPerms,
+      },
+    }));
+  };
+
   const handleNextFromCeilings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentCase) return;
@@ -449,80 +588,189 @@ export const TenantOnboardingWizard: React.FC = () => {
   // Filter selected products details for display
   const selectedProducts = (options?.products || []).filter((p) => selectedProductIds.includes(p.id));
 
+  const stepOrder: OnboardingStepName[] = [
+    "organization_profile",
+    "admin_setup",
+    "plan_selection",
+    "product_entitlements",
+    "feature_ceilings",
+    "review_confirm",
+  ];
+  const currentStepIdx = stepOrder.indexOf(currentStep as OnboardingStepName);
+
   return (
     <AppShell>
-      <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
-        {/* Wizard Header */}
-        <div>
-          <h1 className="heading-hero" style={{ margin: 0, fontSize: "1.75rem" }}>
-            Tenant Onboarding Wizard
-          </h1>
-          <p className="text-body" style={{ marginTop: "0.5rem" }}>
-            Provision a new tenant organization with isolated boundaries, administrator credentials, commercial packaging, product entitlements, and console feature ceilings.
-          </p>
-        </div>
+      <div style={{ maxWidth: "1180px", margin: "1.5rem auto", padding: "0 1.25rem 3rem 1.25rem" }}>
+        {/* Breadcrumb Navigation */}
+        <nav style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none" }}>Platform Owner</Link>
+          <span>/</span>
+          <Link to="/organizations" style={{ color: "var(--text-muted)", textDecoration: "none" }}>Organizations</Link>
+          <span>/</span>
+          <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Onboard New Tenant</span>
+        </nav>
 
-        {/* Step Indicator (6 steps) */}
-        <div
-          role="navigation"
-          aria-label="Onboarding Progress"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-            gap: "0.5rem",
-          }}
-        >
-          {STEPS.map((step, idx) => {
-            const stepOrder = [
-              "organization_profile",
-              "admin_setup",
-              "plan_selection",
-              "product_entitlements",
-              "feature_ceilings",
-              "review_confirm",
-              "completed",
-            ];
-            const currentIdx = stepOrder.indexOf(currentStep);
-            const thisIdx = stepOrder.indexOf(step.key);
-            const isDone = thisIdx < currentIdx || isCompleted;
-            const isCurrent = currentStep === step.key && !isCompleted;
-
-            return (
+        {/* Page Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.35rem" }}>
               <div
-                key={step.key}
-                className="glass-panel"
                 style={{
-                  padding: "0.75rem",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "linear-gradient(135deg, var(--brand-primary) 0%, #4338ca 100%)",
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.5rem",
-                  borderLeft: isCurrent
-                    ? "3px solid var(--brand-primary)"
-                    : isDone
-                    ? "3px solid var(--status-success)"
-                    : "3px solid transparent",
-                  opacity: isCurrent || isDone ? 1 : 0.6,
+                  justifyContent: "center",
+                  color: "#ffffff",
+                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
                 }}
               >
-                <div
-                  style={{
-                    color: isDone ? "var(--status-success)" : isCurrent ? "var(--brand-primary)" : "var(--text-muted)",
-                    display: "flex",
-                  }}
-                >
-                  {isDone ? <CheckCircleIcon size={16} /> : step.icon}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Step {idx + 1}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", fontWeight: isCurrent ? 700 : 500, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {step.label}
-                  </div>
-                </div>
+                <BuildingIcon size={20} />
               </div>
-            );
-          })}
+              <h1 style={{ fontSize: "1.625rem", fontWeight: 800, margin: 0, letterSpacing: "-0.025em", color: "var(--text-primary)" }}>
+                Tenant Onboarding Wizard
+              </h1>
+            </div>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", margin: 0, lineHeight: 1.5 }}>
+              Provision a new tenant organization with isolated boundaries, administrator credentials, commercial packaging, product entitlements, and console feature ceilings.
+            </p>
+          </div>
+          <Link
+            to="/organizations"
+            className="btn btn-secondary"
+            style={{ fontSize: "0.8125rem", textDecoration: "none", padding: "0.5rem 1rem", minHeight: "36px" }}
+          >
+            ← Back to Organizations
+          </Link>
+        </div>
+
+        {/* Connected Step Navigation Rail (Matching Tenant Member Onboarding & Design #2) */}
+        <div
+          className="glass-panel"
+          style={{
+            padding: "1rem 1.5rem",
+            borderRadius: "14px",
+            marginBottom: "2rem",
+            border: "1px solid var(--border-glass)",
+            backgroundColor: "var(--glass-surface-elevated)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
+            {STEPS.map((step, idx) => {
+              const isActive = currentStep === step.key && !isCompleted;
+              const isStepDone = (currentStepIdx > idx && currentStepIdx !== -1) || isCompleted;
+              const isClickable = isStepDone && !isCompleted;
+
+              return (
+                <React.Fragment key={step.key}>
+                  {/* Step Node */}
+                  <div
+                    onClick={() => {
+                      if (isClickable && currentCase) {
+                        void onboardingApi
+                          .transitionStep(currentCase.id, { target_step: step.key })
+                          .then((res) => setCurrentCase(res));
+                      }
+                    }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "0.45rem",
+                      cursor: isClickable ? "pointer" : "default",
+                      zIndex: 2,
+                      padding: "0.25rem 0.5rem",
+                      borderRadius: "8px",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "38px",
+                        height: "38px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.8125rem",
+                        fontWeight: 700,
+                        backgroundColor: isActive
+                          ? "var(--brand-primary)"
+                          : isStepDone
+                          ? "var(--status-success)"
+                          : "var(--glass-surface-sunken)",
+                        color: isActive || isStepDone ? "#ffffff" : "var(--text-muted)",
+                        border: isActive
+                          ? "2px solid #ffffff"
+                          : isStepDone
+                          ? "none"
+                          : "1px solid var(--border-glass)",
+                        boxShadow: isActive
+                          ? "0 0 0 4px var(--brand-primary-light), 0 4px 12px rgba(99, 102, 241, 0.35)"
+                          : isStepDone
+                          ? "0 2px 8px rgba(16, 185, 129, 0.3)"
+                          : "none",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {isStepDone ? "✓" : idx + 1}
+                    </div>
+
+                    <div style={{ textAlign: "center" }}>
+                      <div
+                        style={{
+                          fontSize: "0.6875rem",
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: isActive
+                            ? "var(--brand-primary)"
+                            : isStepDone
+                            ? "var(--status-success)"
+                            : "var(--text-muted)",
+                          marginBottom: "0.1rem",
+                        }}
+                      >
+                        Step {idx + 1}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.8125rem",
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive
+                            ? "var(--text-primary)"
+                            : isStepDone
+                            ? "var(--text-secondary)"
+                            : "var(--text-muted)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {step.label}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Connecting Rail Line */}
+                  {idx < STEPS.length - 1 && (
+                    <div
+                      style={{
+                        flex: 1,
+                        height: "2px",
+                        margin: "0 0.5rem 1.4rem 0.5rem",
+                        backgroundColor: isStepDone
+                          ? "var(--status-success)"
+                          : "var(--border-subtle)",
+                        transition: "background-color 0.25s ease",
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
 
         {/* Global Error Banner */}
@@ -635,210 +883,723 @@ export const TenantOnboardingWizard: React.FC = () => {
               </button>
             </div>
           </div>
-        ) : currentStep === "organization_profile" ? (
-          /* Step 1: Organization Profile Form */
-          <form onSubmit={handleNextFromOrg} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div>
-              <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 1: Organization Profile
-              </h2>
-              <p className="text-body">Specify corporate identity parameters. The organization code is immutable once provisioned.</p>
-            </div>
-
-            <div>
-              <label htmlFor="onboarding-org-code" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                Organization Code <span style={{ color: "var(--status-danger)" }}>*</span>
-              </label>
-              <input
-                id="onboarding-org-code"
-                type="text"
-                className="input-field"
-                placeholder="e.g. acme-corp"
-                value={orgCode}
-                onChange={(e) => setOrgCode(e.target.value.toLowerCase())}
-                style={{ width: "100%", fontFamily: "var(--font-code)" }}
-              />
-              {fieldErrors.orgCode && (
-                <div style={{ color: "var(--status-danger)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
-                  {fieldErrors.orgCode}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="onboarding-org-name" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                Organization Name <span style={{ color: "var(--status-danger)" }}>*</span>
-              </label>
-              <input
-                id="onboarding-org-name"
-                type="text"
-                className="input-field"
-                placeholder="e.g. Acme Corporation"
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-                style={{ width: "100%" }}
-              />
-              {fieldErrors.orgName && (
-                <div style={{ color: "var(--status-danger)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
-                  {fieldErrors.orgName}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="onboarding-org-desc" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                Description
-              </label>
-              <textarea
-                id="onboarding-org-desc"
-                className="input-field"
-                rows={3}
-                placeholder="Operational purpose, enterprise division, or notes..."
-                value={orgDesc}
-                onChange={(e) => setOrgDesc(e.target.value)}
-                style={{ width: "100%", resize: "vertical" }}
-              />
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Continue to Administrator Setup →"}
-              </button>
-            </div>
-          </form>
-        ) : currentStep === "admin_setup" ? (
-          /* Step 2: Administrator Setup Form */
-          <form onSubmit={handleNextFromAdmin} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div>
-              <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 2: Initial Tenant Administrator
-              </h2>
-              <p className="text-body">Assign primary administrator credentials. A secure invitation will be generated automatically.</p>
-            </div>
-
-            <div>
-              <label htmlFor="onboarding-admin-email" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                Administrator Email <span style={{ color: "var(--status-danger)" }}>*</span>
-              </label>
-              <input
-                id="onboarding-admin-email"
-                type="email"
-                className="input-field"
-                placeholder="admin@organization.com"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                style={{ width: "100%" }}
-              />
-              {fieldErrors.adminEmail && (
-                <div style={{ color: "var(--status-danger)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
-                  {fieldErrors.adminEmail}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="onboarding-admin-name" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                Administrator Full Name
-              </label>
-              <input
-                id="onboarding-admin-name"
-                type="text"
-                className="input-field"
-                placeholder="e.g. Jane Doe"
-                value={adminFullName}
-                onChange={(e) => setAdminFullName(e.target.value)}
-                style={{ width: "100%" }}
-              />
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  if (currentCase) {
-                    void onboardingApi
-                      .transitionStep(currentCase.id, { target_step: "organization_profile" })
-                      .then((res) => setCurrentCase(res));
-                  }
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "1000px",
+              margin: "0 auto",
+            }}
+          >
+            {currentStep === "organization_profile" ? (
+              /* Step 1: Organization Profile Form */
+              <form
+                onSubmit={handleNextFromOrg}
+                className="glass-panel"
+                style={{
+                  padding: "2.75rem 3rem",
+                  borderRadius: "20px",
+                  border: "1px solid var(--border-glass)",
+                  backgroundColor: "var(--glass-surface-elevated)",
+                  boxShadow: "var(--shadow-md)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2rem",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                ← Back
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Continue to Plan Selection →"}
-              </button>
-            </div>
-          </form>
-        ) : currentStep === "plan_selection" ? (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: "4px",
+                    background: "linear-gradient(90deg, #3867f5 0%, #8a45f6 50%, #0faf83 100%)",
+                  }}
+                />
+
+                <div>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.3rem 0.85rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      backgroundColor: "rgba(56, 103, 245, 0.08)",
+                      color: "var(--brand-primary)",
+                      border: "1px solid rgba(56, 103, 245, 0.2)",
+                      marginBottom: "0.85rem",
+                    }}
+                  >
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-primary)" }} />
+                    Step 01 of 06
+                  </span>
+                  <h2
+                    style={{
+                      fontSize: "1.75rem",
+                      fontWeight: 800,
+                      margin: "0 0 0.5rem 0",
+                      letterSpacing: "-0.03em",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    Step 1: Organization Profile
+                  </h2>
+                  <p
+                    style={{
+                      color: "var(--text-secondary)",
+                      fontSize: "0.9375rem",
+                      margin: 0,
+                      lineHeight: 1.6,
+                      maxWidth: "800px",
+                    }}
+                  >
+                    Specify corporate identity parameters. The organization code creates an immutable, isolated tenant partition boundary.
+                  </p>
+                </div>
+
+                {/* Provisioning Context Card */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.75rem",
+                    borderRadius: "14px",
+                    background: "linear-gradient(135deg, var(--surface-soft-blue) 0%, var(--surface-soft-lavender) 100%)",
+                    border: "1px solid rgba(56, 103, 245, 0.18)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "1.25rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "12px",
+                        backgroundColor: "#ffffff",
+                        border: "1px solid rgba(56, 103, 245, 0.2)",
+                        boxShadow: "0 4px 12px rgba(56, 103, 245, 0.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--brand-primary)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <BuildingIcon size={24} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          textTransform: "uppercase",
+                          fontWeight: 700,
+                          color: "var(--brand-primary)",
+                          letterSpacing: "0.06em",
+                          marginBottom: "0.2rem",
+                        }}
+                      >
+                        New Tenant Partition
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.125rem",
+                          fontWeight: 800,
+                          color: "var(--text-primary)",
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        {orgName || "Enterprise Tenant"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.45rem",
+                      padding: "0.35rem 0.85rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      backgroundColor: "var(--status-success-bg)",
+                      border: "1px solid var(--status-success-border)",
+                      color: "var(--status-success)",
+                    }}
+                  >
+                    <span className="badge-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--status-success)" }} />
+                    Isolated Partition
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+                    <div>
+                      <label
+                        htmlFor="onboarding-org-code"
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          marginBottom: "0.5rem",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        Organization Code <span style={{ color: "var(--status-danger)" }}>*</span>
+                      </label>
+                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                        <span className="input-icon-left" style={{ left: "1rem" }}>
+                          <BuildingIcon size={18} />
+                        </span>
+                        <input
+                          id="onboarding-org-code"
+                          type="text"
+                          className={`form-input input-text form-input-with-icon-left ${fieldErrors.orgCode ? "form-input-error" : ""}`}
+                          placeholder="e.g. acme-corp"
+                          value={orgCode}
+                          onChange={(e) => setOrgCode(e.target.value.toLowerCase())}
+                          style={{
+                            width: "100%",
+                            fontFamily: "var(--font-code)",
+                            minHeight: "48px",
+                            fontSize: "0.9375rem",
+                            borderRadius: "10px",
+                            paddingLeft: "2.75rem",
+                            border: "1.5px solid var(--border-subtle)",
+                          }}
+                        />
+                      </div>
+                      {fieldErrors.orgCode ? (
+                        <span className="form-error" style={{ marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                          <AlertCircleIcon size={14} /> {fieldErrors.orgCode}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.4rem", display: "block" }}>
+                          Unique immutable slug used for subdomain routing and database isolation.
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="onboarding-org-name"
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          marginBottom: "0.5rem",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        Organization Name <span style={{ color: "var(--status-danger)" }}>*</span>
+                      </label>
+                      <input
+                        id="onboarding-org-name"
+                        type="text"
+                        className={`form-input input-text ${fieldErrors.orgName ? "form-input-error" : ""}`}
+                        placeholder="e.g. Acme Corporation"
+                        value={orgName}
+                        onChange={(e) => setOrgName(e.target.value)}
+                        style={{
+                          width: "100%",
+                          minHeight: "48px",
+                          fontSize: "0.9375rem",
+                          borderRadius: "10px",
+                          padding: "0 1rem",
+                          border: "1.5px solid var(--border-subtle)",
+                        }}
+                      />
+                      {fieldErrors.orgName ? (
+                        <span className="form-error" style={{ marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                          <AlertCircleIcon size={14} /> {fieldErrors.orgName}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.4rem", display: "block" }}>
+                          Official corporate entity name shown across all tenant portals.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="onboarding-org-desc"
+                      style={{
+                        display: "block",
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        marginBottom: "0.5rem",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      Description
+                    </label>
+                    <textarea
+                      id="onboarding-org-desc"
+                      className="form-input input-text"
+                      rows={3}
+                      placeholder="Operational purpose, enterprise division, regional jurisdiction, or deployment notes..."
+                      value={orgDesc}
+                      onChange={(e) => setOrgDesc(e.target.value)}
+                      style={{
+                        width: "100%",
+                        resize: "vertical",
+                        borderRadius: "10px",
+                        fontSize: "0.9375rem",
+                        padding: "0.85rem 1rem",
+                        border: "1.5px solid var(--border-subtle)",
+                        minHeight: "100px",
+                        lineHeight: 1.5,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "0.75rem" }}>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="btn-gradient"
+                    style={{
+                      padding: "0.85rem 2.25rem",
+                      minHeight: "48px",
+                      fontSize: "0.9375rem",
+                      fontWeight: 700,
+                      borderRadius: "10px",
+                      color: "#ffffff",
+                      border: "none",
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      boxShadow: "0 4px 16px rgba(56, 103, 245, 0.32)",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {isSubmitting ? "Saving..." : "Continue to Administrator Setup →"}
+                  </button>
+                </div>
+              </form>
+            ) : currentStep === "admin_setup" ? (
+              /* Step 2: Administrator Setup Form */
+              <form
+                onSubmit={handleNextFromAdmin}
+                className="glass-panel"
+                style={{
+                  padding: "2.75rem 3rem",
+                  borderRadius: "20px",
+                  border: "1px solid var(--border-glass)",
+                  backgroundColor: "var(--glass-surface-elevated)",
+                  boxShadow: "var(--shadow-md)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2rem",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: "4px",
+                    background: "linear-gradient(90deg, #3867f5 0%, #8a45f6 50%, #0faf83 100%)",
+                  }}
+                />
+
+                <div>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.3rem 0.85rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      backgroundColor: "rgba(56, 103, 245, 0.08)",
+                      color: "var(--brand-primary)",
+                      border: "1px solid rgba(56, 103, 245, 0.2)",
+                      marginBottom: "0.85rem",
+                    }}
+                  >
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-primary)" }} />
+                    Step 02 of 06
+                  </span>
+                  <h2
+                    style={{
+                      fontSize: "1.75rem",
+                      fontWeight: 800,
+                      margin: "0 0 0.5rem 0",
+                      letterSpacing: "-0.03em",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    Step 2: Initial Tenant Administrator
+                  </h2>
+                  <p
+                    style={{
+                      color: "var(--text-secondary)",
+                      fontSize: "0.9375rem",
+                      margin: 0,
+                      lineHeight: 1.6,
+                      maxWidth: "800px",
+                    }}
+                  >
+                    Assign primary administrator credentials. A secure single-use invitation and activation link will be generated automatically.
+                  </p>
+                </div>
+
+                {/* Context Card */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.75rem",
+                    borderRadius: "14px",
+                    background: "linear-gradient(135deg, var(--surface-soft-blue) 0%, var(--surface-soft-lavender) 100%)",
+                    border: "1px solid rgba(56, 103, 245, 0.18)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "1.25rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "12px",
+                        backgroundColor: "#ffffff",
+                        border: "1px solid rgba(56, 103, 245, 0.2)",
+                        boxShadow: "0 4px 12px rgba(56, 103, 245, 0.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--brand-primary)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <UserIcon size={24} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          textTransform: "uppercase",
+                          fontWeight: 700,
+                          color: "var(--brand-primary)",
+                          letterSpacing: "0.06em",
+                          marginBottom: "0.2rem",
+                        }}
+                      >
+                        Target Organization
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.125rem",
+                          fontWeight: 800,
+                          color: "var(--text-primary)",
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        {orgName || currentCase?.organization_name || "Enterprise"} ({orgCode || currentCase?.organization_code || "—"})
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.45rem",
+                      padding: "0.35rem 0.85rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      backgroundColor: "var(--status-success-bg)",
+                      border: "1px solid var(--status-success-border)",
+                      color: "var(--status-success)",
+                    }}
+                  >
+                    <span className="badge-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--status-success)" }} />
+                    Admin Role Binding
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+                    <div>
+                      <label
+                        htmlFor="onboarding-admin-email"
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          marginBottom: "0.5rem",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        Administrator Email <span style={{ color: "var(--status-danger)" }}>*</span>
+                      </label>
+                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                        <span className="input-icon-left" style={{ left: "1rem" }}>
+                          <UserIcon size={18} />
+                        </span>
+                        <input
+                          id="onboarding-admin-email"
+                          type="email"
+                          className={`form-input input-text form-input-with-icon-left ${fieldErrors.adminEmail ? "form-input-error" : ""}`}
+                          placeholder="admin@organization.com"
+                          value={adminEmail}
+                          onChange={(e) => setAdminEmail(e.target.value)}
+                          style={{
+                            width: "100%",
+                            minHeight: "48px",
+                            fontSize: "0.9375rem",
+                            borderRadius: "10px",
+                            paddingLeft: "2.75rem",
+                            border: "1.5px solid var(--border-subtle)",
+                          }}
+                        />
+                      </div>
+                      {fieldErrors.adminEmail ? (
+                        <span className="form-error" style={{ marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                          <AlertCircleIcon size={14} /> {fieldErrors.adminEmail}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.4rem", display: "block" }}>
+                          The single-use activation credential and invitation email are dispatched here.
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="onboarding-admin-name"
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          marginBottom: "0.5rem",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        Administrator Full Name
+                      </label>
+                      <input
+                        id="onboarding-admin-name"
+                        type="text"
+                        className="form-input input-text"
+                        placeholder="e.g. Jane Doe"
+                        value={adminFullName}
+                        onChange={(e) => setAdminFullName(e.target.value)}
+                        style={{
+                          width: "100%",
+                          minHeight: "48px",
+                          fontSize: "0.9375rem",
+                          borderRadius: "10px",
+                          padding: "0 1rem",
+                          border: "1.5px solid var(--border-subtle)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "0.75rem" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      if (currentCase) {
+                        void onboardingApi
+                          .transitionStep(currentCase.id, { target_step: "organization_profile" })
+                          .then((res) => setCurrentCase(res));
+                      }
+                    }}
+                    style={{ padding: "0.75rem 1.5rem", borderRadius: "10px", fontWeight: 600, fontSize: "0.875rem", minHeight: "46px" }}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="btn-gradient"
+                    style={{
+                      padding: "0.85rem 2.25rem",
+                      minHeight: "48px",
+                      fontSize: "0.9375rem",
+                      fontWeight: 700,
+                      borderRadius: "10px",
+                      color: "#ffffff",
+                      border: "none",
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      boxShadow: "0 4px 16px rgba(56, 103, 245, 0.32)",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {isSubmitting ? "Saving..." : "Continue to Plan Selection →"}
+                  </button>
+                </div>
+              </form>
+            ) : currentStep === "plan_selection" ? (
           /* Step 3: Plan Selection Form */
-          <form onSubmit={handleNextFromPlan} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div>
-              <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 3: Initial Commercial Plan & Packaging
-              </h2>
-              <p className="text-body">Select default commercial plan and billing tier boundaries.</p>
-            </div>
+          <form
+            onSubmit={handleNextFromPlan}
+            className="glass-panel"
+            style={{
+              padding: "2.75rem 3rem",
+              borderRadius: "20px",
+              border: "1px solid var(--border-glass)",
+              backgroundColor: "var(--glass-surface-elevated)",
+              boxShadow: "var(--shadow-md)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2rem",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "4px",
+                background: "linear-gradient(90deg, #3867f5 0%, #8a45f6 50%, #0faf83 100%)",
+              }}
+            />
 
             <div>
-              <label htmlFor="onboarding-plan-select" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                Available Active Plans
-              </label>
-              <select
-                id="onboarding-plan-select"
-                className="input-field"
-                value={selectedPlanVersionId}
-                onChange={(e) => {
-                  setSelectedPlanVersionId(e.target.value);
-                  setSelectedPriceId("");
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.3rem 0.85rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  backgroundColor: "rgba(56, 103, 245, 0.08)",
+                  color: "var(--brand-primary)",
+                  border: "1px solid rgba(56, 103, 245, 0.2)",
+                  marginBottom: "0.85rem",
                 }}
-                style={{ width: "100%" }}
               >
-                <option value="">No Plan (Direct custom entitlements only)</option>
-                {plans.map((p) => (
-                  <option key={p.id} value={p.active_version?.id || ""}>
-                    {p.name} ({p.code}) — Version {p.active_version?.version || 1}
-                  </option>
-                ))}
-              </select>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-primary)" }} />
+                Step 03 of 06
+              </span>
+              <h2
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                  margin: "0 0 0.5rem 0",
+                  letterSpacing: "-0.03em",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Step 3: Commercial Plan & Packaging
+              </h2>
+              <p
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: "0.9375rem",
+                  margin: 0,
+                  lineHeight: 1.6,
+                  maxWidth: "800px",
+                }}
+              >
+                Select commercial tier packaging and billing boundaries for this tenant organization.
+              </p>
             </div>
 
-            {selectedPlanVersionId && availablePrices.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               <div>
-                <label htmlFor="onboarding-price-select" className="text-caption" style={{ fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>
-                  Pricing Interval & Currency
+                <label htmlFor="onboarding-plan-select" style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.45rem", color: "var(--text-primary)" }}>
+                  Available Active Plans
                 </label>
                 <select
-                  id="onboarding-price-select"
-                  className="input-field"
-                  value={selectedPriceId}
-                  onChange={(e) => setSelectedPriceId(e.target.value)}
-                  style={{ width: "100%" }}
+                  id="onboarding-plan-select"
+                  className="form-input input-text"
+                  value={selectedPlanVersionId}
+                  onChange={(e) => {
+                    setSelectedPlanVersionId(e.target.value);
+                    setSelectedPriceId("");
+                  }}
+                  style={{ width: "100%", minHeight: "42px", fontSize: "0.875rem", borderRadius: "8px" }}
                 >
-                  {availablePrices.map((pr) => (
-                    <option key={pr.id} value={pr.id}>
-                      {pr.currency} {pr.amount} / {pr.billing_interval}
+                  <option value="">No Plan (Direct custom entitlements only)</option>
+                  {plans.map((p) => (
+                    <option key={p.id} value={p.active_version?.id || ""}>
+                      {p.name} ({p.code}) — Version {p.active_version?.version || 1}
                     </option>
                   ))}
                 </select>
               </div>
-            )}
 
-            {selectedPlanVersionId && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input
-                  id="onboarding-trial-checkbox"
-                  type="checkbox"
-                  checked={isTrial}
-                  onChange={(e) => setIsTrial(e.target.checked)}
-                />
-                <label htmlFor="onboarding-trial-checkbox" className="text-caption" style={{ cursor: "pointer" }}>
-                  Provision as 14-day trial period (zero upfront payment required)
-                </label>
-              </div>
-            )}
+              {selectedPlanVersionId && availablePrices.length > 0 && (
+                <div>
+                  <label htmlFor="onboarding-price-select" style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.45rem", color: "var(--text-primary)" }}>
+                    Pricing Interval & Currency
+                  </label>
+                  <select
+                    id="onboarding-price-select"
+                    className="form-input input-text"
+                    value={selectedPriceId}
+                    onChange={(e) => setSelectedPriceId(e.target.value)}
+                    style={{ width: "100%", minHeight: "42px", fontSize: "0.875rem", borderRadius: "8px" }}
+                  >
+                    {availablePrices.map((pr) => (
+                      <option key={pr.id} value={pr.id}>
+                        {pr.currency} {pr.amount} / {pr.billing_interval}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+              {selectedPlanVersionId && (
+                <div
+                  style={{
+                    padding: "1rem 1.25rem",
+                    borderRadius: "10px",
+                    backgroundColor: "var(--surface-soft-blue)",
+                    border: "1px solid rgba(56, 103, 245, 0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <input
+                    id="onboarding-trial-checkbox"
+                    type="checkbox"
+                    checked={isTrial}
+                    onChange={(e) => setIsTrial(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                  />
+                  <label htmlFor="onboarding-trial-checkbox" style={{ cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                    Provision as 14-day trial period (zero upfront payment required)
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "0.5rem" }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -849,42 +1610,136 @@ export const TenantOnboardingWizard: React.FC = () => {
                       .then((res) => setCurrentCase(res));
                   }
                 }}
+                style={{ padding: "0.55rem 1.15rem", borderRadius: "8px" }}
               >
                 ← Back
               </button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-gradient"
+                style={{
+                  padding: "0.625rem 1.5rem",
+                  minHeight: "42px",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  boxShadow: "0 4px 14px rgba(56, 103, 245, 0.28)",
+                }}
+              >
                 {isSubmitting ? "Saving..." : "Continue to Product Entitlements →"}
               </button>
             </div>
           </form>
         ) : currentStep === "product_entitlements" ? (
           /* Step 4: Product Entitlements Form */
-          <form onSubmit={handleNextFromProducts} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <form
+            onSubmit={handleNextFromProducts}
+            className="glass-panel"
+            style={{
+              padding: "2.75rem 3rem",
+              borderRadius: "20px",
+              border: "1px solid var(--border-glass)",
+              backgroundColor: "var(--glass-surface-elevated)",
+              boxShadow: "var(--shadow-md)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2rem",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "4px",
+                background: "linear-gradient(90deg, #3867f5 0%, #8a45f6 50%, #0faf83 100%)",
+              }}
+            />
+
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.3rem 0.85rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  backgroundColor: "rgba(56, 103, 245, 0.08)",
+                  color: "var(--brand-primary)",
+                  border: "1px solid rgba(56, 103, 245, 0.2)",
+                  marginBottom: "0.85rem",
+                }}
+              >
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-primary)" }} />
+                Step 04 of 06
+              </span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
                 <div>
-                  <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
+                  <h2
+                    style={{
+                      fontSize: "1.75rem",
+                      fontWeight: 800,
+                      margin: "0 0 0.5rem 0",
+                      letterSpacing: "-0.03em",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Step 4: Product Entitlements
                   </h2>
-                  <p className="text-body">
+                  <p
+                    style={{
+                      color: "var(--text-secondary)",
+                      fontSize: "0.9375rem",
+                      margin: 0,
+                      lineHeight: 1.6,
+                      maxWidth: "800px",
+                    }}
+                  >
                     Select which platform products the new tenant is entitled to use. Active products will be directly provisioned upon confirmation.
                   </p>
                 </div>
                 {options && options.products.length > 0 && (
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
                     <button
                       type="button"
-                      className="btn btn-secondary"
-                      style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
                       onClick={() => setSelectedProductIds(options.products.map((p) => p.id))}
+                      style={{
+                        fontSize: "0.75rem",
+                        padding: "0.4rem 0.85rem",
+                        borderRadius: "9999px",
+                        fontWeight: 600,
+                        border: "1px solid rgba(56, 103, 245, 0.3)",
+                        background: "rgba(56, 103, 245, 0.1)",
+                        color: "var(--brand-primary, #3867f5)",
+                        cursor: "pointer",
+                      }}
                     >
                       Select All
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary"
-                      style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
                       onClick={() => setSelectedProductIds([])}
+                      style={{
+                        fontSize: "0.75rem",
+                        padding: "0.4rem 0.85rem",
+                        borderRadius: "9999px",
+                        fontWeight: 600,
+                        border: "1px solid var(--border-color, rgba(255,255,255,0.12))",
+                        background: "rgba(255, 255, 255, 0.04)",
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                      }}
                     >
                       Deselect All
                     </button>
@@ -894,98 +1749,161 @@ export const TenantOnboardingWizard: React.FC = () => {
             </div>
 
             {(!options || options.products.length === 0) ? (
-              <div className="glass-panel" style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
+              <div
+                style={{
+                  padding: "2.5rem 1.5rem",
+                  textAlign: "center",
+                  borderRadius: "12px",
+                  border: "1px dashed var(--border-color, rgba(255,255,255,0.15))",
+                  color: "var(--text-secondary)",
+                }}
+              >
                 No active products available in Product Registry.
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.875rem" }}>
                 {options.products.map((prod) => {
                   const isSelected = selectedProductIds.includes(prod.id);
                   const moduleCount = prod.modules?.length || 0;
 
                   return (
-                    <div
-                      key={prod.id}
-                      onClick={() => handleToggleProduct(prod.id)}
-                      className="glass-panel"
-                      style={{
-                        padding: "1rem 1.25rem",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        cursor: "pointer",
-                        border: isSelected
-                          ? "2px solid var(--brand-primary, #6366f1)"
-                          : "1px solid var(--border-color, rgba(255,255,255,0.1))",
-                        backgroundColor: isSelected
-                          ? "rgba(99, 102, 241, 0.08)"
-                          : "transparent",
-                        borderRadius: "8px",
-                        transition: "all 0.15s ease-in-out",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "0.875rem" }}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleProduct(prod.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ marginTop: "0.25rem", cursor: "pointer", width: "16px", height: "16px" }}
-                        />
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                              {prod.name}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "0.7rem",
-                                padding: "0.15rem 0.45rem",
-                                borderRadius: "4px",
-                                backgroundColor: "rgba(255, 255, 255, 0.08)",
-                                fontFamily: "var(--font-code)",
-                                color: "var(--text-muted)",
-                              }}
-                            >
-                              {prod.code}
-                            </span>
+                    <React.Fragment key={prod.id}>
+                      <div
+                        onClick={() => handleToggleProduct(prod.id)}
+                        style={{
+                          padding: "1.125rem 1.25rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          cursor: "pointer",
+                          border: isSelected
+                            ? "2px solid var(--brand-primary, #3867f5)"
+                            : "1px solid var(--border-color, rgba(255,255,255,0.08))",
+                          backgroundColor: isSelected
+                            ? "rgba(56, 103, 245, 0.07)"
+                            : "rgba(255, 255, 255, 0.02)",
+                          borderRadius: "12px",
+                          boxShadow: isSelected ? "0 4px 16px rgba(56, 103, 245, 0.12)" : "none",
+                          transition: "all 0.18s ease-in-out",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.875rem" }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleProduct(prod.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              marginTop: "0.2rem",
+                              cursor: "pointer",
+                              width: "18px",
+                              height: "18px",
+                              accentColor: "var(--brand-primary, #3867f5)",
+                            }}
+                          />
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                                {prod.name}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "0.7rem",
+                                  padding: "0.15rem 0.5rem",
+                                  borderRadius: "6px",
+                                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                  fontFamily: "var(--font-code)",
+                                  color: "var(--text-muted)",
+                                  border: "1px solid rgba(255,255,255,0.06)",
+                                }}
+                              >
+                                {prod.code}
+                              </span>
+                            </div>
+                            <p style={{ margin: "0.35rem 0 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                              {prod.description || "No description provided."}
+                            </p>
                           </div>
-                          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                            {prod.description || "No description provided."}
-                          </p>
+                        </div>
+
+                        <div style={{ textAlign: "right", whiteSpace: "nowrap", paddingLeft: "1rem" }}>
+                          <span
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--text-muted)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {moduleCount} {moduleCount === 1 ? "module" : "modules"}
+                          </span>
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              marginTop: "0.25rem",
+                              color: isSelected ? "var(--brand-primary, #3867f5)" : "var(--text-muted)",
+                            }}
+                          >
+                            {isSelected ? "Entitled ✓" : "Disabled"}
+                          </div>
                         </div>
                       </div>
 
-                      <div style={{ textAlign: "right", whiteSpace: "nowrap", paddingLeft: "1rem" }}>
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            color: moduleCount > 0 ? "var(--text-muted)" : "var(--text-muted)",
-                          }}
-                        >
-                          {moduleCount} {moduleCount === 1 ? "module" : "modules"}
-                        </span>
+                      {/* LMS-only Console Selection */}
+                      {isSelected && (prod.code?.toLowerCase().includes("lms") || prod.name?.toLowerCase().includes("learning")) && (
                         <div
                           style={{
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            marginTop: "0.2rem",
-                            color: isSelected ? "var(--brand-primary, #6366f1)" : "var(--text-muted)",
+                            marginTop: "-0.375rem",
+                            marginBottom: "0.5rem",
+                            padding: "0.875rem 1.125rem",
+                            borderRadius: "10px",
+                            backgroundColor: "rgba(56, 103, 245, 0.05)",
+                            border: "1px solid rgba(56, 103, 245, 0.2)",
                           }}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {isSelected ? "Entitled ✓" : "Disabled"}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                            <input
+                              type="radio"
+                              id={`lms-console-${prod.id}`}
+                              name={`console-selection-${prod.id}`}
+                              checked={true}
+                              readOnly
+                              style={{ accentColor: "var(--brand-primary, #3867f5)", cursor: "default" }}
+                            />
+                            <label
+                              htmlFor={`lms-console-${prod.id}`}
+                              style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)", cursor: "default" }}
+                            >
+                              Tenant Console
+                            </label>
+                            <span
+                              style={{
+                                fontSize: "0.6875rem",
+                                padding: "0.15rem 0.5rem",
+                                borderRadius: "9999px",
+                                backgroundColor: "rgba(56, 103, 245, 0.15)",
+                                color: "var(--brand-primary, #3867f5)",
+                                fontWeight: 700,
+                              }}
+                            >
+                              Tenant Admin Option Only
+                            </span>
+                          </div>
+                          <p style={{ margin: "0.35rem 0 0 1.6rem", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                            Tenant Onboarding provisions the initial Tenant Administrator. Only Tenant Console is available.
+                          </p>
                         </div>
-                      </div>
-                    </div>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "1.25rem", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))" }}>
               <button
                 type="button"
-                className="btn btn-secondary"
                 onClick={() => {
                   if (currentCase) {
                     void onboardingApi
@@ -993,162 +1911,1233 @@ export const TenantOnboardingWizard: React.FC = () => {
                       .then((res) => setCurrentCase(res));
                   }
                 }}
+                style={{
+                  padding: "0.65rem 1.25rem",
+                  borderRadius: "10px",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  border: "1px solid var(--border-color, rgba(255,255,255,0.12))",
+                  background: "transparent",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
               >
                 ← Back
               </button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              <button
+                type="submit"
+                className="btn-gradient"
+                disabled={isSubmitting}
+                style={{
+                  padding: "0.75rem 1.75rem",
+                  borderRadius: "10px",
+                  fontWeight: 700,
+                  fontSize: "0.875rem",
+                  background: "linear-gradient(135deg, #3867f5 0%, #2952cc 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  boxShadow: "0 4px 14px rgba(56, 103, 245, 0.28)",
+                }}
+              >
                 {isSubmitting ? "Saving..." : "Continue to Console Feature Ceilings →"}
               </button>
             </div>
           </form>
         ) : currentStep === "feature_ceilings" ? (
           /* Step 5: Console Feature Ceilings Form */
-          <form onSubmit={handleNextFromCeilings} className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <form
+            onSubmit={handleNextFromCeilings}
+            className="glass-panel"
+            style={{
+              padding: "2.75rem 3rem",
+              borderRadius: "20px",
+              border: "1px solid var(--border-glass)",
+              backgroundColor: "var(--glass-surface-elevated)",
+              boxShadow: "var(--shadow-md)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2.5rem",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "4px",
+                background: "linear-gradient(90deg, #3867f5 0%, #8a45f6 50%, #0faf83 100%)",
+              }}
+            />
+
+            {/* Header */}
             <div>
-              <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 5: Console Feature Ceilings
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.3rem 0.85rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  backgroundColor: "rgba(56, 103, 245, 0.08)",
+                  color: "var(--brand-primary)",
+                  border: "1px solid rgba(56, 103, 245, 0.2)",
+                  marginBottom: "0.85rem",
+                }}
+              >
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-primary)" }} />
+                Step 05 of 06
+              </span>
+              <h2
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                  margin: "0 0 0.5rem 0",
+                  letterSpacing: "-0.03em",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Step 5: Console Feature Ceilings & Policies
               </h2>
-              <p className="text-body">
-                Configure module policies and feature-level maximum ceilings for the entitled products and tenant workspace. Disabled features will be unavailable to tenant administrators and members.
+              <p
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: "0.9375rem",
+                  margin: 0,
+                  lineHeight: 1.6,
+                  maxWidth: "850px",
+                }}
+              >
+                Configure module policies and feature-level maximum ceilings for the entitled products and tenant admin console. Toggle any module or capability to immediately grant or restrict tenant access.
               </p>
             </div>
 
-            {/* Selected Products Feature Configuration */}
-            <div>
-              <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 0.75rem 0", color: "var(--text-primary)" }}>
-                Product Feature Ceilings ({selectedProducts.length} Entitled {selectedProducts.length === 1 ? "Product" : "Products"})
-              </h3>
+            {/* Quick Metrics Bar */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "1rem",
+                padding: "1.25rem 1.5rem",
+                borderRadius: "14px",
+                backgroundColor: "var(--glass-surface-sunken)",
+                border: "1px solid var(--border-glass)",
+              }}
+            >
+              <div>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                  Entitled Products
+                </span>
+                <span style={{ fontSize: "1.375rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                  {selectedProducts.length}
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                  Console Modules
+                </span>
+                <span style={{ fontSize: "1.375rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                  {options?.console_modules?.length || 0}
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                  Active Granular Ceilings
+                </span>
+                <span style={{ fontSize: "1.375rem", fontWeight: 800, color: "var(--status-success, #10b981)", letterSpacing: "-0.02em" }}>
+                  {(() => {
+                    if (!options?.console_modules) return 0;
+                    let total = 0;
+                    options.console_modules.forEach((cm) => {
+                      cm.permissions?.forEach((p) => {
+                        if (featureCeilings.permission_ceilings[p.key] !== false) total++;
+                      });
+                    });
+                    return total;
+                  })()}{" "}
+                  <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+                    of{" "}
+                    {(() => {
+                      if (!options?.console_modules) return 0;
+                      let total = 0;
+                      options.console_modules.forEach((cm) => {
+                        total += cm.permissions?.length || 0;
+                      });
+                      return total;
+                    })()}{" "}
+                    caps
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {/* SECTION 1: Product Feature Ceilings */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.125rem",
+                      fontWeight: 800,
+                      margin: "0 0 0.25rem 0",
+                      color: "var(--text-primary)",
+                      letterSpacing: "-0.02em",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.6rem",
+                    }}
+                  >
+                    <span>Product Feature Ceilings</span>
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        padding: "0.2rem 0.65rem",
+                        borderRadius: "9999px",
+                        background: "rgba(56, 103, 245, 0.1)",
+                        color: "var(--brand-primary, #3867f5)",
+                        border: "1px solid rgba(56, 103, 245, 0.2)",
+                      }}
+                    >
+                      {selectedProducts.length} Entitled {selectedProducts.length === 1 ? "Product" : "Products"}
+                    </span>
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    Module allocation and granular capability flags for entitled platform products.
+                  </p>
+                </div>
+              </div>
 
               {selectedProducts.length === 0 ? (
-                <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                <div
+                  style={{
+                    padding: "2.5rem",
+                    textAlign: "center",
+                    borderRadius: "14px",
+                    border: "1px dashed var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    color: "var(--text-secondary)",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   No products selected in previous step. Return to Step 4 to select product entitlements.
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   {selectedProducts.map((prod) => {
                     const hasModules = prod.modules && prod.modules.length > 0;
 
                     return (
                       <div
                         key={prod.id}
-                        className="glass-panel-elevated"
                         style={{
-                          padding: "1.25rem",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          borderRadius: "8px",
+                          borderRadius: "14px",
+                          border: "1px solid var(--border-glass)",
+                          backgroundColor: "var(--glass-surface-elevated)",
+                          boxShadow: "var(--shadow-sm)",
+                          overflow: "hidden",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{prod.name}</span>
-                            <span style={{ fontSize: "0.7rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
-                              ({prod.code})
-                            </span>
+                        {/* Product Header Row */}
+                        <div
+                          style={{
+                            padding: "1rem 1.25rem",
+                            background: "var(--glass-surface-sunken)",
+                            borderBottom: hasModules ? "1px solid var(--border-glass)" : "none",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "0.75rem",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                            <div
+                              style={{
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "8px",
+                                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.2) 0%, rgba(138, 69, 246, 0.2) 100%)",
+                                border: "1px solid rgba(56, 103, 245, 0.3)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "var(--brand-primary, #3867f5)",
+                                fontWeight: 800,
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {prod.code ? prod.code.substring(0, 2).toUpperCase() : "PR"}
+                            </div>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                <span style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text-primary)" }}>{prod.name}</span>
+                                <span
+                                  style={{
+                                    fontSize: "0.7rem",
+                                    padding: "0.15rem 0.5rem",
+                                    borderRadius: "6px",
+                                    backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                    fontFamily: "var(--font-code)",
+                                    color: "var(--text-secondary)",
+                                    border: "1px solid var(--border-subtle)",
+                                  }}
+                                >
+                                  {prod.code}
+                                </span>
+                              </div>
+                              {prod.description && (
+                                <p style={{ margin: "0.15rem 0 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                  {prod.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <span style={{ fontSize: "0.75rem", color: "var(--status-success)" }}>
-                            Product Entitled
+
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                              color: "var(--status-success, #10b981)",
+                              backgroundColor: "rgba(16, 185, 129, 0.12)",
+                              border: "1px solid rgba(16, 185, 129, 0.25)",
+                              padding: "0.25rem 0.75rem",
+                              borderRadius: "9999px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.35rem",
+                            }}
+                          >
+                            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--status-success, #10b981)" }} />
+                            Entitled Product ✓
                           </span>
                         </div>
 
-                        {!hasModules ? (
-                          <div
-                            style={{
-                              fontSize: "0.8125rem",
-                              color: "var(--text-muted)",
-                              fontStyle: "italic",
-                              padding: "0.75rem",
-                              background: "rgba(255, 255, 255, 0.02)",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            No configurable modules or features defined in the catalog for this product.
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                            {prod.modules.map((mod) => {
-                              const isModEnabled = featureCeilings.product_modules[mod.id] !== false;
-                              const hasFeatures = mod.features && mod.features.length > 0;
+                        {/* Product Body */}
+                        <div style={{ padding: "1rem 1.25rem" }}>
+                          {!hasModules ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.6rem",
+                                padding: "0.75rem 1rem",
+                                borderRadius: "10px",
+                                background: "var(--glass-surface-sunken)",
+                                border: "1px solid var(--border-subtle)",
+                                color: "var(--text-secondary)",
+                                fontSize: "0.8125rem",
+                              }}
+                            >
+                              <CheckCircleIcon size={16} style={{ color: "var(--status-success, #10b981)", flexShrink: 0 }} />
+                              <span>
+                                <strong>Standard Platform Access:</strong> Fully entitled for this tenant workspace. All core capabilities are provisioned without granular sub-module restrictions.
+                              </span>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                              {prod.modules.map((mod) => {
+                                const isModEnabled = featureCeilings.product_modules[mod.id] !== false;
+                                const hasFeatures = mod.features && mod.features.length > 0;
 
-                              return (
-                                <div
-                                  key={mod.id}
+                                return (
+                                  <div
+                                    key={mod.id}
+                                    style={{
+                                      padding: "0.875rem 1rem",
+                                      borderRadius: "10px",
+                                      backgroundColor: isModEnabled ? "rgba(56, 103, 245, 0.04)" : "var(--glass-surface-sunken)",
+                                      border: isModEnabled ? "1px solid rgba(56, 103, 245, 0.2)" : "1px solid var(--border-subtle)",
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+                                      <div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                          <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--text-primary)" }}>{mod.name}</span>
+                                          <span style={{ fontSize: "0.6875rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
+                                            {mod.code}
+                                          </span>
+                                        </div>
+                                        {mod.description && (
+                                          <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                                            {mod.description}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <ToggleSwitch
+                                        checked={isModEnabled}
+                                        onChange={() => handleToggleProductModule(mod.id)}
+                                        label={isModEnabled ? "Module Active" : "Disabled"}
+                                        activeColor="var(--brand-primary, #3867f5)"
+                                        size="md"
+                                      />
+                                    </div>
+
+                                    {/* Sub-features if present */}
+                                    {hasFeatures && isModEnabled && (
+                                      <div
+                                        style={{
+                                          marginTop: "0.75rem",
+                                          paddingLeft: "1.25rem",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: "0.45rem",
+                                          borderLeft: "2px solid rgba(56, 103, 245, 0.25)",
+                                        }}
+                                      >
+                                        {mod.features.map((feat) => {
+                                          const isFeatEnabled = featureCeilings.product_features[feat.id] !== false;
+
+                                          return (
+                                            <div
+                                              key={feat.id}
+                                              style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                padding: "0.45rem 0.75rem",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--glass-surface-elevated)",
+                                                border: "1px solid var(--border-subtle)",
+                                              }}
+                                            >
+                                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                                <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)" }}>{feat.name}</span>
+                                                <span style={{ fontSize: "0.6875rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
+                                                  {feat.code}
+                                                </span>
+                                              </div>
+
+                                              <ToggleSwitch
+                                                checked={isFeatEnabled}
+                                                onChange={() => handleToggleProductFeature(feat.id)}
+                                                label={isFeatEnabled ? "Feature ON" : "Feature OFF"}
+                                                activeColor="var(--brand-primary, #3867f5)"
+                                                size="sm"
+                                              />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 2: Tenant Console Module Policies & Permission Ceilings */}
+            {options?.console_modules && options.console_modules.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", marginTop: "0.5rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    gap: "1rem",
+                    paddingBottom: "0.75rem",
+                    borderBottom: "1px solid var(--border-glass)",
+                  }}
+                >
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: "1.25rem",
+                        fontWeight: 800,
+                        margin: "0 0 0.35rem 0",
+                        color: "var(--text-primary)",
+                        letterSpacing: "-0.025em",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.6rem",
+                      }}
+                    >
+                      <ShieldCheckIcon size={20} style={{ color: "var(--brand-primary, #3867f5)" }} />
+                      <span>Tenant Console Module Policies & Permission Ceilings</span>
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.5, maxWidth: "800px" }}>
+                      Manage visibility and granular access rights for the tenant admin console. Toggle any module switch or individual permission ceiling below to grant or restrict administrator capabilities.
+                    </p>
+                  </div>
+
+                  {/* Bulk Actions */}
+                  <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={handleGrantAllConsolePermissions}
+                      style={{
+                        fontSize: "0.75rem",
+                        padding: "0.45rem 0.85rem",
+                        borderRadius: "8px",
+                        fontWeight: 700,
+                        border: "1px solid rgba(16, 185, 129, 0.35)",
+                        background: "rgba(16, 185, 129, 0.12)",
+                        color: "var(--status-success, #10b981)",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <CheckCircleIcon size={14} />
+                      Grant All Permissions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRevokeAllNonCorePermissions}
+                      style={{
+                        fontSize: "0.75rem",
+                        padding: "0.45rem 0.85rem",
+                        borderRadius: "8px",
+                        fontWeight: 600,
+                        border: "1px solid var(--border-glass)",
+                        background: "var(--glass-surface-sunken)",
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      Restrict Non-Core
+                    </button>
+                  </div>
+                </div>
+
+                {/* Console Modules Cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                  {options.console_modules.map((cm) => {
+                    const isModEnabled = cm.is_core || featureCeilings.module_policies[cm.key] !== false;
+                    const hasPerms = cm.permissions && cm.permissions.length > 0;
+
+                    return (
+                      <div
+                        key={cm.key}
+                        style={{
+                          borderRadius: "16px",
+                          border: `1px solid ${isModEnabled ? "var(--border-glass)" : "var(--border-subtle)"}`,
+                          backgroundColor: "var(--glass-surface-elevated)",
+                          boxShadow: "var(--shadow-sm)",
+                          overflow: "hidden",
+                          transition: "border-color 0.2s ease, opacity 0.2s ease",
+                          opacity: isModEnabled ? 1 : 0.82,
+                        }}
+                      >
+                        {/* Module Header Bar */}
+                        <div
+                          style={{
+                            padding: "1.1rem 1.5rem",
+                            background: isModEnabled ? "var(--glass-surface-sunken)" : "rgba(0, 0, 0, 0.05)",
+                            borderBottom: hasPerms && isModEnabled ? "1px solid var(--border-glass)" : "none",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "1rem",
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+                                {cm.display_name}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "0.6875rem",
+                                  padding: "0.15rem 0.45rem",
+                                  borderRadius: "6px",
+                                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                  fontFamily: "var(--font-code)",
+                                  color: "var(--text-muted)",
+                                  border: "1px solid var(--border-subtle)",
+                                }}
+                              >
+                                {cm.key}
+                              </span>
+                              {cm.is_core && (
+                                <span
                                   style={{
-                                    padding: "0.75rem",
-                                    borderRadius: "6px",
-                                    backgroundColor: isModEnabled
-                                      ? "rgba(99, 102, 241, 0.04)"
-                                      : "rgba(0, 0, 0, 0.2)",
-                                    border: isModEnabled
-                                      ? "1px solid rgba(99, 102, 241, 0.2)"
-                                      : "1px solid rgba(255, 255, 255, 0.05)",
+                                    fontSize: "0.6875rem",
+                                    padding: "0.15rem 0.55rem",
+                                    borderRadius: "9999px",
+                                    backgroundColor: "rgba(56, 103, 245, 0.12)",
+                                    color: "var(--brand-primary, #3867f5)",
+                                    fontWeight: 700,
+                                    border: "1px solid rgba(56, 103, 245, 0.25)",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "0.3rem",
                                   }}
                                 >
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <div>
-                                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                        <span style={{ fontWeight: 600, fontSize: "0.85rem" }}>{mod.name}</span>
-                                        <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
-                                          {mod.code}
-                                        </span>
-                                      </div>
-                                      {mod.description && (
-                                        <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                                          {mod.description}
-                                        </p>
-                                      )}
-                                    </div>
+                                  <LockIcon size={12} />
+                                  Core System Module (Always Active)
+                                </span>
+                              )}
+                            </div>
+                            {cm.description && (
+                              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                                {cm.description}
+                              </p>
+                            )}
+                          </div>
 
-                                    <button
-                                      type="button"
-                                      className={`btn ${isModEnabled ? "btn-primary" : "btn-secondary"}`}
-                                      style={{ fontSize: "0.72rem", padding: "0.25rem 0.6rem" }}
-                                      onClick={() => handleToggleProductModule(mod.id)}
+                          {/* Master Module Toggle */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                            {cm.is_core ? (
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  fontWeight: 700,
+                                  color: "var(--brand-primary, #3867f5)",
+                                  background: "rgba(56, 103, 245, 0.08)",
+                                  padding: "0.35rem 0.85rem",
+                                  borderRadius: "9999px",
+                                  border: "1px solid rgba(56, 103, 245, 0.2)",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "0.35rem",
+                                }}
+                              >
+                                <LockIcon size={12} />
+                                Core (Locked Active)
+                              </span>
+                            ) : (
+                              <ToggleSwitch
+                                checked={isModEnabled}
+                                onChange={() => handleToggleConsoleModule(cm.key, false)}
+                                label={isModEnabled ? "Module Active" : "Module Disabled"}
+                                sublabel={isModEnabled ? "Available in console" : "Hidden from console"}
+                                activeColor="var(--brand-primary, #3867f5)"
+                                size="md"
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Granular Permissions Table */}
+                        {hasPerms && isModEnabled ? (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+                              <thead>
+                                <tr
+                                  style={{
+                                    background: "rgba(0, 0, 0, 0.02)",
+                                    borderBottom: "1px solid var(--border-glass)",
+                                  }}
+                                >
+                                  <th
+                                    style={{
+                                      textAlign: "left",
+                                      padding: "0.75rem 1.5rem",
+                                      fontSize: "0.6875rem",
+                                      fontWeight: 700,
+                                      letterSpacing: "0.06em",
+                                      textTransform: "uppercase",
+                                      color: "var(--text-muted)",
+                                      width: "48%",
+                                    }}
+                                  >
+                                    Feature / Granular Permission
+                                  </th>
+                                  <th
+                                    style={{
+                                      textAlign: "left",
+                                      padding: "0.75rem 1.5rem",
+                                      fontSize: "0.6875rem",
+                                      fontWeight: 700,
+                                      letterSpacing: "0.06em",
+                                      textTransform: "uppercase",
+                                      color: "var(--text-muted)",
+                                      width: "28%",
+                                    }}
+                                  >
+                                    System Permission Key
+                                  </th>
+                                  <th
+                                    style={{
+                                      textAlign: "right",
+                                      padding: "0.75rem 1.5rem",
+                                      fontSize: "0.6875rem",
+                                      fontWeight: 700,
+                                      letterSpacing: "0.06em",
+                                      textTransform: "uppercase",
+                                      color: "var(--text-muted)",
+                                      width: "24%",
+                                    }}
+                                  >
+                                    Access Control Ceiling
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {cm.permissions.map((perm, pIdx) => {
+                                  const isPermAllowed = featureCeilings.permission_ceilings[perm.key] !== false;
+
+                                  return (
+                                    <tr
+                                      key={perm.key}
+                                      style={{
+                                        borderBottom: pIdx < cm.permissions.length - 1 ? "1px solid var(--border-glass)" : "none",
+                                        backgroundColor: isPermAllowed ? "transparent" : "rgba(0, 0, 0, 0.02)",
+                                        transition: "background-color 0.15s ease",
+                                      }}
                                     >
-                                      {isModEnabled ? "Module Enabled" : "Module Disabled"}
-                                    </button>
-                                  </div>
-
-                                  {/* Sub-features if present */}
-                                  {hasFeatures && isModEnabled && (
-                                    <div style={{ marginTop: "0.5rem", paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                                      {mod.features.map((feat) => {
-                                        const isFeatEnabled = featureCeilings.product_features[feat.id] !== false;
-
-                                        return (
-                                          <div
-                                            key={feat.id}
+                                      <td style={{ padding: "0.85rem 1.5rem" }}>
+                                        <div style={{ display: "flex", flexDirection: "column" }}>
+                                          <span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.875rem" }}>
+                                            {perm.display_name}
+                                          </span>
+                                          {perm.description && (
+                                            <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.15rem" }}>
+                                              {perm.description}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: "0.85rem 1.5rem" }}>
+                                        <span
+                                          style={{
+                                            fontSize: "0.75rem",
+                                            fontFamily: "var(--font-code)",
+                                            color: "var(--text-secondary)",
+                                            padding: "0.2rem 0.5rem",
+                                            borderRadius: "6px",
+                                            backgroundColor: "var(--glass-surface-sunken)",
+                                            border: "1px solid var(--border-subtle)",
+                                            display: "inline-block",
+                                          }}
+                                        >
+                                          {perm.key}
+                                        </span>
+                                      </td>
+                                      <td style={{ padding: "0.85rem 1.5rem", textAlign: "right" }}>
+                                        <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: "0.6rem" }}>
+                                          <span
                                             style={{
-                                              display: "flex",
-                                              justifyContent: "space-between",
-                                              alignItems: "center",
-                                              padding: "0.4rem 0.6rem",
-                                              borderRadius: "4px",
-                                              backgroundColor: "rgba(255,255,255,0.03)",
+                                              fontSize: "0.72rem",
+                                              fontWeight: 700,
+                                              padding: "0.2rem 0.55rem",
+                                              borderRadius: "6px",
+                                              backgroundColor: isPermAllowed ? "rgba(16, 185, 129, 0.12)" : "rgba(148, 163, 184, 0.12)",
+                                              color: isPermAllowed ? "var(--status-success, #10b981)" : "var(--text-muted)",
+                                              border: isPermAllowed ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid var(--border-subtle)",
+                                              userSelect: "none",
                                             }}
                                           >
-                                            <div>
-                                              <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>{feat.name}</span>
-                                              <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-code)", color: "var(--text-muted)", marginLeft: "0.4rem" }}>
-                                                {feat.code}
-                                              </span>
-                                            </div>
-                                            <button
-                                              type="button"
-                                              className={`btn ${isFeatEnabled ? "btn-primary" : "btn-secondary"}`}
-                                              style={{ fontSize: "0.68rem", padding: "0.15rem 0.5rem" }}
-                                              onClick={() => handleToggleProductFeature(feat.id)}
-                                            >
-                                              {isFeatEnabled ? "ON" : "OFF"}
-                                            </button>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                            {isPermAllowed ? "Granted ✓" : "Restricted ✕"}
+                                          </span>
+                                          <ToggleSwitch
+                                            checked={isPermAllowed}
+                                            onChange={() => handleTogglePermissionCeiling(perm.key)}
+                                            activeColor="var(--status-success, #10b981)"
+                                            size="md"
+                                          />
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
+                        ) : !isModEnabled ? (
+                          <div
+                            style={{
+                              padding: "1rem 1.5rem",
+                              color: "var(--text-muted)",
+                              fontSize: "0.8125rem",
+                              fontStyle: "italic",
+                              background: "rgba(0, 0, 0, 0.02)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <span>Module is disabled for this tenant. All associated permissions are automatically revoked.</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "1rem",
+                paddingTop: "1.5rem",
+                borderTop: "1px solid var(--border-glass)",
+                flexWrap: "wrap",
+                gap: "1rem",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentCase) {
+                    void onboardingApi
+                      .transitionStep(currentCase.id, { target_step: "product_entitlements" })
+                      .then((res) => setCurrentCase(res));
+                  }
+                }}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "10px",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  border: "1px solid var(--border-glass)",
+                  background: "var(--glass-surface-sunken)",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                ← Back to Product Entitlements
+              </button>
+              <button
+                type="submit"
+                className="btn-gradient"
+                disabled={isSubmitting}
+                style={{
+                  padding: "0.85rem 2rem",
+                  borderRadius: "10px",
+                  fontWeight: 800,
+                  fontSize: "0.9375rem",
+                  background: "linear-gradient(135deg, #3867f5 0%, #2952cc 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  boxShadow: "0 4px 16px rgba(56, 103, 245, 0.32)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {isSubmitting ? "Saving Configuration..." : "Continue to Review & Provision →"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Step 6: Review & Final Confirmation */
+          <div
+            className="glass-panel"
+            style={{
+              padding: "2.75rem 3rem",
+              borderRadius: "20px",
+              border: "1px solid var(--border-glass)",
+              backgroundColor: "var(--glass-surface-elevated)",
+              boxShadow: "var(--shadow-md)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2.25rem",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "4px",
+                background: "linear-gradient(90deg, #3867f5 0%, #8a45f6 50%, #0faf83 100%)",
+              }}
+            />
+
+            {/* Header */}
+            <div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.3rem 0.85rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  backgroundColor: "rgba(16, 185, 129, 0.1)",
+                  color: "var(--status-success, #10b981)",
+                  border: "1px solid rgba(16, 185, 129, 0.25)",
+                  marginBottom: "0.85rem",
+                }}
+              >
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--status-success, #10b981)" }} />
+                Step 06 of 06
+              </span>
+              <h2
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                  margin: "0 0 0.5rem 0",
+                  letterSpacing: "-0.03em",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Step 6: Review & Provision Organization
+              </h2>
+              <p
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: "0.9375rem",
+                  margin: 0,
+                  lineHeight: 1.6,
+                  maxWidth: "850px",
+                }}
+              >
+                Confirm all tenant configuration parameters before executing the atomic provisioning transaction. Once confirmed, tenant databases, administrative credentials, subscriptions, and RBAC policies will be initialized.
+              </p>
+            </div>
+
+            {/* 6-Dimensional Blueprint Grid */}
+            <div>
+              <h3
+                style={{
+                  fontSize: "0.875rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "var(--text-muted)",
+                  margin: "0 0 0.85rem 0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <BuildingIcon size={16} style={{ color: "var(--brand-primary, #3867f5)" }} />
+                <span>Tenant Partition & Commercial Specifications</span>
+              </h3>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                {/* 1. Org Entity */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.4rem",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Organization Entity
+                  </span>
+                  <div style={{ margin: "0.5rem 0" }}>
+                    <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+                      {currentCase?.organization_name}
+                    </div>
+                    <div style={{ marginTop: "0.25rem" }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-code)",
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          padding: "0.15rem 0.5rem",
+                          borderRadius: "6px",
+                          backgroundColor: "rgba(56, 103, 245, 0.1)",
+                          color: "var(--brand-primary, #3867f5)",
+                          border: "1px solid rgba(56, 103, 245, 0.2)",
+                        }}
+                      >
+                        {currentCase?.organization_code}
+                      </span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    Isolated Tenant Boundary
+                  </span>
+                </div>
+
+                {/* 2. Admin Credentials */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.4rem",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Primary Administrator
+                  </span>
+                  <div style={{ margin: "0.5rem 0" }}>
+                    <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+                      {currentCase?.admin_full_name || "Administrator"}
+                    </div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "0.2rem", wordBreak: "break-all" }}>
+                      {currentCase?.admin_email}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>
+                    Superuser & Owner Privileges
+                  </span>
+                </div>
+
+                {/* 3. Commercial Tier */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.4rem",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Commercial Subscription
+                  </span>
+                  <div style={{ margin: "0.5rem 0" }}>
+                    <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+                      {currentCase?.plan_name ? `${currentCase.plan_name}` : "Direct Enterprise"}
+                    </div>
+                    {currentCase?.plan_version_number && (
+                      <div style={{ marginTop: "0.2rem" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          Version {currentCase.plan_version_number}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    Automated Billing & Invoicing
+                  </span>
+                </div>
+
+                {/* 4. Trial / Lifecycle Mode */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.4rem",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Evaluation Mode
+                  </span>
+                  <div style={{ margin: "0.5rem 0" }}>
+                    <span
+                      style={{
+                        fontSize: "0.8125rem",
+                        fontWeight: 800,
+                        padding: "0.3rem 0.75rem",
+                        borderRadius: "9999px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        backgroundColor: currentCase?.is_trial ? "rgba(245, 158, 11, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                        color: currentCase?.is_trial ? "var(--status-warning, #f59e0b)" : "var(--status-success, #10b981)",
+                        border: currentCase?.is_trial ? "1px solid rgba(245, 158, 11, 0.25)" : "1px solid rgba(16, 185, 129, 0.25)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          background: currentCase?.is_trial ? "var(--status-warning, #f59e0b)" : "var(--status-success, #10b981)",
+                        }}
+                      />
+                      {currentCase?.is_trial ? "14-Day Free Trial" : "Production Direct Active"}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    {currentCase?.is_trial ? "Self-expires unless converted" : "Immediate production access"}
+                  </span>
+                </div>
+
+                {/* 5. Product Coverage */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.4rem",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Product Entitlements
+                  </span>
+                  <div style={{ margin: "0.5rem 0" }}>
+                    <div style={{ fontWeight: 800, fontSize: "1.375rem", color: "var(--brand-primary, #3867f5)", letterSpacing: "-0.02em" }}>
+                      {selectedProducts.length} <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>{selectedProducts.length === 1 ? "Product" : "Products"}</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    Multi-Tenant Catalog Access
+                  </span>
+                </div>
+
+                {/* 6. Console Ceilings */}
+                <div
+                  style={{
+                    padding: "1.25rem 1.4rem",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    background: "var(--glass-surface-sunken)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Policy & Governance
+                  </span>
+                  <div style={{ margin: "0.5rem 0" }}>
+                    <div style={{ fontWeight: 800, fontSize: "1.375rem", color: "var(--status-success, #10b981)", letterSpacing: "-0.02em" }}>
+                      {(() => {
+                        if (!options?.console_modules) return 0;
+                        let count = 0;
+                        options.console_modules.forEach((cm) => {
+                          cm.permissions?.forEach((p) => {
+                            if (featureCeilings.permission_ceilings[p.key] !== false) count++;
+                          });
+                        });
+                        return count;
+                      })()} <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>Active Caps</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    Tenant RBAC Ceilings Configured
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Entitlements Showcase */}
+            <div
+              style={{
+                padding: "1.5rem",
+                borderRadius: "14px",
+                border: "1px solid var(--border-glass)",
+                background: "var(--glass-surface-sunken)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.8125rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <LayersIcon size={16} style={{ color: "var(--brand-primary, #3867f5)" }} />
+                  <span>Entitled Product Portfolio ({selectedProducts.length})</span>
+                </span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  Configured in Step 4
+                </span>
+              </div>
+
+              {selectedProducts.length === 0 ? (
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>No products selected.</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0.75rem" }}>
+                  {selectedProducts.map((p) => {
+                    const isLms = p.code?.toLowerCase().includes("lms") || p.name?.toLowerCase().includes("learning");
+                    const modCount = p.modules?.length || 0;
+                    const disabledModCount = p.modules?.filter((m) => featureCeilings.product_modules[m.id] === false).length || 0;
+                    const enabledModCount = modCount - disabledModCount;
+
+                    return (
+                      <div
+                        key={p.id}
+                        style={{
+                          padding: "0.85rem 1rem",
+                          borderRadius: "10px",
+                          backgroundColor: "var(--glass-surface-elevated)",
+                          border: "1px solid var(--border-glass)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+                            <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--text-primary)" }}>
+                              {p.name}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.6875rem",
+                                padding: "0.1rem 0.4rem",
+                                borderRadius: "4px",
+                                backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                fontFamily: "var(--font-code)",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
+                              {p.code}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginTop: "0.15rem" }}>
+                            {modCount === 0 ? "Standard package" : `${enabledModCount} of ${modCount} modules active`}
+                          </span>
+                        </div>
+
+                        {isLms ? (
+                          <span
+                            style={{
+                              fontSize: "0.6875rem",
+                              padding: "0.2rem 0.55rem",
+                              borderRadius: "9999px",
+                              backgroundColor: "rgba(56, 103, 245, 0.15)",
+                              color: "var(--brand-primary, #3867f5)",
+                              fontWeight: 700,
+                              border: "1px solid rgba(56, 103, 245, 0.25)",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Tenant Console
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: "0.6875rem",
+                              padding: "0.2rem 0.55rem",
+                              borderRadius: "9999px",
+                              backgroundColor: "rgba(16, 185, 129, 0.12)",
+                              color: "var(--status-success, #10b981)",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Entitled ✓
+                          </span>
                         )}
                       </div>
                     );
@@ -1157,108 +3146,61 @@ export const TenantOnboardingWizard: React.FC = () => {
               )}
             </div>
 
-            {/* Tenant Console Modules & Permission Ceilings */}
+            {/* Tenant Admin Console Policies & Ceilings Matrix */}
             {options?.console_modules && options.console_modules.length > 0 && (
-              <div style={{ marginTop: "0.5rem" }}>
-                <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 0.75rem 0", color: "var(--text-primary)" }}>
-                  Tenant Console Module Policies & Permission Ceilings
-                </h3>
+              <div
+                style={{
+                  padding: "1.5rem",
+                  borderRadius: "14px",
+                  border: "1px solid var(--border-glass)",
+                  background: "var(--glass-surface-sunken)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "0.8125rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <ShieldCheckIcon size={16} style={{ color: "var(--brand-primary, #3867f5)" }} />
+                    <span>Tenant Console Module & Permission Policies</span>
+                  </span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    Configured in Step 5
+                  </span>
+                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem" }}>
                   {options.console_modules.map((cm) => {
                     const isModEnabled = cm.is_core || featureCeilings.module_policies[cm.key] !== false;
+                    const activePermCount = cm.permissions?.filter((p) => featureCeilings.permission_ceilings[p.key] !== false).length || 0;
+                    const totalPermCount = cm.permissions?.length || 0;
 
                     return (
                       <div
                         key={cm.key}
-                        className="glass-panel-elevated"
                         style={{
-                          padding: "1rem",
-                          border: "1px solid rgba(255,255,255,0.06)",
+                          padding: "0.5rem 0.85rem",
                           borderRadius: "8px",
+                          backgroundColor: isModEnabled ? "var(--glass-surface-elevated)" : "rgba(0, 0, 0, 0.05)",
+                          border: isModEnabled ? "1px solid var(--border-glass)" : "1px solid var(--border-subtle)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          opacity: isModEnabled ? 1 : 0.6,
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{cm.display_name}</span>
-                              <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-code)", color: "var(--text-muted)" }}>
-                                {cm.key}
-                              </span>
-                              {cm.is_core && (
-                                <span
-                                  style={{
-                                    fontSize: "0.65rem",
-                                    padding: "0.1rem 0.4rem",
-                                    borderRadius: "3px",
-                                    backgroundColor: "rgba(99, 102, 241, 0.2)",
-                                    color: "var(--brand-primary, #6366f1)",
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  Core (Locked)
-                                </span>
-                              )}
-                            </div>
-                            {cm.description && (
-                              <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                                {cm.description}
-                              </p>
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            disabled={cm.is_core}
-                            className={`btn ${isModEnabled ? "btn-primary" : "btn-secondary"}`}
-                            style={{
-                              fontSize: "0.72rem",
-                              padding: "0.25rem 0.6rem",
-                              opacity: cm.is_core ? 0.7 : 1,
-                              cursor: cm.is_core ? "not-allowed" : "pointer",
-                            }}
-                            onClick={() => handleToggleConsoleModule(cm.key, cm.is_core)}
-                          >
-                            {cm.is_core ? "Always Active" : isModEnabled ? "Enabled" : "Disabled"}
-                          </button>
-                        </div>
-
-                        {/* Permissions ceilings under console module */}
-                        {cm.permissions && cm.permissions.length > 0 && isModEnabled && (
-                          <div style={{ marginTop: "0.6rem", paddingLeft: "1rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-                            {cm.permissions.map((perm) => {
-                              const isPermAllowed = featureCeilings.permission_ceilings[perm.key] !== false;
-
-                              return (
-                                <div
-                                  key={perm.key}
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    padding: "0.35rem 0.5rem",
-                                    borderRadius: "4px",
-                                    backgroundColor: "rgba(255,255,255,0.02)",
-                                  }}
-                                >
-                                  <div>
-                                    <span style={{ fontSize: "0.78rem" }}>{perm.display_name}</span>
-                                    <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-code)", color: "var(--text-muted)", marginLeft: "0.4rem" }}>
-                                      {perm.key}
-                                    </span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className={`btn ${isPermAllowed ? "btn-primary" : "btn-secondary"}`}
-                                    style={{ fontSize: "0.65rem", padding: "0.15rem 0.45rem" }}
-                                    onClick={() => handleTogglePermissionCeiling(perm.key)}
-                                  >
-                                    {isPermAllowed ? "Allowed" : "Denied"}
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
+                        <span style={{ fontWeight: 700, fontSize: "0.8125rem", color: isModEnabled ? "var(--text-primary)" : "var(--text-muted)" }}>
+                          {cm.display_name}
+                        </span>
+                        {cm.is_core ? (
+                          <span style={{ fontSize: "0.65rem", padding: "0.1rem 0.4rem", borderRadius: "9999px", background: "rgba(56, 103, 245, 0.12)", color: "var(--brand-primary, #3867f5)", fontWeight: 700 }}>
+                            Core
+                          </span>
+                        ) : isModEnabled ? (
+                          <span style={{ fontSize: "0.65rem", padding: "0.1rem 0.4rem", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.12)", color: "var(--status-success, #10b981)", fontWeight: 700 }}>
+                            {activePermCount}/{totalPermCount} perms
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "0.65rem", padding: "0.1rem 0.4rem", borderRadius: "9999px", background: "rgba(148, 163, 184, 0.15)", color: "var(--text-muted)", fontWeight: 700 }}>
+                            Disabled
+                          </span>
                         )}
                       </div>
                     );
@@ -1267,121 +3209,59 @@ export const TenantOnboardingWizard: React.FC = () => {
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  if (currentCase) {
-                    void onboardingApi
-                      .transitionStep(currentCase.id, { target_step: "product_entitlements" })
-                      .then((res) => setCurrentCase(res));
-                  }
+            {/* Atomic Provisioning Guarantee Banner */}
+            <div
+              style={{
+                padding: "1.25rem 1.5rem",
+                borderRadius: "14px",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.06) 0%, rgba(16, 185, 129, 0.06) 100%)",
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+              }}
+            >
+              <div
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: "linear-gradient(135deg, var(--brand-primary, #3867f5) 0%, #0faf83 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ffffff",
+                  flexShrink: 0,
+                  boxShadow: "0 4px 12px rgba(56, 103, 245, 0.3)",
                 }}
               >
-                ← Back
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Continue to Review & Provision →"}
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* Step 6: Review & Final Confirmation */
-          <div className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div>
-              <h2 className="heading-title" style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0" }}>
-                Step 6: Review & Provision Organization
-              </h2>
-              <p className="text-body">Confirm all tenant configuration parameters before executing the provisioning transaction.</p>
-            </div>
-
-            {/* Summary Grid */}
-            <div className="glass-panel-elevated" style={{ padding: "1.5rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
-              <div>
-                <span className="text-caption" style={{ textTransform: "uppercase" }}>Organization Code</span>
-                <div style={{ fontWeight: 600, fontFamily: "var(--font-code)" }}>{currentCase?.organization_code}</div>
+                <ShieldCheckIcon size={22} />
               </div>
               <div>
-                <span className="text-caption" style={{ textTransform: "uppercase" }}>Organization Name</span>
-                <div style={{ fontWeight: 600 }}>{currentCase?.organization_name}</div>
-              </div>
-              <div>
-                <span className="text-caption" style={{ textTransform: "uppercase" }}>Administrator Email</span>
-                <div style={{ fontWeight: 600 }}>{currentCase?.admin_email}</div>
-              </div>
-              <div>
-                <span className="text-caption" style={{ textTransform: "uppercase" }}>Administrator Name</span>
-                <div style={{ fontWeight: 600 }}>{currentCase?.admin_full_name || "—"}</div>
-              </div>
-              <div>
-                <span className="text-caption" style={{ textTransform: "uppercase" }}>Commercial Plan</span>
-                <div style={{ fontWeight: 600 }}>{currentCase?.plan_name ? `${currentCase.plan_name} (v${currentCase.plan_version_number})` : "Direct custom entitlements"}</div>
-              </div>
-              <div>
-                <span className="text-caption" style={{ textTransform: "uppercase" }}>Trial Period</span>
-                <div style={{ fontWeight: 600 }}>{currentCase?.is_trial ? "14-Day Trial" : "Direct Active"}</div>
-              </div>
-            </div>
-
-            {/* Product Entitlements Summary */}
-            <div className="glass-panel-elevated" style={{ padding: "1.25rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-                <span className="text-caption" style={{ textTransform: "uppercase", fontWeight: 700 }}>
-                  Entitled Products ({selectedProducts.length})
+                <span style={{ fontSize: "0.875rem", fontWeight: 800, color: "var(--text-primary)", display: "block", letterSpacing: "-0.01em" }}>
+                  Atomic Provisioning Protocol & Database Isolation
                 </span>
-              </div>
-              {selectedProducts.length === 0 ? (
-                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>None selected</div>
-              ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                  {selectedProducts.map((p) => (
-                    <span
-                      key={p.id}
-                      style={{
-                        padding: "0.35rem 0.75rem",
-                        borderRadius: "6px",
-                        backgroundColor: "rgba(99, 102, 241, 0.12)",
-                        border: "1px solid rgba(99, 102, 241, 0.25)",
-                        fontSize: "0.8125rem",
-                        fontWeight: 600,
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      {p.name} ({p.code})
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Feature Ceilings Summary */}
-            <div className="glass-panel-elevated" style={{ padding: "1.25rem" }}>
-              <span className="text-caption" style={{ textTransform: "uppercase", fontWeight: 700, display: "block", marginBottom: "0.75rem" }}>
-                Console Feature Ceilings & Policies
-              </span>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                {selectedProducts.map((p) => {
-                  const modCount = p.modules?.length || 0;
-                  const disabledModCount = p.modules?.filter((m) => featureCeilings.product_modules[m.id] === false).length || 0;
-                  const enabledModCount = modCount - disabledModCount;
-
-                  return (
-                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                      <span><strong>{p.name}:</strong></span>
-                      <span style={{ color: enabledModCount > 0 ? "var(--text-secondary)" : "var(--text-muted)" }}>
-                        {modCount === 0 ? "Standard package" : `${enabledModCount} of ${modCount} modules active`}
-                      </span>
-                    </div>
-                  );
-                })}
+                <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                  Submitting this action initiates an atomic database transaction. The isolated tenant partition is stamped, administrator auth credentials generated, product subscriptions activated, and role ceilings committed.
+                </p>
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+            {/* Navigation & Execution Bar */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "0.5rem",
+                paddingTop: "1.5rem",
+                borderTop: "1px solid var(--border-glass)",
+                flexWrap: "wrap",
+                gap: "1rem",
+              }}
+            >
               <button
                 type="button"
-                className="btn btn-secondary"
                 onClick={() => {
                   if (currentCase) {
                     void onboardingApi
@@ -1389,14 +3269,37 @@ export const TenantOnboardingWizard: React.FC = () => {
                       .then((res) => setCurrentCase(res));
                   }
                 }}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "10px",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  border: "1px solid var(--border-glass)",
+                  background: "var(--glass-surface-sunken)",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
               >
-                ← Back
+                ← Back to Console Feature Ceilings
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn-gradient"
                 onClick={handleFinalProvision}
                 disabled={isSubmitting}
+                style={{
+                  padding: "0.9rem 2.25rem",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  fontSize: "0.95rem",
+                  background: "linear-gradient(135deg, #3867f5 0%, #0faf83 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  boxShadow: "0 4px 20px rgba(56, 103, 245, 0.35)",
+                  transition: "all 0.15s ease",
+                }}
               >
                 {isSubmitting ? "Provisioning Organization..." : "Execute & Complete Onboarding ✓"}
               </button>
@@ -1404,6 +3307,8 @@ export const TenantOnboardingWizard: React.FC = () => {
           </div>
         )}
       </div>
-    </AppShell>
+    )}
+  </div>
+</AppShell>
   );
 };

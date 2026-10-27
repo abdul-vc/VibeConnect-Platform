@@ -236,11 +236,11 @@ export const ContextSelectionPage: React.FC = () => {
                           height: "36px",
                           borderRadius: "8px",
                           background: isOwner
-                            ? "rgba(16, 185, 129, 0.12)"
-                            : "rgba(99, 102, 241, 0.12)",
+                            ? "var(--surface-soft-mint)"
+                            : "var(--surface-soft-lavender)",
                           color: isOwner
-                            ? "rgb(5, 150, 105)"
-                            : "rgb(99, 102, 241)",
+                            ? "var(--status-success)"
+                            : "var(--brand-primary)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",

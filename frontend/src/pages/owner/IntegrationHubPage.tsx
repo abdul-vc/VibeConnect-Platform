@@ -12,6 +12,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { AppShell } from "../../components/AppShell.tsx";
+import { LayersIcon } from "../../components/Icons.tsx";
 import {
   integrationApi,
   IntegrationConnector,
@@ -230,6 +231,15 @@ export const IntegrationHubPage: React.FC = () => {
   return (
     <AppShell>
       <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", minWidth: 0 }}>
+        {/* Breadcrumbs */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+          <span>Platform Owner</span>
+          <span>/</span>
+          <span>Infrastructure</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>Integration Hub &amp; Health</span>
+        </div>
+
         {/* Header */}
         <div
           style={{
@@ -239,56 +249,75 @@ export const IntegrationHubPage: React.FC = () => {
             padding: "1.75rem",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: "center",
             flexWrap: "wrap",
-            gap: "1rem",
+            gap: "1.25rem",
           }}
         >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.35rem" }}>
-              <span
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "14px",
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(138, 69, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary, #3867f5)",
+                flexShrink: 0,
+              }}
+            >
+              <LayersIcon size={24} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.25rem" }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    backgroundColor: "var(--brand-primary, #3867f5)",
+                    boxShadow: "0 0 8px var(--brand-primary, #3867f5)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "var(--brand-primary, #3867f5)",
+                  }}
+                >
+                  Control Plane • Platform Owner
+                </span>
+              </div>
+              <h1
                 style={{
-                  display: "inline-block",
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: "var(--brand-primary, #6366f1)",
-                  boxShadow: "0 0 10px var(--brand-primary, #6366f1)",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  color: "var(--brand-primary, #6366f1)",
+                  fontSize: "1.625rem",
+                  fontWeight: 800,
+                  color: "var(--text-primary)",
+                  margin: 0,
+                  letterSpacing: "-0.02em",
                 }}
               >
-                Control Plane • Platform Owner
-              </span>
+                Integration Hub &amp; Operational Health
+              </h1>
+              <p
+                style={{
+                  fontSize: "0.875rem",
+                  color: "var(--text-secondary)",
+                  margin: "0.25rem 0 0 0",
+                  maxWidth: "680px",
+                  lineHeight: 1.5,
+                }}
+              >
+                Control plane operational health, connector registry, tenant deployments, and failure recovery.
+              </p>
             </div>
-            <h1
-              style={{
-                fontSize: "1.75rem",
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                margin: "0 0 0.4rem 0",
-              }}
-            >
-              Integration Hub & Operational Health
-            </h1>
-            <p
-              style={{
-                fontSize: "0.9375rem",
-                color: "var(--text-secondary)",
-                margin: 0,
-                maxWidth: "680px",
-                lineHeight: 1.5,
-              }}
-            >
-              Control plane operational health, connector registry, tenant deployments, and failure recovery.
-            </p>
           </div>
 
           <button
@@ -722,25 +751,30 @@ export const IntegrationHubPage: React.FC = () => {
                 { label: "Retry Scheduled", value: "retry_scheduled" },
                 { label: "Dead Letter", value: "dead_letter" },
                 { label: "Resolved", value: "resolved" },
-              ].map((pill) => (
-                <button
-                  key={pill.value}
-                  type="button"
-                  onClick={() => setStatusFilter(pill.value)}
-                  style={{
-                    padding: "0.35rem 0.75rem",
-                    borderRadius: "6px",
-                    fontSize: "0.8125rem",
-                    fontWeight: statusFilter === pill.value ? 600 : 400,
-                    background: statusFilter === pill.value ? "var(--brand-primary, #6366f1)" : "var(--glass-surface)",
-                    color: statusFilter === pill.value ? "#ffffff" : "var(--text-secondary)",
-                    border: "1px solid var(--border-subtle)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {pill.label}
-                </button>
-              ))}
+              ].map((pill) => {
+                const isActive = statusFilter === pill.value;
+                return (
+                  <button
+                    key={pill.value}
+                    type="button"
+                    onClick={() => setStatusFilter(pill.value)}
+                    style={{
+                      padding: "0.35rem 0.85rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      background: isActive ? "var(--brand-gradient)" : "var(--glass-surface)",
+                      color: isActive ? "#ffffff" : "var(--text-secondary)",
+                      border: isActive ? "none" : "1px solid var(--border-subtle)",
+                      boxShadow: isActive ? "0 2px 8px rgba(56, 103, 245, 0.28)" : "none",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {pill.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

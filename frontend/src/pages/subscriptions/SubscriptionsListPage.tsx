@@ -22,6 +22,7 @@ import { AppShell } from "../../components/AppShell.tsx";
 import {
   CalendarIcon,
   ChevronDownIcon,
+  CreditCardIcon,
   FilterIcon,
   LayersIcon,
   SearchIcon,
@@ -151,23 +152,60 @@ export const SubscriptionsListPage: React.FC = () => {
         {liveAnnouncement}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", minWidth: 0 }}>
+        {/* Breadcrumbs */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+          <span>Platform Owner</span>
+          <span>/</span>
+          <span>Customer Operations</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>Subscriptions Management</span>
+        </div>
+
         {/* Page Header */}
-        <div className="registry-page-header">
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h1 className="heading-hero" style={{ fontSize: "1.625rem", margin: 0 }}>
-                Subscriptions Management
-              </h1>
-              {!isLoading && (
-                <span className="registry-count-badge">
-                  {totalCount} {totalCount === 1 ? "Subscription" : "Subscriptions"}
-                </span>
-              )}
+        <div className="registry-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.25rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "14px",
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(138, 69, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary, #3867f5)",
+                flexShrink: 0,
+              }}
+            >
+              <CreditCardIcon size={24} />
             </div>
-            <p className="text-body" style={{ maxWidth: "780px", fontSize: "0.875rem", marginTop: "0.35rem" }}>
-              Comprehensive inventory of customer subscriptions across all organizations. Monitor commercial snapshots, lifecycle statuses, evaluation trials, and billing periods.
-            </p>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: "1.625rem", fontWeight: 800, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                  Subscriptions Management
+                </h1>
+                {!isLoading && (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: "9999px",
+                      background: "rgba(56, 103, 245, 0.1)",
+                      border: "1px solid rgba(56, 103, 245, 0.22)",
+                      color: "var(--brand-primary, #3867f5)",
+                    }}
+                  >
+                    {totalCount} {totalCount === 1 ? "Subscription" : "Subscriptions"}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.5, maxWidth: "780px" }}>
+                Comprehensive inventory of customer subscriptions across all organizations. Monitor commercial snapshots, lifecycle statuses, evaluation trials, and billing periods.
+              </p>
+            </div>
           </div>
         </div>
 

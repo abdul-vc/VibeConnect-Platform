@@ -271,7 +271,18 @@ def provision_user_to_lms(
             or (membership.role and getattr(membership.role, 'code', '') == 'system_tenant_admin')
         )
     ):
-        lms_role = LMS_ROLE_ORGANIZATION_ADMIN
+        from apps.assignments.models import AssignmentStatus, UserProductAssignment
+        from apps.integration_hub.lifecycle_service import LMS_PRODUCT_CODES
+        assignment = UserProductAssignment.objects.filter(
+            user=user,
+            organization=organization,
+            product__code__in=LMS_PRODUCT_CODES,
+            status=AssignmentStatus.ACTIVE,
+        ).first()
+        if assignment and assignment.launch_console == "normal_user_console":
+            lms_role = LMS_ROLE_MEMBER
+        else:
+            lms_role = LMS_ROLE_ORGANIZATION_ADMIN
 
     if not instance:
         instance = get_or_create_lms_connector_instance(organization)

@@ -236,9 +236,9 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
                 fontWeight: 600,
                 padding: "0.2rem 0.6rem",
                 borderRadius: "6px",
-                background: "rgba(99, 102, 241, 0.12)",
-                color: "rgb(99, 102, 241)",
-                border: "1px solid rgba(99, 102, 241, 0.25)",
+                background: "var(--surface-soft-lavender)",
+                color: "var(--brand-primary)",
+                border: "1px solid rgba(56, 103, 245, 0.2)",
               }}
             >
               <BoxIcon size={14} />
@@ -341,8 +341,9 @@ export const TenantMyProductsPage: React.FC<TenantMyProductsPageProps> = ({ init
                     width: "48px",
                     height: "48px",
                     borderRadius: "12px",
-                    background: "rgba(99, 102, 241, 0.1)",
-                    color: "rgb(99, 102, 241)",
+                    background: "var(--surface-soft-lavender)",
+                    color: "var(--brand-primary)",
+                    border: "1px solid rgba(56, 103, 245, 0.15)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",

@@ -314,31 +314,58 @@ export const ProductCatalogPage: React.FC = () => {
         />
 
         {/* Catalog Tier Header */}
-        <div className="catalog-header-bar">
-          <div className="catalog-header-text">
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-              <div className="tier-badge-icon">
-                <LayersIcon size={20} />
-              </div>
-              <h1 className="heading-title" style={{ margin: 0 }}>
-                Product Modules
-              </h1>
-              {!isListLoading && (
-                <span className="registry-count-badge">
-                  {totalCount} {totalCount === 1 ? "Module" : "Modules"}
-                </span>
-              )}
+        <div className="catalog-header-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <LayersIcon size={24} />
             </div>
-            <p className="text-caption" style={{ marginTop: "0.25rem", maxWidth: "720px" }}>
-              Primary functional areas and service modules under{" "}
-              <strong>{product.name}</strong>. Configure module status, display ordering, and nested features.
-            </p>
+
+            <div className="catalog-header-text">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <h1 className="heading-hero" style={{ margin: 0, fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
+                  Product Modules
+                </h1>
+                {!isListLoading && (
+                  <span
+                    style={{
+                      background: "rgba(56, 103, 245, 0.1)",
+                      color: "var(--brand-primary)",
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: 999,
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      border: "1px solid rgba(56, 103, 245, 0.2)",
+                    }}
+                  >
+                    {totalCount} {totalCount === 1 ? "Module" : "Modules"}
+                  </span>
+                )}
+              </div>
+              <p className="text-body" style={{ marginTop: "0.25rem", maxWidth: "720px", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Primary functional areas and service modules under{" "}
+                <strong>{product.name}</strong>. Configure module status, display ordering, and nested features.
+              </p>
+            </div>
           </div>
 
           <div className="catalog-header-action">
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-gradient"
               onClick={(e) => handleOpenCreate(e.currentTarget)}
               disabled={!canCreateDraftChild}
               title={!canCreateDraftChild ? "Cannot register modules under a retired product" : "Register new module"}

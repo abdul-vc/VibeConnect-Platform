@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
 import { BrandingWorkspace } from "../../components/branding/BrandingWorkspace.tsx";
 import { organizationsApi } from "../../api/organizations.ts";
@@ -27,11 +28,21 @@ export const WhiteLabelingPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ padding: "1rem 2rem 0" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.75rem" }}>
-          <label htmlFor="select-org-profile" style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-            Profile Scope:
-          </label>
+      <div style={{ padding: "2rem 2rem 0", maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Breadcrumbs & Profile Scope */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 500 }}>
+            <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+            <span>/</span>
+            <span>Platform</span>
+            <span>/</span>
+            <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>White Labeling & Brand Control</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <label htmlFor="select-org-profile" style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", fontWeight: 500 }}>
+              Profile Scope:
+            </label>
           <select
             id="select-org-profile"
             value={selectedOrgId}
@@ -63,6 +74,7 @@ export const WhiteLabelingPage: React.FC = () => {
         organizationId={selectedOrgId || undefined}
         organizationName={selectedOrg?.name}
       />
-    </AppShell>
+    </div>
+  </AppShell>
   );
 };

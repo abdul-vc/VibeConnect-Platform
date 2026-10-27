@@ -167,31 +167,88 @@ export const CentralUsersListPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem" }}>
+        {/* Breadcrumbs */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+          <span>Platform Owner</span>
+          <span>/</span>
+          <span>Customer Operations</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>Central Users Directory</span>
+        </div>
+
         {/* Page Header */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: "center",
             flexWrap: "wrap",
-            gap: "1rem",
+            gap: "1.25rem",
           }}
         >
-          <div>
-            <h1 style={{ margin: "0 0 0.25rem 0", fontSize: "1.75rem", fontWeight: 700 }}>
-              Central Users
-            </h1>
-            <p style={{ margin: 0, color: "var(--text-secondary, #94a3b8)", fontSize: "0.9375rem" }}>
-              Directory of all centralized user identities across VibeConnect
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "14px",
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(138, 69, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary, #3867f5)",
+                flexShrink: 0,
+              }}
+            >
+              <UserIcon size={24} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <h1 style={{ margin: 0, fontSize: "1.625rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                  Central Users Directory
+                </h1>
+                {!isLoading && (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: "9999px",
+                      background: "rgba(56, 103, 245, 0.1)",
+                      border: "1px solid rgba(56, 103, 245, 0.22)",
+                      color: "var(--brand-primary, #3867f5)",
+                    }}
+                  >
+                    {totalCount} {totalCount === 1 ? "User" : "Users"}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.875rem", lineHeight: 1.5 }}>
+                Directory of all centralized user identities and credentials across Envisage platform.
+              </p>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={() => setIsInviteOpen(true)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.6rem 1.15rem",
+                borderRadius: "10px",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                border: "1px solid var(--border-color, rgba(255,255,255,0.12))",
+                background: "transparent",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+              }}
             >
               <UserIcon size={16} />
               <span>Invite User</span>
@@ -199,9 +256,22 @@ export const CentralUsersListPage: React.FC = () => {
             <button
               ref={triggerRef}
               type="button"
-              className="btn btn-primary"
+              className="btn-gradient"
               onClick={() => setIsCreateOpen(true)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                background: "linear-gradient(135deg, #3867f5 0%, #2952cc 100%)",
+                border: "none",
+                color: "#ffffff",
+                boxShadow: "0 4px 14px rgba(56, 103, 245, 0.3)",
+                borderRadius: "10px",
+                padding: "0.65rem 1.35rem",
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                cursor: "pointer",
+              }}
             >
               <PlusIcon size={16} />
               <span>Create User</span>
@@ -364,25 +434,47 @@ export const CentralUsersListPage: React.FC = () => {
                         }}
                         className="table-row-hover"
                       >
-                        <td style={{ padding: "1rem" }}>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              color: "var(--text-primary)",
-                              maxWidth: "240px",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                            title={u.email}
-                          >
-                            {u.email}
-                          </div>
-                          {u.full_name && (
-                            <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                              {u.full_name}
+                        <td style={{ padding: "0.95rem 1rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div
+                              style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.12), rgba(138, 69, 246, 0.18))",
+                                color: "var(--brand-primary, #3867F5)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 700,
+                                fontSize: "0.82rem",
+                                flexShrink: 0,
+                                border: "1px solid rgba(56, 103, 245, 0.15)",
+                              }}
+                            >
+                              {((u.full_name || u.email || "U").substring(0, 2)).toUpperCase()}
                             </div>
-                          )}
+                            <div>
+                              <div
+                                style={{
+                                  fontWeight: 650,
+                                  color: "var(--text-primary)",
+                                  maxWidth: "240px",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                                title={u.email}
+                              >
+                                {u.email}
+                              </div>
+                              {u.full_name && (
+                                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                                  {u.full_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td style={{ padding: "1rem" }}>{getStatusBadge(u.status)}</td>
                         <td style={{ padding: "1rem" }}>

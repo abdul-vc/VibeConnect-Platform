@@ -30,7 +30,7 @@ export const FoundationPage: FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider">
             Control Plane
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">VibeConnect</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Envisage</h1>
           <p className="text-sm text-slate-400">
             Enterprise Multi-Tenant SaaS Master Platform Foundation
           </p>

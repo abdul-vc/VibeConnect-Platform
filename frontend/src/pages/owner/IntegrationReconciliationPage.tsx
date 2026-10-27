@@ -7,8 +7,10 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
+import { RotateCcwIcon } from "../../components/Icons.tsx";
 import {
   integrationReconciliationApi,
   type IntegrationReconciliationIssue,
@@ -122,57 +124,95 @@ export const IntegrationReconciliationPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "1.5rem" }}>
+      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "2rem" }}>
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Infrastructure</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>LMS Identity Reconciliation</span>
+        </div>
+
         {/* Header */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-start",
             flexWrap: "wrap",
             gap: "1rem",
-            marginBottom: "1.5rem",
+            marginBottom: "2rem",
           }}
         >
-          <div>
-            <h1
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
               style={{
-                fontSize: "1.75rem",
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                margin: 0,
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
               }}
             >
-              LMS Identity Reconciliation
-            </h1>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--text-secondary)",
-                marginTop: "0.35rem",
-                marginBottom: 0,
-              }}
-            >
-              Audit and reconcile external LMS mappings against VibeConnect
-              identity records.
-            </p>
+              <RotateCcwIcon size={24} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <h1
+                  className="heading-hero"
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 800,
+                    letterSpacing: "-0.02em",
+                    color: "var(--text-primary)",
+                    margin: 0,
+                  }}
+                >
+                  LMS Identity Reconciliation
+                </h1>
+                <span
+                  style={{
+                    background: "rgba(56, 103, 245, 0.1)",
+                    color: "var(--brand-primary)",
+                    padding: "0.2rem 0.65rem",
+                    borderRadius: 999,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    border: "1px solid rgba(56, 103, 245, 0.2)",
+                  }}
+                >
+                  {totalCount} Anomaly Records
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: "0.9375rem",
+                  color: "var(--text-secondary)",
+                  marginTop: "0.25rem",
+                  marginBottom: 0,
+                }}
+              >
+                Audit and reconcile external LMS mappings against Envisage identity records.
+              </p>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
             <button
               id="trigger-lms-reconciliation-btn"
               type="button"
-              className="btn-primary"
+              className="btn btn-gradient"
               onClick={() => void handleTriggerRun()}
               disabled={isTriggering}
-              style={{
-                padding: "0.5rem 1rem",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                cursor: isTriggering ? "not-allowed" : "pointer",
-                opacity: isTriggering ? 0.7 : 1,
-              }}
             >
+              <RotateCcwIcon size={16} />
               {isTriggering ? "Running Audit..." : "Run LMS Reconciliation"}
             </button>
           </div>
@@ -484,7 +524,7 @@ export const IntegrationReconciliationPage: React.FC = () => {
                     required
                     value={resolutionNotes}
                     onChange={(e) => setResolutionNotes(e.target.value)}
-                    placeholder="Describe how the mapping or identity mismatch was resolved in LMS or VibeConnect..."
+                    placeholder="Describe how the mapping or identity mismatch was resolved in LMS or Envisage..."
                     style={{
                       width: "100%",
                       borderRadius: "6px",

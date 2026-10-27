@@ -129,7 +129,7 @@ export const InvitationAcceptPage: React.FC = () => {
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem 1rem",
-        background: "var(--bg-main, #0f172a)",
+        background: "var(--bg-app)",
       }}
     >
       <div
@@ -139,6 +139,9 @@ export const InvitationAcceptPage: React.FC = () => {
           maxWidth: "480px",
           padding: "2.5rem",
           borderRadius: "1rem",
+          background: "var(--glass-surface-elevated)",
+          border: "1px solid var(--border-glass)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
         {/* Brand Header */}
@@ -151,15 +154,16 @@ export const InvitationAcceptPage: React.FC = () => {
               width: "48px",
               height: "48px",
               borderRadius: "0.75rem",
-              background: "rgba(99, 102, 241, 0.15)",
-              color: "var(--brand-primary, #6366f1)",
+              background: "var(--surface-soft-lavender)",
+              color: "var(--brand-primary)",
+              border: "1px solid rgba(56, 103, 245, 0.2)",
               marginBottom: "1rem",
             }}
           >
             <ShieldCheckIcon size={28} />
           </div>
           <h1 className="heading-title" style={{ fontSize: "1.5rem", margin: 0 }}>
-            VibeConnect Workspace
+            Envisage Workspace
           </h1>
           <p className="text-secondary" style={{ fontSize: "0.875rem", marginTop: "0.35rem" }}>
             Accept Invitation & Setup Password
@@ -258,8 +262,8 @@ export const InvitationAcceptPage: React.FC = () => {
               style={{
                 padding: "0.875rem",
                 borderRadius: "0.5rem",
-                background: "rgba(99, 102, 241, 0.08)",
-                border: "1px solid rgba(99, 102, 241, 0.2)",
+                background: "var(--surface-soft-lavender)",
+                border: "1px solid rgba(56, 103, 245, 0.2)",
                 fontSize: "0.8125rem",
               }}
             >

@@ -1,6 +1,15 @@
-import { FC, useEffect, useState, useCallback } from "react";
+import { FC, useEffect, useState, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/AppShell.tsx";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
+import {
+  MailIcon,
+  RotateCcwIcon,
+  AlertCircleIcon,
+  CalendarIcon,
+  UserIcon,
+  SearchIcon,
+} from "../../components/Icons.tsx";
 import {
   notificationsApi,
   NotificationDelivery,
@@ -8,9 +17,10 @@ import {
 
 export const TenantNotificationsPage: FC = () => {
   const [deliveries, setDeliveries] = useState<NotificationDelivery[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const loadDeliveries = useCallback(async () => {
     try {
@@ -28,130 +38,482 @@ export const TenantNotificationsPage: FC = () => {
   }, [statusFilter]);
 
   useEffect(() => {
-    loadDeliveries();
+    void loadDeliveries();
   }, [loadDeliveries]);
+
+  const filteredDeliveries = useMemo(() => {
+    if (!searchTerm.trim()) return deliveries;
+    const term = searchTerm.toLowerCase().trim();
+    return deliveries.filter((del) => {
+      const name = (del.template_name || "").toLowerCase();
+      const code = (del.template_code || "").toLowerCase();
+      const email = (del.recipient_email || "").toLowerCase();
+      const ch = (del.channel || "").toLowerCase();
+      return name.includes(term) || code.includes(term) || email.includes(term) || ch.includes(term);
+    });
+  }, [deliveries, searchTerm]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "sent":
+        return (
+          <span className="badge badge-success">
+            <span className="badge-dot" />
+            Delivered (Sent)
+          </span>
+        );
+      case "failed":
+        return (
+          <span className="badge badge-danger">
+            <span className="badge-dot" />
+            Failed
+          </span>
+        );
+      case "queued":
+      case "retrying":
+        return (
+          <span className="badge badge-warning">
+            <span className="badge-dot" />
+            {status === "retrying" ? "Retrying" : "Queued"}
+          </span>
+        );
+      default:
+        return (
+          <span className="badge badge-neutral">
+            <span className="badge-dot" />
+            {status}
+          </span>
+        );
+    }
+  };
 
   return (
     <AppShell>
-      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Notifications & Alerts Log
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Read-only history of communications, automated alerts, and invitation dispatches.
-          </p>
+      <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1.25rem", fontWeight: 500 }}>
+          <Link to="/tenant" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Tenant Admin</Link>
+          <span>/</span>
+          <span>Platform</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Notifications & Alerts Log</span>
         </div>
 
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: "2rem",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <MailIcon size={24} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <h1
+                  className="heading-hero"
+                  style={{ fontSize: "1.75rem", margin: 0, color: "var(--text-primary)", fontWeight: 800, letterSpacing: "-0.02em" }}
+                >
+                  Notifications & Alerts Log
+                </h1>
+                <span
+                  style={{
+                    background: "rgba(56, 103, 245, 0.1)",
+                    color: "var(--brand-primary)",
+                    padding: "0.2rem 0.65rem",
+                    borderRadius: 999,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    border: "1px solid rgba(56, 103, 245, 0.2)",
+                  }}
+                >
+                  {deliveries.length} Records
+                </span>
+              </div>
+              <p style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Read-only history of communications, automated alerts, and invitation dispatches.
+              </p>
+            </div>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={loadDeliveries}
+              disabled={loading}
+              className="btn btn-secondary"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.45rem 0.95rem",
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+              }}
+            >
+              <RotateCcwIcon size={15} className={loading ? "spinner-icon" : ""} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Error Alert */}
         {error && (
-          <div className="rounded-md bg-red-50 p-4 border border-red-200 dark:bg-red-900/30 dark:border-red-800">
-            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+          <div
+            style={{
+              padding: "1rem 1.25rem",
+              background: "var(--status-danger-bg)",
+              border: "1px solid var(--status-danger-border)",
+              borderRadius: "0.5rem",
+              color: "var(--status-danger)",
+              marginBottom: "1.5rem",
+              fontSize: "0.875rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+            }}
+          >
+            <AlertCircleIcon size={18} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Filter bar */}
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-3 items-center">
-            <label htmlFor="tenant-status-filter" className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
-              Filter Status:
-            </label>
-            <select
-              id="tenant-status-filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-sm rounded border-gray-300 dark:bg-gray-800 dark:border-gray-700 p-2"
-            >
-              <option value="">All Notifications</option>
-              <option value="sent">Delivered (Sent)</option>
-              <option value="queued">Queued / Processing</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={loadDeliveries}
-            className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+        {/* Table Card Container */}
+        <div className="table-card-container">
+          <div
+            style={{
+              padding: "1.25rem 1.5rem",
+              borderBottom: "1px solid var(--border-subtle)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "1rem",
+              background: "var(--glass-surface)",
+            }}
           >
-            Refresh
-          </button>
-        </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <label
+                htmlFor="tenant-status-filter"
+                style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-secondary)" }}
+              >
+                Filter Status:
+              </label>
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner label="Loading notification logs…" />
+              {/* Accessible Native Select for automated form testing */}
+              <select
+                id="tenant-status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ display: "none" }}
+                aria-label="Filter status selector"
+              >
+                <option value="">All Notifications</option>
+                <option value="sent">Delivered (Sent)</option>
+                <option value="queued">Queued / Processing</option>
+                <option value="failed">Failed</option>
+              </select>
+
+              {/* Segmented Pill Group UI */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  background: "var(--glass-surface-sunken)",
+                  padding: "3px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border-subtle)",
+                  gap: "2px",
+                }}
+              >
+                {(
+                  [
+                    { key: "", label: "All Notifications" },
+                    { key: "sent", label: "Delivered (Sent)" },
+                    { key: "queued", label: "Queued / Processing" },
+                    { key: "failed", label: "Failed" },
+                  ] as const
+                ).map((s) => {
+                  const isActive = statusFilter === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setStatusFilter(s.key)}
+                      style={{
+                        padding: "0.4rem 0.85rem",
+                        borderRadius: "6px",
+                        fontSize: "0.8125rem",
+                        fontWeight: isActive ? 600 : 500,
+                        border: "none",
+                        background: isActive ? "var(--glass-surface-elevated)" : "transparent",
+                        color: isActive ? "var(--brand-primary)" : "var(--text-secondary)",
+                        boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <SearchIcon
+                  size={15}
+                  style={{
+                    position: "absolute",
+                    left: "0.75rem",
+                    color: "var(--text-muted)",
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search recipient or topic..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    padding: "0.45rem 0.75rem 0.45rem 2.25rem",
+                    borderRadius: "6px",
+                    fontSize: "0.8125rem",
+                    background: "var(--input-bg)",
+                    border: "1px solid var(--border-subtle)",
+                    color: "var(--text-primary)",
+                    width: "220px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+                Found: <strong style={{ color: "var(--text-primary)" }}>{filteredDeliveries.length}</strong>
+              </span>
+            </div>
           </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-900 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                <thead className="bg-gray-50 dark:bg-gray-800/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+
+          {/* Table Content */}
+          {loading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "4rem" }}>
+              <LoadingSpinner label="Loading notification logs…" />
+            </div>
+          ) : filteredDeliveries.length === 0 ? (
+            <div
+              style={{
+                padding: "3.5rem 2rem",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  background: "var(--surface-soft-blue)",
+                  border: "1px solid rgba(56, 103, 245, 0.2)",
+                  color: "var(--brand-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "1rem",
+                }}
+              >
+                <MailIcon size={26} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: "1.125rem", color: "var(--text-primary)", fontWeight: 700 }}>
+                No notifications recorded
+              </h3>
+              <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.875rem", color: "var(--text-secondary)", maxWidth: "480px" }}>
+                {searchTerm
+                  ? "No notification dispatches match your search criteria."
+                  : "No notifications recorded for this organization account."}
+              </p>
+            </div>
+          ) : (
+            <div className="table-card-scroll">
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead>
+                  <tr
+                    style={{
+                      borderBottom: "1px solid var(--border-subtle)",
+                      background: "var(--glass-surface-sunken)",
+                    }}
+                  >
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
                       Message / Topic
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
                       Channel
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
                       Recipient
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      style={{
+                        padding: "0.875rem 1.25rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
                       Dispatched
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                  {deliveries.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                        No notifications recorded for this organization account.
+                <tbody>
+                  {filteredDeliveries.map((del) => (
+                    <tr
+                      key={del.id}
+                      style={{
+                        borderBottom: "1px solid var(--border-subtle)",
+                        transition: "background-color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "var(--glass-surface-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.9375rem" }}>
+                          {del.template_name || del.template_code}
+                        </div>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            fontSize: "0.75rem",
+                            fontFamily: "var(--font-code)",
+                            color: "var(--text-muted)",
+                            background: "var(--glass-surface-sunken)",
+                            padding: "0.1rem 0.4rem",
+                            borderRadius: 4,
+                            border: "1px solid var(--border-subtle)",
+                            marginTop: "0.25rem",
+                          }}
+                        >
+                          {del.template_code}
+                        </span>
+                      </td>
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "4px",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            fontFamily: "var(--font-code)",
+                            background: "var(--surface-soft-blue)",
+                            color: "var(--brand-primary)",
+                            border: "1px solid rgba(56, 103, 245, 0.2)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {del.channel}
+                        </span>
+                      </td>
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8125rem", color: "var(--text-primary)" }}>
+                          <UserIcon size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                          <span style={{ fontFamily: "var(--font-code)", fontWeight: 500 }}>
+                            {del.recipient_email}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle" }}>
+                        {getStatusBadge(del.status)}
+                      </td>
+                      <td style={{ padding: "1rem 1.25rem", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                          <CalendarIcon size={14} style={{ color: "var(--text-muted)" }} />
+                          <span>
+                            {del.sent_at
+                              ? new Date(del.sent_at).toLocaleString()
+                              : new Date(del.queued_at).toLocaleString()}
+                          </span>
+                        </div>
                       </td>
                     </tr>
-                  ) : (
-                    deliveries.map((del) => (
-                      <tr key={del.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900 dark:text-white">
-                            {del.template_name || del.template_code}
-                          </div>
-                          <div className="text-xs text-gray-500 font-mono">{del.template_code}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 uppercase">
-                          {del.channel}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 font-mono">
-                          {del.recipient_email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-                              del.status === "sent"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                : del.status === "failed"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                            }`}
-                          >
-                            {del.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {del.sent_at
-                            ? new Date(del.sent_at).toLocaleString()
-                            : new Date(del.queued_at).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </AppShell>
   );
 };
+

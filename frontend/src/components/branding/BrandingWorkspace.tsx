@@ -679,11 +679,11 @@ export const BrandingWorkspace: React.FC<BrandingWorkspaceProps> = ({
                         fontSize: "0.875rem",
                       }}
                     >
-                      VC
+                      EN
                     </div>
                   )}
                   <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "1rem" }}>
-                    VibeConnect
+                    Envisage
                   </span>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>

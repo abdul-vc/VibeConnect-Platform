@@ -34,6 +34,13 @@ export async function resolve(specifier, context, nextResolve) {
 }
 
 export async function load(url, context, nextLoad) {
+  if (/\.(png|jpe?g|svg|webp|ico|gif|css)$/i.test(url)) {
+    return {
+      format: "module",
+      shortCircuit: true,
+      source: "export default '/mock-asset.png';",
+    };
+  }
   if (url.endsWith(".tsx") || url.endsWith(".ts")) {
     const filePath = fileURLToPath(url);
     const source = fs.readFileSync(filePath, "utf8");

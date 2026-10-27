@@ -1,4 +1,5 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   NotificationDelivery,
   NotificationTemplate,
@@ -12,6 +13,7 @@ import {
   CloseIcon,
   EyeIcon,
   RefreshIcon,
+  MailIcon,
 } from "../../components/Icons.tsx";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
 
@@ -320,16 +322,45 @@ export const OwnerNotificationsPage: FC = () => {
   return (
     <AppShell>
       <div className="notif-page-container">
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Platform</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Notifications & Communications</span>
+        </div>
+
         {/* Page Header */}
         <div className="notif-page-header">
-          <div>
-            <div className="notif-title-row">
-              <h1 className="heading-hero">Notifications & Communications</h1>
-              <span className="notif-badge-pill">Control Plane</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <MailIcon size={24} />
             </div>
-            <p className="text-body" style={{ marginTop: "0.25rem" }}>
-              Manage versioned notification templates, inspect transactional delivery queues, and trigger operational retries.
-            </p>
+
+            <div>
+              <div className="notif-title-row" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <h1 className="heading-hero" style={{ fontSize: "1.75rem", margin: 0, fontWeight: 800, letterSpacing: "-0.02em" }}>Notifications & Communications</h1>
+                <span className="notif-badge-pill">Control Plane</span>
+              </div>
+              <p className="text-body" style={{ marginTop: "0.25rem", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Manage versioned notification templates, inspect transactional delivery queues, and trigger operational retries.
+              </p>
+            </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -858,7 +889,7 @@ export const OwnerNotificationsPage: FC = () => {
                       <div className="notif-envelope-header">
                         <div className="notif-envelope-row">
                           <span className="notif-envelope-label">From:</span>
-                          <span className="notif-envelope-val">VibeConnect System &lt;notifications@vibeconnect.internal&gt;</span>
+                          <span className="notif-envelope-val">Envisage System &lt;notifications@envisage.internal&gt;</span>
                         </div>
                         <div className="notif-envelope-row">
                           <span className="notif-envelope-label">To:</span>

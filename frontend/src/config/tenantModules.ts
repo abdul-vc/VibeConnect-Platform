@@ -178,16 +178,17 @@ export const TENANT_MODULES_REGISTRY: readonly TenantModuleDefinition[] = [
     implemented: true,
     phase: "3A",
   },
-  {
-    id: "reports-analytics",
-    label: "Advanced Analytics, Adoption & Tenant Health",
-    icon: "grid",
-    path: "/tenant/reports",
-    requiredModule: "tenant_reports",
-    requiredPermission: "reports.view",
-    implemented: true,
-    phase: "4F",
-  },
+  // # Hidden from tenant admin console:
+  // {
+  //   id: "reports-analytics",
+  //   label: "Advanced Analytics, Adoption & Tenant Health",
+  //   icon: "grid",
+  //   path: "/tenant/reports",
+  //   requiredModule: "tenant_reports",
+  //   requiredPermission: "reports.view",
+  //   implemented: true,
+  //   phase: "4F",
+  // },
   {
     id: "tenant-settings",
     label: "Tenant Settings",

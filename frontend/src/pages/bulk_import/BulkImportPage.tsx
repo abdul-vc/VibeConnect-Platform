@@ -7,6 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { bulkImportApi } from "../../api/bulkImport.ts";
 import { organizationsApi } from "../../api/organizations.ts";
 import type {
@@ -226,16 +227,44 @@ export const BulkImportPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: "1080px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.75rem" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.75rem", padding: "2rem" }}>
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "0.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Infrastructure</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Bulk User & Membership Import</span>
+        </div>
+
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
-          <div>
-            <h1 className="heading-hero" style={{ margin: 0, fontSize: "1.75rem" }}>
-              Bulk User & Membership Import
-            </h1>
-            <p className="text-body" style={{ marginTop: "0.35rem", maxWidth: "700px" }}>
-              Upload and stage batch user accounts with automated schema validation, duplicate detection, and resilient transactional commits.
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <UploadIcon size={24} />
+            </div>
+            <div>
+              <h1 className="heading-hero" style={{ margin: 0, fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
+                Bulk User & Membership Import
+              </h1>
+              <p className="text-body" style={{ marginTop: "0.25rem", maxWidth: "700px", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Upload and stage batch user accounts with automated schema validation, duplicate detection, and resilient transactional commits.
+              </p>
+            </div>
           </div>
           {activeJob && (
             <button
@@ -364,7 +393,7 @@ export const BulkImportPage: React.FC = () => {
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-gradient"
                 onClick={handleStageJob}
                 disabled={isLoading || !fileContent.trim()}
               >
@@ -394,13 +423,13 @@ export const BulkImportPage: React.FC = () => {
                             ? "rgba(16, 185, 129, 0.15)"
                             : activeJob.status === "failed"
                             ? "rgba(239, 68, 68, 0.15)"
-                            : "rgba(99, 102, 241, 0.15)",
+                            : "rgba(56, 103, 245, 0.15)",
                         color:
                           activeJob.status === "completed"
-                            ? "var(--status-success, #10b981)"
+                            ? "var(--status-success)"
                             : activeJob.status === "failed"
-                            ? "var(--status-error, #ef4444)"
-                            : "var(--brand-primary, #6366f1)",
+                            ? "var(--status-error)"
+                            : "var(--brand-primary)",
                       }}
                     >
                       {activeJob.status}
@@ -415,7 +444,7 @@ export const BulkImportPage: React.FC = () => {
                   {activeJob.status === "validated" && activeJob.valid_rows > 0 && (
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className="btn btn-gradient"
                       onClick={handleCommitJob}
                       disabled={isActionLoading}
                     >

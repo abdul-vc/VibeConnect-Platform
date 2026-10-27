@@ -66,6 +66,7 @@ def assign_user_to_product(
     product_id: uuid.UUID | str,
     module_ids: list[uuid.UUID | str] | None = None,
     membership_id: uuid.UUID | str | None = None,
+    launch_console: str | None = None,
     actor: Any,
     at_time: datetime | None = None,
     correlation_id: uuid.UUID | str | None = None,
@@ -190,6 +191,21 @@ def assign_user_to_product(
                 code="MEMBERSHIP_INELIGIBLE",
             )
 
+        clean_launch_console = (str(launch_console).strip() if launch_console else "")
+        if clean_launch_console == "tenant_console":
+            from apps.organizations.models import MembershipType
+            is_admin = (
+                membership.membership_type == MembershipType.TENANT_ADMIN
+                or (membership.role and getattr(membership.role, "is_admin_role", False))
+                or (membership.role and getattr(membership.role, "code", "") in ("system_tenant_admin", "tenant_admin"))
+                or (membership.role and getattr(membership.role, "name", "") == "Tenant Administrator")
+            )
+            if not is_admin:
+                raise MembershipIneligibleError(
+                    "Tenant Console requires administrative privileges.",
+                    code="FORBIDDEN_CONSOLE",
+                )
+
         # 5. Check existing non-revoked assignment BEFORE capacity rejection
         existing = (
             UserProductAssignment.objects.select_for_update()
@@ -292,6 +308,7 @@ def assign_user_to_product(
             user=user,
             membership=membership,
             product=product,
+            launch_console=clean_launch_console,
             status=AssignmentStatus.ACTIVE,
             assigned_at=effective_time,
             created_by=actor,

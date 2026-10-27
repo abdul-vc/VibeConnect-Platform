@@ -126,33 +126,84 @@ export const ProductRegistryPage: React.FC = () => {
         {liveAnnouncement}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", minWidth: 0 }}>
+        {/* Breadcrumbs */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+          <span>Platform Owner</span>
+          <span>/</span>
+          <span>Platform</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>Product Registry & Marketplace</span>
+        </div>
+
         {/* Page Header */}
-        <div className="registry-page-header">
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h1 className="heading-hero" style={{ fontSize: "1.625rem", margin: 0 }}>
-                Product Registry
-              </h1>
-              {!isLoading && (
-                <span className="registry-count-badge">
-                  {totalCount} {totalCount === 1 ? "Product" : "Products"}
-                </span>
-              )}
+        <div className="registry-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.25rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "14px",
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(138, 69, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary, #3867f5)",
+                flexShrink: 0,
+              }}
+            >
+              <BoxIcon size={24} />
             </div>
-            <p className="text-body" style={{ maxWidth: "780px", fontSize: "0.875rem", marginTop: "0.35rem" }}>
-              Centralized catalog of platform-managed applications and services. Manage product lifecycles, configuration metadata, and downstream entitlement keys.
-            </p>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: "1.625rem", fontWeight: 800, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                  Product Registry
+                </h1>
+                {!isLoading && (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: "9999px",
+                      background: "rgba(56, 103, 245, 0.1)",
+                      border: "1px solid rgba(56, 103, 245, 0.22)",
+                      color: "var(--brand-primary, #3867f5)",
+                    }}
+                  >
+                    {totalCount} {totalCount === 1 ? "Product" : "Products"}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.5, maxWidth: "780px" }}>
+                Centralized catalog of platform-managed applications and services. Manage product lifecycles, configuration metadata, and downstream entitlement keys.
+              </p>
+            </div>
           </div>
 
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn-gradient"
             onClick={(e) => handleOpenCreate(e.currentTarget)}
-            style={{ flexShrink: 0 }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.65rem 1.35rem",
+              borderRadius: "10px",
+              fontWeight: 700,
+              fontSize: "0.875rem",
+              background: "linear-gradient(135deg, #3867f5 0%, #2952cc 100%)",
+              color: "#ffffff",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(56, 103, 245, 0.3)",
+              flexShrink: 0,
+            }}
           >
             <PlusIcon size={16} />
-            Register Product
+            <span>Register Product</span>
           </button>
         </div>
 

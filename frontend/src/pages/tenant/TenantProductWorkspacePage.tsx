@@ -20,10 +20,12 @@ import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
 import { AlertCircleIcon } from "../../components/Icons.tsx";
 
 export const TenantProductWorkspacePage: React.FC = () => {
-  const { productId } = useParams<{ productId: string }>();
+  const params = useParams<{ productId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const productId = params.productId || location.pathname.split("/").pop();
 
   const currentTenantId = user?.active_context?.organization?.id;
 

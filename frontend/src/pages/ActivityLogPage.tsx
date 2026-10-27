@@ -8,6 +8,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   AUDIT_ACTION_LABELS,
   AUDIT_TARGET_TYPE_LABELS,
@@ -302,26 +303,68 @@ export const ActivityLogPage: React.FC = () => {
           {liveAnnouncement}
         </div>
 
+        {/* Breadcrumb Navigation */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1.25rem", fontWeight: 500 }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none", transition: "color 0.15s" }}>Platform Owner</Link>
+          <span>/</span>
+          <span>Infrastructure</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Activity & Audit Logs</span>
+        </div>
+
         {/* Header Title Section */}
-        <div className="activity-page-header">
-          <div className="activity-title-group">
-            <div className="activity-title-row">
-              <h1 className="heading-title">Activity Log</h1>
-              {data && (
-                <span className="registry-count-badge" aria-label={`Total ${data.count} events recorded`}>
-                  {data.count} {data.count === 1 ? "Event" : "Events"}
-                </span>
-              )}
+        <div className="activity-page-header" style={{ marginBottom: "2rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)",
+                border: "1px solid rgba(56, 103, 245, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--brand-primary)",
+                boxShadow: "0 4px 12px rgba(56, 103, 245, 0.1)",
+                flexShrink: 0,
+              }}
+            >
+              <HistoryIcon size={24} />
             </div>
-            <p className="text-body" style={{ marginTop: "0.25rem" }}>
-              Immutable audit trail capturing master platform mutations, access updates, and authentication events.
-            </p>
+
+            <div className="activity-title-group">
+              <div className="activity-title-row" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <h1 className="heading-hero" style={{ fontSize: "1.75rem", margin: 0, fontWeight: 800, letterSpacing: "-0.02em" }}>
+                  Activity Log
+                </h1>
+                {data && (
+                  <span
+                    style={{
+                      background: "rgba(56, 103, 245, 0.1)",
+                      color: "var(--brand-primary)",
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: 999,
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      border: "1px solid rgba(56, 103, 245, 0.2)",
+                    }}
+                    aria-label={`Total ${data.count} events recorded`}
+                  >
+                    {data.count} {data.count === 1 ? "Event" : "Events"}
+                  </span>
+                )}
+              </div>
+              <p className="text-body" style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
+                Immutable audit trail capturing master platform mutations, access updates, and authentication events.
+              </p>
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
             <button
               type="button"
-              className="btn-secondary activity-retention-btn"
+              className="btn btn-secondary activity-retention-btn"
               onClick={handleOpenRetentionEvaluation}
               aria-label="Open Data Retention Evaluation (Dry-Run)"
             >
@@ -331,7 +374,7 @@ export const ActivityLogPage: React.FC = () => {
 
             <button
               type="button"
-              className="btn-secondary activity-refresh-btn"
+              className="btn btn-secondary activity-refresh-btn"
               onClick={fetchAuditLogs}
               disabled={isLoading || isDateRangeReversed}
               aria-label="Refresh activity logs"

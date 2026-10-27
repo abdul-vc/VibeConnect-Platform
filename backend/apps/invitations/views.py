@@ -65,6 +65,7 @@ class IssueInvitationView(APIView):
                 product=data.get("product_id"),
                 product_ids=data.get("product_ids"),
                 module_ids=data.get("module_ids"),
+                lms_console=data.get("lms_console", ""),
                 invited_by=actor,
             )
 
@@ -87,7 +88,8 @@ class IssueInvitationView(APIView):
                     m_ids = data.get("module_ids") or []
                     if p_ids:
                         from apps.assignments.services.assignment_services import assign_user_to_product
-                        from apps.product_registry.models import ProductModule
+                        from apps.integration_hub.lifecycle_service import is_lms_product
+                        from apps.product_registry.models import Product, ProductModule
                         for pid in p_ids:
                             try:
                                 prod_mods = list(
@@ -98,6 +100,9 @@ class IssueInvitationView(APIView):
                                     ).values_list("id", flat=True)
                                 ) if m_ids else None
 
+                                target_prod = Product.objects.filter(id=pid).first()
+                                launch_console = data.get("lms_console", "") if (target_prod and is_lms_product(target_prod)) else ""
+
                                 assign_user_to_product(
                                     organization_id=org.id,
                                     user_id=existing_user.id,
@@ -105,6 +110,7 @@ class IssueInvitationView(APIView):
                                     module_ids=prod_mods,
                                     membership_id=membership.id,
                                     actor=actor,
+                                    launch_console=launch_console,
                                 )
                             except Exception:
                                 pass

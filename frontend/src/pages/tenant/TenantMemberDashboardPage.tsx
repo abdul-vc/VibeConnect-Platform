@@ -32,6 +32,7 @@ export const TenantMemberDashboardPage: React.FC = () => {
   const [homeData, setHomeData] = useState<TenantHomeResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const generationRef = useRef(0);
   const currentTenantId = user?.active_context?.organization?.id;
@@ -88,6 +89,27 @@ export const TenantMemberDashboardPage: React.FC = () => {
     0
   );
 
+  const inferCategory = (code: string, name: string) => {
+    const text = `${code} ${name}`.toLowerCase();
+    if (text.includes("crm") || text.includes("hrms") || text.includes("desk") || text.includes("product")) return "productivity";
+    if (text.includes("comm") || text.includes("chat") || text.includes("event") || text.includes("mail")) return "communication";
+    if (text.includes("report") || text.includes("analy") || text.includes("audit") || text.includes("telemetry")) return "analytics";
+    return "operations";
+  };
+
+  const categories = [
+    { id: "all", label: "All", count: products.length },
+    { id: "productivity", label: "Productivity", count: products.filter((p) => inferCategory(p.code, p.name) === "productivity").length },
+    { id: "communication", label: "Communication", count: products.filter((p) => inferCategory(p.code, p.name) === "communication").length },
+    { id: "operations", label: "Operations", count: products.filter((p) => inferCategory(p.code, p.name) === "operations").length },
+    { id: "analytics", label: "Analytics", count: products.filter((p) => inferCategory(p.code, p.name) === "analytics").length },
+  ].filter((c) => c.id === "all" || c.count > 0);
+
+  const displayedProducts =
+    selectedCategory === "all"
+      ? products
+      : products.filter((p) => inferCategory(p.code, p.name) === selectedCategory);
+
   const handleLaunchProduct = (product: TenantProductAccessItem) => {
     navigate(`/tenant/workspace/${product.id}`, { state: { product } });
   };
@@ -125,8 +147,8 @@ export const TenantMemberDashboardPage: React.FC = () => {
                   gap: "0.5rem",
                   padding: "0.25rem 0.75rem",
                   borderRadius: "9999px",
-                  background: "rgba(99, 102, 241, 0.08)",
-                  border: "1px solid rgba(99, 102, 241, 0.2)",
+                  background: "var(--surface-soft-lavender)",
+                  border: "1px solid rgba(56, 103, 245, 0.2)",
                   color: "var(--brand-primary)",
                   fontSize: "0.75rem",
                   fontWeight: 600,
@@ -172,25 +194,51 @@ export const TenantMemberDashboardPage: React.FC = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void fetchTenantHome()}
-              className="btn-secondary"
-              title="Refresh status"
-              disabled={isLoading}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                padding: "0.5rem 0.85rem",
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                cursor: isLoading ? "not-allowed" : "pointer",
-              }}
-            >
-              <RotateCcwIcon size={14} />
-              <span>Refresh</span>
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => void fetchTenantHome()}
+                className="btn-secondary"
+                title="Refresh status"
+                disabled={isLoading}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.5rem 0.85rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                <RotateCcwIcon size={14} />
+                <span>Refresh</span>
+              </button>
+
+              {entitledProducts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleLaunchProduct(entitledProducts[0])}
+                  className="btn-gradient"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.5rem 1rem",
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    border: "none",
+                    color: "#ffffff",
+                    boxShadow: "0 4px 14px rgba(56, 103, 245, 0.3)",
+                  }}
+                >
+                  <span>Launch App</span>
+                  <ChevronRightIcon size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Real Metrics Ribbon */}
@@ -398,6 +446,36 @@ export const TenantMemberDashboardPage: React.FC = () => {
               </button>
             </div>
 
+            {/* Category Filter Pills matching Design #2 Screen 4 */}
+            {products.length > 0 && categories.length > 1 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                {categories.map((cat) => {
+                  const isActive = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      style={{
+                        padding: "0.35rem 0.85rem",
+                        borderRadius: "9999px",
+                        fontSize: "0.8125rem",
+                        fontWeight: 600,
+                        border: isActive ? "none" : "1px solid var(--border-subtle)",
+                        background: isActive ? "var(--brand-gradient)" : "var(--glass-surface)",
+                        color: isActive ? "#ffffff" : "var(--text-secondary)",
+                        boxShadow: isActive ? "0 2px 8px rgba(56, 103, 245, 0.28)" : "none",
+                        cursor: "pointer",
+                        transition: "all 0.16s ease",
+                      }}
+                    >
+                      {cat.label} ({cat.count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Product Cards Grid or Empty State */}
             {products.length === 0 ? (
               <div
@@ -446,6 +524,20 @@ export const TenantMemberDashboardPage: React.FC = () => {
                   </p>
                 </div>
               </div>
+            ) : displayedProducts.length === 0 ? (
+              <div
+                style={{
+                  padding: "2.5rem 1.5rem",
+                  textAlign: "center",
+                  background: "var(--glass-surface-elevated)",
+                  border: "1px solid var(--border-glass)",
+                  borderRadius: "14px",
+                }}
+              >
+                <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.875rem" }}>
+                  No applications found matching the selected category.
+                </p>
+              </div>
             ) : (
               <div
                 style={{
@@ -454,7 +546,7 @@ export const TenantMemberDashboardPage: React.FC = () => {
                   gap: "1.25rem",
                 }}
               >
-                {products.map((prod) => {
+                {displayedProducts.map((prod) => {
                   const isLaunchable = Boolean(prod.launchable ?? (prod.access_state === "available"));
                   const isAvailable = prod.access_state === "available";
                   const disabledReason =
@@ -500,9 +592,9 @@ export const TenantMemberDashboardPage: React.FC = () => {
                               borderRadius: "5px",
                               fontSize: "0.75rem",
                               fontWeight: 700,
-                              background: "rgba(99, 102, 241, 0.12)",
-                              color: "rgb(99, 102, 241)",
-                              border: "1px solid rgba(99, 102, 241, 0.25)",
+                              background: "var(--surface-soft-lavender)",
+                              color: "var(--brand-primary)",
+                              border: "1px solid rgba(56, 103, 245, 0.25)",
                               textTransform: "uppercase",
                               letterSpacing: "0.03em",
                             }}

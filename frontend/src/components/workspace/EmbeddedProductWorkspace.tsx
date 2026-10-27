@@ -169,6 +169,40 @@ export const EmbeddedProductWorkspace: React.FC<EmbeddedProductWorkspaceProps> =
         </div>
       </div>
 
+      {/* Workspace Header Toolbar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0.5rem 1rem",
+          background: "var(--glass-surface)",
+          borderBottom: "1px solid var(--border-subtle)",
+          minHeight: "44px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <button
+            type="button"
+            onClick={onBackToProducts}
+            className="btn-secondary"
+            style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem", minHeight: "28px" }}
+          >
+            ← My Products
+          </button>
+          <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-primary)" }}>
+            {product.name}
+          </span>
+          <span
+            className="badge badge-neutral"
+            style={{ fontSize: "0.6875rem", textTransform: "uppercase" }}
+          >
+            {product.code}
+          </span>
+        </div>
+      </div>
+
       {/* Loading Overlay */}
       {(isLaunching || isIframeLoading) && !launchError && (
         <div

@@ -74,7 +74,7 @@ test("test_invitation_accept_page_renders_initial_state", async () => {
     invitationsApi.validate = async () => mockValidInvitation;
     const markup = renderInvitationPage();
 
-    assert.ok(markup.includes("VibeConnect Workspace"), "Must render header");
+    assert.ok(markup.includes("Envisage Workspace"), "Must render header");
     assert.ok(markup.includes("Accept Invitation &amp; Setup Password") || markup.includes("Accept Invitation & Setup Password"));
     assert.ok(markup.includes("Validating invitation token"), "Must render loading state while validating");
   } finally {

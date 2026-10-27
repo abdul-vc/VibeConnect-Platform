@@ -13,6 +13,7 @@ import {
   type BillingAccount,
 } from "../../api/billing.ts";
 import { LoadingSpinner } from "../../components/LoadingSpinner.tsx";
+import { CreditCardIcon } from "../../components/Icons.tsx";
 
 export const BillingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"invoices" | "accounts">("invoices");
@@ -84,9 +85,9 @@ export const BillingPage: React.FC = () => {
         };
       case "issued":
         return {
-          bg: "rgba(99, 102, 241, 0.1)",
-          color: "rgb(99, 102, 241)",
-          border: "rgba(99, 102, 241, 0.3)",
+          bg: "rgba(56, 103, 245, 0.1)",
+          color: "var(--brand-primary, #3867f5)",
+          border: "rgba(56, 103, 245, 0.25)",
         };
       case "overdue":
         return {
@@ -96,9 +97,9 @@ export const BillingPage: React.FC = () => {
         };
       case "draft":
         return {
-          bg: "rgba(156, 163, 175, 0.1)",
-          color: "rgb(156, 163, 175)",
-          border: "rgba(156, 163, 175, 0.3)",
+          bg: "rgba(255, 255, 255, 0.05)",
+          color: "var(--text-muted)",
+          border: "var(--border-subtle)",
         };
       default:
         return {
@@ -111,40 +112,79 @@ export const BillingPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
+      <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.75rem" }}>
+        {/* Breadcrumbs */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+          <span>Platform Owner</span>
+          <span>/</span>
+          <span>Customer Operations</span>
+          <span>/</span>
+          <span style={{ color: "var(--brand-primary, #3867f5)", fontWeight: 600 }}>Billing &amp; Invoices</span>
+        </div>
+
         {/* Header */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h1
-            className="heading-hero"
-            style={{ fontSize: "1.75rem", margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, rgba(56, 103, 245, 0.15) 0%, rgba(138, 69, 246, 0.15) 100%)",
+              border: "1px solid rgba(56, 103, 245, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--brand-primary, #3867f5)",
+              flexShrink: 0,
+            }}
           >
-            Billing & Invoices
-          </h1>
-          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
-            Cross-tenant billing accounts, issued invoices, and payment lifecycle tracking.
-          </p>
+            <CreditCardIcon size={24} />
+          </div>
+          <div>
+            <h1
+              style={{ fontSize: "1.625rem", fontWeight: 800, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.02em" }}
+            >
+              Billing &amp; Invoices
+            </h1>
+            <p style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.875rem", lineHeight: 1.5 }}>
+              Cross-tenant billing accounts, issued invoices, and payment lifecycle tracking.
+            </p>
+          </div>
         </div>
 
         {/* Tab Controls */}
         <div
           style={{
             display: "flex",
-            gap: "0.5rem",
-            marginBottom: "1.5rem",
+            gap: "0.6rem",
             borderBottom: "1px solid var(--border-glass)",
-            paddingBottom: "0.75rem",
+            paddingBottom: "0.875rem",
           }}
         >
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === "invoices" ? "btn-primary" : "btn-secondary"}`}
+            className={activeTab === "invoices" ? "btn-gradient" : "btn btn-secondary"}
+            style={{
+              borderRadius: "9999px",
+              padding: "0.45rem 1.15rem",
+              fontSize: "0.8125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
             onClick={() => setActiveTab("invoices")}
           >
             Invoices ({invoiceCount})
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === "accounts" ? "btn-primary" : "btn-secondary"}`}
+            className={activeTab === "accounts" ? "btn-gradient" : "btn btn-secondary"}
+            style={{
+              borderRadius: "9999px",
+              padding: "0.45rem 1.15rem",
+              fontSize: "0.8125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
             onClick={() => setActiveTab("accounts")}
           >
             Billing Accounts ({accountCount})
