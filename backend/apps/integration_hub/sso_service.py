@@ -399,6 +399,32 @@ def is_trinity_client(
     return False
 
 
+def is_scientice_client(
+    client_identifier: Optional[str] = None,
+    product_code: Optional[str] = None,
+) -> bool:
+    """Checks whether the client identifier or product code corresponds to Scientice."""
+    client_id_lower = (client_identifier or "").lower().strip()
+    prod_code_lower = (product_code or "").lower().strip()
+
+    if client_id_lower in ("scientice-portal", "scientice-app", "scientice") or "scientice" in client_id_lower:
+        return True
+    if prod_code_lower in ("scientice", "scientice-portal", "scientice-app"):
+        return True
+    if client_identifier:
+        try:
+            sso_client = (
+                ProductSsoClient.objects.filter(client_identifier=client_identifier)
+                .select_related("product")
+                .first()
+            )
+            if sso_client and sso_client.product and sso_client.product.code in ("scientice", "scientice-portal", "scientice-app"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def get_m2m_connector_secret(
     product_code: Optional[str] = None,
     client_identifier: Optional[str] = None,
@@ -406,6 +432,9 @@ def get_m2m_connector_secret(
     """Retrieves the configured M2M secret for backend-to-backend authentication.
 
     Per-client and per-product secret isolation:
+    - Scientice ('scientice-portal' / 'scientice'):
+        Uses ONLY VIBECONNECT_SCIENTICE_M2M_SECRET. Fails closed if missing.
+        Never falls back to FieldSense, Trinity, LMS, VMS, HRMS, or any shared secret.
     - FieldSense Operations Hub ('fieldsense-ops-hub' / 'fieldsense'):
         Uses ONLY VIBECONNECT_FIELDSENSE_M2M_SECRET. Fails closed if missing.
         Never falls back to Trinity, LMS, VMS, HRMS, or any shared secret.
@@ -423,6 +452,29 @@ def get_m2m_connector_secret(
     Never exposes or logs secret values.
     Raises exceptions.AuthenticationFailed if not configured.
     """
+    if is_scientice_client(client_identifier=client_identifier, product_code=product_code):
+        secret = (
+            getattr(settings, "VIBECONNECT_SCIENTICE_M2M_SECRET", None)
+            or os.environ.get("VIBECONNECT_SCIENTICE_M2M_SECRET", "")
+        ).strip()
+        if not secret:
+            try:
+                from dotenv import dotenv_values
+                from pathlib import Path
+                env_path = getattr(settings, "BASE_DIR", Path(".")) / ".env"
+                env_dict = dotenv_values(env_path)
+                secret = (env_dict.get("VIBECONNECT_SCIENTICE_M2M_SECRET") or "").strip()
+            except Exception:
+                pass
+        if not secret:
+            raise exceptions.AuthenticationFailed(
+                {
+                    "error": "SERVER_MISCONFIGURED",
+                    "detail": "Scientice M2M connector secret is not configured on the server.",
+                }
+            )
+        return secret
+
     if is_fieldsense_client(client_identifier=client_identifier, product_code=product_code):
         secret = (
             getattr(settings, "VIBECONNECT_FIELDSENSE_M2M_SECRET", None)

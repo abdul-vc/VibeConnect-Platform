@@ -102,6 +102,27 @@ def is_workhub_product(product: Any) -> bool:
     return str(code).strip().lower() in WORKHUB_PRODUCT_CODES
 
 
+SCIENTICE_PRODUCT_CODES: frozenset[str] = frozenset({
+    "scientice",
+    "scientice-portal",
+    "scientice_portal",
+    "scientice-app",
+    "scientice_app",
+})
+
+
+def is_scientice_product(product: Any) -> bool:
+    """Returns True if the given product or product code corresponds to Scientice."""
+    if not product:
+        return False
+    code = getattr(product, "code", None)
+    if not code and isinstance(product, str):
+        code = product
+    if not code:
+        return False
+    return str(code).strip().lower() in SCIENTICE_PRODUCT_CODES
+
+
 def _check_url(url: str, field: str = "url") -> None:
     """Raise ValidationError for any non-https or dangerous URL."""
     try:
