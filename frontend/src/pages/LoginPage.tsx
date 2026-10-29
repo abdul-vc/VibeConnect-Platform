@@ -152,7 +152,7 @@ export const LoginPage: React.FC = () => {
             src={theme === "dark" ? logoDark : logoLight}
             alt="Envisage Insights"
             style={{
-              height: "78px",
+              height: "54px",
               width: "auto",
               objectFit: "contain",
               display: "block",

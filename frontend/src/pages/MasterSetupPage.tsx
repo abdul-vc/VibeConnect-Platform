@@ -206,30 +206,11 @@ export const MasterSetupPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
-              <span
-                style={{
-                  fontSize: "0.6875rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--brand-primary)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                  padding: "0.2rem 0.6rem",
-                  background: "var(--surface-soft-lavender)",
-                  borderRadius: "9999px",
-                }}
-              >
-                ● Platform Overview · Live Telemetry
-              </span>
-            </div>
             <h1
               className="heading-hero"
               style={{ fontSize: "1.875rem", fontWeight: 800, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.025em" }}
             >
-              Good morning, {user?.full_name?.split(" ")[0] || "Alex"}! ☀️
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, {user?.full_name?.split(" ")[0] || "Admin"}!
             </h1>
             <p
               style={{
@@ -239,7 +220,7 @@ export const MasterSetupPage: React.FC = () => {
                 maxWidth: "760px",
               }}
             >
-              Here's what's happening across your Envisage enterprise platform today.
+              Here is what's happening across your platform today.
             </p>
           </div>
 
@@ -575,7 +556,7 @@ export const MasterSetupPage: React.FC = () => {
             >
               <TelemetryTrendChart
                 title="Revenue trajectory"
-                subtitle="MRR ($k) & net new logos, last 7 months"
+                subtitle="Monthly revenue & client growth"
                 data={trendData}
                 metricLabel="mrr"
                 strokeColor="#2563eb"
@@ -584,7 +565,7 @@ export const MasterSetupPage: React.FC = () => {
               />
               <DonutDistributionChart
                 title="Module adoption"
-                subtitle="Share of clients active"
+                subtitle="Active client distribution"
                 segments={adoptionSegments}
               />
             </div>

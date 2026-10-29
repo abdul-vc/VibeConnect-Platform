@@ -172,27 +172,11 @@ export const TenantDashboardPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
-              <span
-                style={{
-                  fontSize: "0.6875rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--brand-primary)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                }}
-              >
-                ORGANIZATION OVERVIEW &bull; LIVE
-              </span>
-            </div>
             <h1
               className="heading-hero"
               style={{ fontSize: "1.75rem", fontWeight: 800, margin: 0, color: "var(--text-primary)" }}
             >
-              Mission control
+              Organization Overview
             </h1>
             <p
               style={{
@@ -202,7 +186,7 @@ export const TenantDashboardPage: React.FC = () => {
                 maxWidth: "760px",
               }}
             >
-              Tenant telemetry, seat utilization, product adoption and administrative alerts for{" "}
+              Overview of seats, products, and activity for{" "}
               <strong style={{ color: "var(--text-primary)" }}>{organization?.name || "Organization"}</strong>.
             </p>
           </div>

@@ -33,12 +33,12 @@ import {
   UploadIcon,
   StarIcon,
   CodeIcon,
-  SearchIcon,
 } from "./Icons.tsx";
 import { TENANT_MODULES_REGISTRY } from "../config/tenantModules.ts";
 import { tenantHomeApi } from "../api/tenantHome.ts";
 import { showcaseApi } from "../api/showcase.ts";
 import type { TenantProductAccessItem, ShowcaseProfile } from "../api/types.ts";
+import { GlobalSearchBar } from "./search/GlobalSearchBar.tsx";
 
 function renderTenantIcon(icon: string) {
   switch (icon) {
@@ -139,6 +139,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
       return false;
     }
   });
+
 
   useEffect(() => {
     const handleShowcaseLaunched = () => {
@@ -307,14 +308,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             },
             {
               id: "support-console",
-              label: "Support & Operations Console",
+              label: "Support Console",
               icon: <ShieldCheckIcon size={18} />,
               path: "/support",
               active: location.pathname === "/support",
             },
             {
               id: "support-impersonation",
-              label: "Audited Support Impersonation",
+              label: "Support Impersonation",
               icon: <ShieldCheckIcon size={18} />,
               path: "/support/impersonation",
               active: location.pathname.startsWith("/support/impersonation"),
@@ -326,7 +327,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           items: [
             {
               id: "products",
-              label: "Product Registry & Marketplace",
+              label: "Product Catalog",
               icon: <BoxIcon size={18} />,
               path: "/products",
               active: location.pathname.startsWith("/products"),
@@ -400,7 +401,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           items: [
             {
               id: "developer-oversight",
-              label: "Developer & API Console",
+              label: "Developer Console",
               icon: <CodeIcon size={18} />,
               path: "/owner/developer-oversight",
               active: location.pathname.startsWith("/owner/developer-oversight"),
@@ -428,14 +429,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
             },
             {
               id: "bulk-import",
-              label: "Data Import & Migration",
+              label: "Data Import",
               icon: <UploadIcon size={18} />,
               path: "/bulk-import",
               active: location.pathname.startsWith("/bulk-import"),
             },
             {
               id: "activity-log",
-              label: "Security, Privacy, Retention & Compliance",
+              label: "Security & Compliance",
               icon: <HistoryIcon size={18} />,
               path: "/activity-log",
               active: location.pathname.startsWith("/activity-log"),
@@ -450,14 +451,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           items: [
             {
               id: "support-console",
-              label: "Support & Operations Console",
+              label: "Support Console",
               icon: <ShieldCheckIcon size={18} />,
               path: "/support",
               active: location.pathname === "/support",
             },
             {
               id: "support-impersonation",
-              label: "Audited Support Impersonation",
+              label: "Support Impersonation",
               icon: <ShieldCheckIcon size={18} />,
               path: "/support/impersonation",
               active: location.pathname.startsWith("/support/impersonation"),
@@ -695,52 +696,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children, fullWidth = false 
           </Link>
         </div>
 
-        {/* Center Search Bar matching Design #2 */}
-        <div
-          className="header-search-bar"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            background: "var(--glass-surface-sunken)",
-            border: "1px solid var(--border-glass)",
-            borderRadius: "10px",
-            padding: "0.35rem 0.75rem",
-            width: "320px",
-            maxWidth: "100%",
-            transition: "all 0.16s ease",
-          }}
-        >
-          <SearchIcon size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Search anything..."
-            style={{
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              fontSize: "0.8125rem",
-              color: "var(--text-primary)",
-              width: "100%",
-            }}
-            aria-label="Search across platform"
-          />
-          <kbd
-            style={{
-              fontSize: "0.6875rem",
-              padding: "0.1rem 0.35rem",
-              borderRadius: "4px",
-              background: "var(--glass-surface-elevated)",
-              border: "1px solid var(--border-subtle)",
-              color: "var(--text-muted)",
-              fontFamily: "inherit",
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Ctrl K
-          </kbd>
-        </div>
+        {/* Center Search Bar with attached dropdown */}
+        <GlobalSearchBar user={user} tenantProducts={tenantProducts} />
 
         {/* Header Right Actions */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
